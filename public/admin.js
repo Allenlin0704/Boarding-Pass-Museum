@@ -1,106 +1,96 @@
 // =====================================
-// BoardingPassMuseum Admin System
-// =====================================
-// =====================================
-// 权限检查
+// BoardingPassMuseum Admin Panel V4.3.1
 // =====================================
 
+
+const API =
+"https://boardingpassmuseum-api.allenlin-developer.workers.dev";
+
+
+
+
+// 当前用户
 
 const currentUser =
-
 JSON.parse(
-
-localStorage.getItem(
-"currentUser"
-)
-
+localStorage.getItem("currentUser")
 );
 
 
 
 if(
-!currentUser ||
+!currentUser
+||
 (
-currentUser.role !== "administrator" &&
-currentUser.role !== "superadministrator"
+currentUser.role!=="administrator"
+&&
+currentUser.role!=="superadministrator"
 )
 
 ){
 
 alert(
-"你没有管理员权限"
+"没有管理员权限"
 );
 
-
-window.location.href =
-"index.html";
-
+window.location.href="index.html";
 
 }
 
-let pendingFlights =
-JSON.parse(
-    localStorage.getItem("pendingFlights")
-)
-||
-[];
-
-
-let flights =
-JSON.parse(
-    localStorage.getItem("flights")
-)
-||
-[];
 
 
 
-let editType = "";
-let editIndex = -1;
+
+document.getElementById(
+"adminInfo"
+).innerHTML =
+
+`
+当前账号：
+${currentUser.username}
+
+<br>
+
+权限：
+${currentUser.role}
+
+`;
+
+
 
 
 
 
 const pendingList =
 document.getElementById(
-    "pendingList"
-);
-
-
-const adminList =
-document.getElementById(
-    "adminList"
+"pendingList"
 );
 
 
 
 
-// 保存
 
-function saveData(){
+// =====================================
+// 获取审核列表
+// =====================================
 
 
-localStorage.setItem(
+async function loadPending(){
 
-"pendingFlights",
 
-JSON.stringify(
-pendingFlights
-)
-
+const res =
+await fetch(
+`${API}/api/admin/pending?admin_id=${currentUser.id}`
 );
 
 
 
-localStorage.setItem(
+const data =
+await res.json();
 
-"flights",
 
-JSON.stringify(
-flights
-)
 
-);
+render(data);
 
 
 }
@@ -110,12 +100,14 @@ flights
 
 
 
+
+
 // =====================================
-// 渲染待审核
+// 渲染
 // =====================================
 
 
-function renderPending(){
+function render(items){
 
 
 pendingList.innerHTML="";
@@ -123,11 +115,16 @@ pendingList.innerHTML="";
 
 
 if(
-pendingFlights.length===0
+!items ||
+items.length===0
 ){
 
 pendingList.innerHTML=
-"<p>暂无待审核投稿</p>";
+`
+<p>
+暂无待审核投稿
+</p>
+`;
 
 return;
 
@@ -135,11 +132,13 @@ return;
 
 
 
-pendingFlights.forEach(
-(item,index)=>{
 
 
-let card =
+items.forEach(
+(item)=>{
+
+
+const card =
 document.createElement(
 "div"
 );
@@ -149,9 +148,16 @@ card.className="card";
 
 
 
-card.innerHTML=
+card.innerHTML =
 
 `
+
+<img 
+src="${item.image}"
+width="300"
+>
+
+
 
 <h3>
 ${item.airline}
@@ -160,14 +166,20 @@ ${item.flight}
 
 
 <p>
-机场：
-${item.airport}
+路线：
+${item.route || ""}
 </p>
 
 
 <p>
 日期：
-${item.date}
+${item.date || ""}
+</p>
+
+
+<p>
+机型：
+${item.aircraft || ""}
 </p>
 
 
@@ -176,32 +188,33 @@ ${item.story || ""}
 </p>
 
 
-<img
-src="${item.image}"
-width="300"
->
+
+<textarea
+id="reason-${item.id}"
+placeholder="拒绝理由（拒绝时填写）"
+></textarea>
+
 
 
 <br>
 
 
-<button onclick="editPending(${index})">
-编辑
-</button>
-
-
-<button onclick="approve(${index})">
+<button
+onclick="approve(${item.id})"
+>
 通过
 </button>
 
 
-<button onclick="reject(${index})">
+
+<button
+onclick="rejectItem(${item.id})"
+>
 拒绝
 </button>
 
 
 `;
-
 
 
 pendingList.appendChild(card);
@@ -218,24 +231,95 @@ pendingList.appendChild(card);
 
 
 
+
+
+
 // =====================================
-// 渲染已上线
+// 通过
 // =====================================
 
 
-function renderPublished(){
+window.approve =
+async function(id){
 
 
-adminList.innerHTML="";
+
+const res =
+await fetch(
+`${API}/api/admin/approve`,
+{
+
+method:"POST",
+
+headers:
+{
+"Content-Type":
+"application/json"
+},
+
+body:
+JSON.stringify(
+{
+id:id
+}
+)
+
+}
+
+);
+
+
+
+const data =
+await res.json();
+
+
+
+if(data.success){
+
+alert(
+"审核通过"
+);
+
+loadPending();
+
+}
+
+};
+
+
+
+
+
+
+
+
+
+// =====================================
+// 拒绝
+// =====================================
+
+
+window.rejectItem =
+async function(id){
+
+
+
+const reason =
+document.getElementById(
+`reason-${id}`
+)
+.value;
 
 
 
 if(
-flights.length===0
+!reason
 ){
 
-adminList.innerHTML=
-"<p>暂无展品</p>";
+alert(
+"请输入拒绝理由"
+);
 
 return;
 
@@ -244,388 +328,55 @@ return;
 
 
 
-flights.forEach(
-(item,index)=>{
-
-
-let card =
-document.createElement(
-"div"
-);
-
-
-
-card.className="card";
-
-
-
-card.innerHTML=
-
-`
-
-<h3>
-${item.airline}
-${item.flight}
-</h3>
-
-
-<p>
-${item.airport}
-</p>
-
-
-<p>
-${item.date}
-</p>
-
-
-<button onclick="editPublished(${index})">
-编辑
-</button>
-
-
-`;
-
-
-
-adminList.appendChild(card);
-
-
-});
-
-
-}
-
-
-
-
-
-
-// =====================================
-// 编辑
-// =====================================
-
-
-function openEdit(
-item,
-type,
-index
-){
-
-
-editType=type;
-
-editIndex=index;
-
-
-
-document.getElementById(
-"editPanel"
-)
-.style.display="block";
-
-
-
-document.getElementById(
-"editAirline"
-)
-.value=item.airline || "";
-
-
-
-document.getElementById(
-"editFlight"
-)
-.value=item.flight || "";
-
-
-
-document.getElementById(
-"editAirport"
-)
-.value=item.airport || "";
-
-
-
-document.getElementById(
-"editDate"
-)
-.value=item.date || "";
-
-
-
-document.getElementById(
-"editStory"
-)
-.value=item.story || "";
-
-
-
-}
-
-
-
-
-
-window.editPending=function(index){
-
-openEdit(
-
-pendingFlights[index],
-
-"pending",
-
-index
-
-);
-
-};
-
-
-
-
-
-window.editPublished=function(index){
-
-openEdit(
-
-flights[index],
-
-"published",
-
-index
-
-);
-
-};
-
-
-
-
-
-
-// 保存编辑
-
-
-document.getElementById(
-"saveEdit"
-)
-.onclick=function(){
-
-
-
-let data={
-
-
-airline:
-document.getElementById(
-"editAirline"
-).value,
-
-
-flight:
-document.getElementById(
-"editFlight"
-).value,
-
-
-airport:
-document.getElementById(
-"editAirport"
-).value,
-
-
-date:
-document.getElementById(
-"editDate"
-).value,
-
-
-story:
-document.getElementById(
-"editStory"
-).value
-
-
-};
-
-
-
-
-if(
-editType==="pending"
-){
-
-
-pendingFlights[editIndex]=
+const res =
+await fetch(
+`${API}/api/admin/reject`,
 {
 
-...pendingFlights[editIndex],
+method:"POST",
 
-...data
-
-};
-
-
-}
-
-
-
-
-if(
-editType==="published"
-){
-
-
-flights[editIndex]=
+headers:
 {
+"Content-Type":
+"application/json"
+},
 
-...flights[editIndex],
-
-...data
-
-};
-
+body:
+JSON.stringify(
+{
+id:id,
+reason:reason
+}
+)
 
 }
 
-
-
-
-saveData();
-
-
-document.getElementById(
-"editPanel"
-)
-.style.display="none";
-
-
-render();
-
-
-};
-
-
-
-
-
-
-
-// =====================================
-// 审核
-// =====================================
-
-
-
-window.approve=function(index){
-
-
-let item = pendingFlights[index];
-
-
-// 修改状态
-
-item.status = "approved";
-
-
-// 加入展厅
-
-flights.push(item);
-
-
-// 保存
-
-saveData();
-
-
-// 不删除 pendingFlights
-
-
-render();
-
-
-alert(
-"审核通过"
 );
 
 
-};
+
+const data =
+await res.json();
 
 
 
-
-
-window.reject=function(index){
-
-
-
-let item =
-pendingFlights[index];
-
-
-window.reject=function(index){
-
-
-let item =
-pendingFlights[index];
-
-
-item.status =
-"rejected";
-
-
-saveData();
-
-
-render();
-
+if(data.success){
 
 alert(
 "已拒绝"
 );
 
-
-};
-
-
-saveData();
-
-
-render();
-
-
-alert(
-"已拒绝"
-);
-
-
-};
-
-
-
-
-
-
-// =====================================
-// 总渲染
-// =====================================
-
-
-function render(){
-
-
-renderPending();
-
-
-renderPublished();
-
+loadPending();
 
 }
 
 
+};
 
 
 
 
-render();
+
+
+
+loadPending();

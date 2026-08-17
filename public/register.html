@@ -21,7 +21,6 @@
 
 <header class="menubar">
 
-
 <div class="brand">
 ✈ BoardingPassMuseum
 </div>
@@ -33,16 +32,13 @@
 展厅
 </a>
 
-
 <a href="login.html">
 登录
 </a>
 
 </nav>
 
-
 </header>
-
 
 
 
@@ -58,10 +54,16 @@
 </h1>
 
 
+<p>
+加入 BoardingPassMuseum，收藏你的飞行记忆。
+</p>
+
+
 
 <input
 id="username"
 placeholder="用户名"
+autocomplete="username"
 >
 
 
@@ -73,6 +75,7 @@ placeholder="用户名"
 id="email"
 placeholder="邮箱"
 type="email"
+autocomplete="email"
 >
 
 
@@ -90,13 +93,11 @@ type="button"
 
 
 
-
 <input
 id="verifyCode"
 placeholder="邮箱验证码"
+autocomplete="one-time-code"
 >
-
-
 
 
 
@@ -104,6 +105,7 @@ placeholder="邮箱验证码"
 id="password"
 type="password"
 placeholder="密码"
+autocomplete="new-password"
 >
 
 
@@ -112,6 +114,7 @@ placeholder="密码"
 id="confirmPassword"
 type="password"
 placeholder="确认密码"
+autocomplete="new-password"
 >
 
 
@@ -119,10 +122,23 @@ placeholder="确认密码"
 
 <button
 id="registerBtn"
+type="button"
 >
 注册
 </button>
 
+
+
+<p id="registerMessage"></p>
+
+
+
+<p class="privacy-note">
+
+验证码可能进入垃圾邮件/垃圾邮箱文件夹，
+如果没有收到，请检查您的邮箱。
+
+</p>
 
 
 </section>
@@ -133,9 +149,57 @@ id="registerBtn"
 
 
 
-
 <script src="register.js"></script>
 
+<footer class="bpm-footer">
+
+<h3>
+BoardingPassMuseum
+</h3>
+
+
+<p>
+记录每一次旅程的登机牌博物馆
+</p>
+
+
+<p>
+Preserving memories of every journey.
+</p>
+
+
+<div class="bpm-line"></div>
+
+
+<p>
+官方支持 QQ 群：
+<strong>138432408</strong>
+</p>
+
+
+<p>
+技术支持邮箱：
+<a href="mailto:allenlin_developer@outlook.com">
+allenlin_developer@outlook.com
+</a>
+</p>
+
+
+<p>
+如遇使用问题或其他疑难事项，
+<br>
+请将详细描述及相关截图发送至上述邮箱。
+</p>
+
+
+<div class="copyright">
+
+© 2026 BoardingPassMuseum. All Rights Reserved.
+
+</div>
+
+
+</footer>
 
 </body>
 
