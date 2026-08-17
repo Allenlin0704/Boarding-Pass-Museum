@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>登机牌博物馆</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f1ec;
+      color: #242424;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "PingFang SC",
+        "Microsoft YaHei",
+        sans-serif;
+    }
+
+    .header {
+      height: 72px;
+      background: #171717;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+    }
+
+    .logo {
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 28px;
+      font-size: 14px;
+      color: #cccccc;
+    }
+
+    .nav span {
+      cursor: pointer;
+    }
+
+    .nav span:hover {
+      color: white;
+    }
+
+    .hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 90px 40px 70px;
+    }
+
+    .eyebrow {
+      color: #8a6a3f;
+      font-size: 13px;
+      letter-spacing: 3px;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 58px;
+      font-weight: 500;
+      line-height: 1.1;
+      margin: 0 0 22px;
+    }
+
+    .subtitle {
+      max-width: 650px;
+      color: #666;
+      font-size: 17px;
+      line-height: 1.8;
+    }
+
+    .stats {
+      display: flex;
+      gap: 60px;
+      margin-top: 45px;
+    }
+
+    .stat-number {
+      font-family: Georgia, serif;
+      font-size: 34px;
+    }
+
+    .stat-label {
+      margin-top: 5px;
+      color: #777;
+      font-size: 13px;
+    }
+
+    .collection {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 40px 100px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .section-title h2 {
+      font-family: Georgia, serif;
+      font-size: 28px;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .view-all {
+      color: #777;
+      font-size: 13px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e2dfd8;
+      padding: 18px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    }
+
+    .ticket {
+      height: 170px;
+      background: #e9e5dc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8b8478;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .airline {
+      font-size: 12px;
+      color: #8a6a3f;
+      letter-spacing: 1px;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+    }
+
+    .flight {
+      font-family: Georgia, serif;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .route {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .date {
+      margin-top: 12px;
+      color: #999;
+      font-size: 12px;
+    }
+
+    .footer {
+      border-top: 1px solid #ddd8cf;
+      padding: 30px 40px;
+      text-align: center;
+      color: #999;
+      font-size: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .header {
+        padding: 0 20px;
+      }
+
+      .nav {
+        display: none;
+      }
+
+      .hero {
+        padding: 60px 25px;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      .collection {
+        padding: 0 25px 70px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        gap: 30px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="logo">✈ 登机牌博物馆</div>
+
+    <nav class="nav">
+      <span>首页</span>
+      <span>藏品</span>
+      <span>航空公司</span>
+      <span>关于博物馆</span>
+    </nav>
+  </header>
+
+
+  <main>
+
+    <section class="hero">
+
+      <div class="eyebrow">
+        BOARDING PASS MUSEUM
+      </div>
+
+      <h1>
+        记录每一次<br>
+        飞行的痕迹
+      </h1>
+
+      <div class="subtitle">
+        一座属于飞友的数字登机牌博物馆。
+        保存那些已经消失的航班、旧版登机牌，
+        以及每一次旅程留下的记忆。
+      </div>
+
+      <div class="stats">
+
+        <div>
+          <div class="stat-number">24</div>
+          <div class="stat-label">登机牌</div>
+        </div>
+
+        <div>
+          <div class="stat-number">18</div>
+          <div class="stat-label">航空公司</div>
+        </div>
+
+        <div>
+          <div class="stat-number">6</div>
+          <div class="stat-label">飞行年份</div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section class="collection">
+
+      <div class="section-title">
+        <h2>精选藏品</h2>
+        <div class="view-all">查看全部 →</div>
+      </div>
+
+
+      <div class="cards">
+
+        <div class="card">
+          <div class="ticket">
+            登机牌照片
+          </div>
+
+          <div class="airline">
+            China Southern
+          </div>
+
+          <div class="flight">
+            CZ ××××
+          </div>
+
+          <div class="route">
+            CAN → XXX
+          </div>
+
+          <div class="date">
+            2025
+          </div>
+        </div>
+
+
+        <div class="card">
+          <div class="ticket">
+            登机牌照片
+          </div>
+
+          <div class="airline">
+            3K / Jetstar Asia
+          </div>
+
+          <div class="flight">
+            3K684
+          </div>
+
+          <div class="route">
+            SIN → XXX
+          </div>
+
+          <div class="date">
+            2024 · 已停航
+          </div>
+        </div>
+
+
+        <div class="card">
+          <div class="ticket">
+            登机牌照片
+          </div>
+
+          <div class="airline">
+            China Eastern
+          </div>
+
+          <div class="flight">
+            MU ××××
+          </div>
+
+          <div class="route">
+            XXX → XXX
+          </div>
+
+          <div class="date">
+            2023
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  <section class="hero">
+
+  <div class="eyebrow">
+    ABOUT MUSEUM
+  </div>
+
+  <h1>
+    关于<br>
+    登机牌博物馆
+  </h1>
+
+  <div class="subtitle">
+    这里是一座记录航空历史与飞行记忆的数字博物馆。
+    保存每一次旅程留下的登机牌、航班资料以及珍贵回忆。
+    <br><br>
+
+    开发者：allenlin
+    <br>
+
+    网站反馈邮箱：
+    allenlin_developer@outlook.com
+  </div>
+
+</section>
+
+
+<section class="collection">
+
+  <div class="section-title">
+    <h2>上传藏品</h2>
+  </div>
+
+  <div class="card">
+
+    <p>
+      上传你的登机牌照片，加入未来的数字收藏。
+    </p>
+
+    <input type="file">
+
+  </div>
+
+</section></main>
+
+
+  <footer class="footer">
+    Boarding Pass Museum · A personal aviation collection
+  </footer>
+
+</body>
+</html>

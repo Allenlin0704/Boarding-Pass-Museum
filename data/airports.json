@@ -1,0 +1,15 @@
+[
+  {
+    "id": 1,
+    "name_cn": "广州白云国际机场",
+    "name_en": "Guangzhou Baiyun International Airport",
+    "iata": "CAN",
+    "icao": "ZGGG",
+    "city_cn": "",
+    "city_en": "",
+    "country_cn": "",
+    "country": "",
+    "active": true,
+    "passenger": true
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "name": "boardingpassmuseum",
+  "version": "1.0.0",
+  "description": "BoardingPassMuseum digital boarding pass museum",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}

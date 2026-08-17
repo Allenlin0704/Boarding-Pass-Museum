@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+<link rel="icon" type="image/png" href="favicon.png">
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BoardingPassMuseum Admin</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+
+<header class="menubar">
+
+
+<div class="brand">
+✈ Boarding Pass Museum
+</div>
+
+
+<nav>
+
+<a href="index.html">
+展厅
+</a>
+
+
+<a href="submit.html">
+投稿
+</a>
+
+
+<a href="favorites.html">
+我的收藏
+</a>
+
+
+<a href="admin.html">
+Admin
+</a>
+
+<a href="my.html">
+我的投稿
+</a>
+
+
+</nav>
+
+
+</header>
+
+
+
+
+
+<main class="admin-container">
+
+
+<h2>
+管理员控制中心
+</h2>
+
+
+
+
+<!-- =====================
+待审核
+===================== -->
+
+
+<section>
+
+
+<h3>
+待审核投稿
+</h3>
+
+
+<div
+id="pendingList"
+class="museum-grid"
+>
+
+</div>
+
+
+</section>
+
+
+
+
+
+
+<!-- =====================
+已上线
+===================== -->
+
+
+<section>
+
+
+<h3>
+展品管理
+</h3>
+
+
+<div
+id="adminList"
+class="museum-grid"
+>
+
+</div>
+
+
+</section>
+
+
+
+
+
+
+<!-- =====================
+编辑窗口
+===================== -->
+
+
+<section
+id="editPanel"
+style="display:none;"
+>
+
+
+<h3>
+编辑展品
+</h3>
+
+
+
+<input
+id="editAirline"
+placeholder="航司"
+>
+
+
+<input
+id="editFlight"
+placeholder="航班号"
+>
+
+
+<input
+id="editAirport"
+placeholder="机场"
+>
+
+
+<input
+id="editDate"
+placeholder="日期"
+>
+
+
+<textarea
+id="editStory"
+placeholder="故事"
+></textarea>
+
+
+
+<button
+id="saveEdit"
+>
+保存修改
+</button>
+
+
+
+</section>
+
+
+
+
+</main>
+
+
+
+<script src="admin.js"></script>
+
+
+</body>
+
+
+</html>
