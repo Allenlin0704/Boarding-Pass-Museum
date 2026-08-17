@@ -1,0 +1,8 @@
+name = "boardingpassmuseum-api"
+main = "worker/index.js"
+compatibility_date = "2026-08-17"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "boardingpassmuseum-db"
+database_id = "df57ffb4-b712-4635-8842-30ef50365841"
