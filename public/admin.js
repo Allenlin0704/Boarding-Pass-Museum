@@ -1,77 +1,273 @@
 // =====================================
-// BoardingPassMuseum Admin Panel V4.3.1
+// BoardingPassMuseum
+// Admin Console V5.1
+// =====================================
+
+const API =
+"https://api.bpmuseum.org.cn";
+
+
+let currentUser = null;
+
+let pendingFlights = [];
+
+let approvedFlights = [];
+
+let editingId = null;
+
+
+// =====================================
+// INIT
+// =====================================
+
+document.addEventListener(
+"DOMContentLoaded",
+()=>{
+init();
+}
+);
+
+
+async function init(){
+
+loadUser();
+
+
+if(!currentUser){
+
+location.href="login.html";
+
+return;
+
+}
+
+
+if(
+currentUser.role!=="administrator"
+&&
+currentUser.role!=="superadministrator"
+){
+
+document.body.innerHTML=`
+
+<h1 style="text-align:center;margin-top:100px">
+无权限访问
+</h1>
+
+`;
+
+return;
+
+}
+
+
+const welcome =
+document.getElementById(
+"adminWelcome"
+);
+
+
+if(welcome){
+
+welcome.innerText =
+`
+欢迎回来，${currentUser.username}
+`;
+
+}
+
+
+bindEvents();
+
+
+await loadDashboard();
+
+await loadPending();
+
+await loadApproved();
+
+
+}
+
+
+// =====================================
+// USER
 // =====================================
 
 
-const API =
-"https://boardingpassmuseum-api.allenlin-developer.workers.dev";
+function loadUser(){
 
+try{
 
-
-
-// 当前用户
-
-const currentUser =
+currentUser =
 JSON.parse(
-localStorage.getItem("currentUser")
+localStorage.getItem(
+"currentUser"
+)
 );
+
+}catch(e){
+
+currentUser=null;
+
+}
+
+}
+
+
+// =====================================
+// EVENTS
+// =====================================
+
+
+function bindEvents(){
+
+
+document.addEventListener(
+"click",
+async(e)=>{
+
+
+const target=e.target;
 
 
 
 if(
-!currentUser
-||
-(
-currentUser.role!=="administrator"
-&&
-currentUser.role!=="superadministrator"
+target.classList.contains(
+"edit-btn"
 )
-
 ){
 
-alert(
-"没有管理员权限"
+openEditModal(
+Number(
+target.dataset.id
+)
 );
-
-window.location.href="index.html";
 
 }
 
 
 
+if(
+target.classList.contains(
+"approve-btn"
+)
+){
 
+approveItem(
+Number(
+target.dataset.id
+)
+);
 
-document.getElementById(
-"adminInfo"
-).innerHTML =
-
-`
-当前账号：
-${currentUser.username}
-
-<br>
-
-权限：
-${currentUser.role}
-
-`;
+}
 
 
 
+if(
+target.classList.contains(
+"reject-btn"
+)
+){
+
+rejectItem(
+Number(
+target.dataset.id
+)
+);
+
+}
 
 
-
-const pendingList =
-document.getElementById(
-"pendingList"
+}
 );
 
 
 
+const cancel =
+document.getElementById(
+"cancelEdit"
+);
+
+
+if(cancel){
+
+cancel.onclick =
+closeEditModal;
+
+}
+
+
+
+const save =
+document.getElementById(
+"saveEdit"
+);
+
+
+if(save){
+
+save.onclick =
+saveEdit;
+
+}
+
+
+
+}
 
 
 // =====================================
-// 获取审核列表
+// DASHBOARD
+// =====================================
+
+
+async function loadDashboard(){
+
+
+try{
+
+
+const res =
+await fetch(
+`${API}/api/admin/pending?admin_id=${currentUser.id}`
+);
+
+
+const data =
+await res.json();
+
+
+const count =
+document.getElementById(
+"pendingCount"
+);
+
+
+if(count){
+
+count.innerText =
+Array.isArray(data)
+?
+data.length
+:
+0;
+
+}
+
+
+}catch(e){
+
+console.error(e);
+
+}
+
+
+}
+
+
+// =====================================
+// PENDING
 // =====================================
 
 
@@ -84,102 +280,180 @@ await fetch(
 );
 
 
+const data =
+await res.json();
+
+
+if(
+Array.isArray(data)
+){
+
+pendingFlights=data;
+
+}else{
+
+pendingFlights=[];
+
+console.error(
+"Pending error",
+data
+);
+
+}
+
+
+renderPending();
+
+
+}
+
+
+
+function renderPending(){
+
+
+const box =
+document.getElementById(
+"pendingList"
+);
+
+
+if(!box)return;
+
+
+box.innerHTML="";
+
+
+pendingFlights.forEach(
+item=>{
+
+box.innerHTML +=
+createCard(
+item,
+"pending"
+);
+
+}
+);
+
+
+}
+
+
+// =====================================
+// APPROVED
+// =====================================
+
+
+async function loadApproved(){
+
+
+const res =
+await fetch(
+`${API}/api/admin/approved?admin_id=${currentUser.id}`
+);
+
 
 const data =
 await res.json();
 
 
-
-render(data);
-
-
-}
-
-
-
-
-
-
-
-
-// =====================================
-// 渲染
-// =====================================
-
-
-function render(items){
-
-
-pendingList.innerHTML="";
-
-
-
 if(
-!items ||
-items.length===0
+Array.isArray(data)
 ){
 
-pendingList.innerHTML=
-`
-<p>
-暂无待审核投稿
-</p>
-`;
+approvedFlights=data;
 
-return;
+}else{
+
+approvedFlights=[];
+
+console.error(
+"Approved error",
+data
+);
+
+}
+
+
+renderApproved();
+
 
 }
 
 
 
+function renderApproved(){
 
 
-items.forEach(
-(item)=>{
-
-
-const card =
-document.createElement(
-"div"
+const box =
+document.getElementById(
+"approvedList"
 );
 
 
-card.className="card";
+if(!box)return;
 
 
+box.innerHTML="";
 
-card.innerHTML =
 
-`
+approvedFlights.forEach(
+item=>{
 
-<img 
-src="${item.image}"
-width="300"
+box.innerHTML +=
+createCard(
+item,
+"approved"
+);
+
+}
+);
+
+
+}
+
+
+// CONTINUE_NEXT_PART
+// =====================================
+// CARD
+// =====================================
+
+
+function createCard(
+item,
+status
+){
+
+
+return `
+
+<div class="admin-card">
+
+
+<img
+class="admin-card-image"
+src="${item.image || ''}"
 >
 
 
-
 <h3>
-${item.airline}
-${item.flight}
+${item.airline || ""}
 </h3>
 
 
 <p>
-路线：
-${item.route || ""}
+${item.flight || ""}
 </p>
 
 
 <p>
-日期：
+${item.airport || ""}
+</p>
+
+
+<p>
 ${item.date || ""}
-</p>
-
-
-<p>
-机型：
-${item.aircraft || ""}
 </p>
 
 
@@ -188,60 +462,80 @@ ${item.story || ""}
 </p>
 
 
-
-<textarea
-id="reason-${item.id}"
-placeholder="拒绝理由（拒绝时填写）"
-></textarea>
+<div class="status ${status}">
+${status}
+</div>
 
 
-
-<br>
+<div class="card-actions">
 
 
 <button
-onclick="approve(${item.id})"
->
+class="edit-btn"
+data-id="${item.id}">
+编辑
+</button>
+
+
+
+${
+status==="pending"
+
+?
+
+`
+
+<button
+class="approve-btn"
+data-id="${item.id}">
 通过
 </button>
 
 
-
 <button
-onclick="rejectItem(${item.id})"
->
+class="reject-btn"
+data-id="${item.id}">
 拒绝
 </button>
 
+`
 
-`;
+:
 
-
-pendingList.appendChild(card);
-
-
-
-});
-
+""
 
 }
 
 
 
+</div>
 
 
+</div>
 
+`;
+
+}
 
 
 
 // =====================================
-// 通过
+// APPROVE
 // =====================================
 
 
-window.approve =
-async function(id){
+async function approveItem(id){
 
+
+if(
+!confirm(
+"确认通过该投稿？"
+)
+){
+
+return;
+
+}
 
 
 const res =
@@ -251,18 +545,21 @@ await fetch(
 
 method:"POST",
 
-headers:
-{
+headers:{
 "Content-Type":
 "application/json"
 },
 
 body:
-JSON.stringify(
-{
-id:id
-}
-)
+JSON.stringify({
+
+admin_id:
+currentUser.id,
+
+flight_id:
+id
+
+})
 
 }
 
@@ -275,56 +572,50 @@ await res.json();
 
 
 
-if(data.success){
+if(
+data.success
+||
+data.message
+){
 
 alert(
 "审核通过"
 );
 
-loadPending();
+
+await loadPending();
+
+await loadApproved();
+
+
+}else{
+
+
+alert(
+data.error ||
+"操作失败"
+);
+
 
 }
 
-};
 
-
-
-
-
-
+}
 
 
 
 // =====================================
-// 拒绝
+// REJECT
 // =====================================
 
 
-window.rejectItem =
-async function(id){
-
+async function rejectItem(id){
 
 
 const reason =
-document.getElementById(
-`reason-${id}`
-)
-.value;
-
-
-
-if(
-!reason
-){
-
-alert(
-"请输入拒绝理由"
+prompt(
+"请输入拒绝原因"
 );
-
-return;
-
-}
-
 
 
 
@@ -335,19 +626,24 @@ await fetch(
 
 method:"POST",
 
-headers:
-{
+headers:{
 "Content-Type":
 "application/json"
 },
 
 body:
-JSON.stringify(
-{
-id:id,
-reason:reason
-}
-)
+JSON.stringify({
+
+admin_id:
+currentUser.id,
+
+flight_id:
+id,
+
+reason:
+reason || ""
+
+})
 
 }
 
@@ -360,23 +656,259 @@ await res.json();
 
 
 
-if(data.success){
+if(
+data.success
+||
+data.message
+){
 
 alert(
 "已拒绝"
 );
 
-loadPending();
+
+await loadPending();
+
+
+}else{
+
+
+alert(
+data.error ||
+"操作失败"
+);
+
 
 }
+
+
+}
+
+
+
+
+// =====================================
+// EDIT
+// =====================================
+
+
+function openEditModal(id){
+
+
+const item =
+[
+...pendingFlights,
+...approvedFlights
+]
+.find(
+x=>x.id===id
+);
+
+
+
+if(!item){
+
+console.error(
+"not found",
+id
+);
+
+return;
+
+}
+
+
+
+editingId=id;
+
+
+
+document.getElementById(
+"editAirline"
+).value =
+item.airline || "";
+
+
+
+document.getElementById(
+"editFlight"
+).value =
+item.flight || "";
+
+
+
+document.getElementById(
+"editAirport"
+).value =
+item.airport || "";
+
+
+
+document.getElementById(
+"editDate"
+).value =
+item.date || "";
+
+
+
+document.getElementById(
+"editStory"
+).value =
+item.story || "";
+
+
+
+document.getElementById(
+"editImage"
+).value =
+item.image || "";
+
+
+
+document.getElementById(
+"editOverlay"
+).style.display=
+"flex";
+
+
+}
+
+
+
+function closeEditModal(){
+
+
+const box =
+document.getElementById(
+"editOverlay"
+);
+
+
+if(box){
+
+box.style.display=
+"none";
+
+}
+
+
+}
+
+
+
+
+async function saveEdit(){
+
+
+const body={
+
+
+admin_id:
+currentUser.id,
+
+
+flight_id:
+editingId,
+
+
+airline:
+document.getElementById(
+"editAirline"
+).value,
+
+
+flight:
+document.getElementById(
+"editFlight"
+).value,
+
+
+airport:
+document.getElementById(
+"editAirport"
+).value,
+
+
+date:
+document.getElementById(
+"editDate"
+).value,
+
+
+story:
+document.getElementById(
+"editStory"
+).value,
+
+
+image:
+document.getElementById(
+"editImage"
+).value
 
 
 };
 
 
 
+const res =
+await fetch(
+`${API}/api/admin/edit`,
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:
+JSON.stringify(body)
+
+}
+
+);
 
 
 
+const data =
+await res.json();
 
-loadPending();
+
+
+if(
+data.success
+){
+
+alert(
+"修改完成"
+);
+
+
+closeEditModal();
+
+
+await loadPending();
+
+await loadApproved();
+
+
+}else{
+
+
+alert(
+data.error ||
+"修改失败"
+);
+
+
+}
+
+
+}
+
+
+// =====================================
+// END
+// =====================================

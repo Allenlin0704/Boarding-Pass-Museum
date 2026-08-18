@@ -1,7 +1,8 @@
 // =====================================
-// BoardingPassMuseum API V4.3.1
-// User + Submission + Admin System
+// BoardingPassMuseum API V5.0
+// User + Submission + Admin + SA System
 // =====================================
+
 
 
 function cors(){
@@ -9,12 +10,17 @@ function cors(){
 return {
 
 "Access-Control-Allow-Origin":"*",
-"Access-Control-Allow-Headers":"Content-Type",
-"Access-Control-Allow-Methods":"GET,POST,OPTIONS"
+
+"Access-Control-Allow-Headers":
+"Content-Type",
+
+"Access-Control-Allow-Methods":
+"GET,POST,OPTIONS"
 
 };
 
 }
+
 
 
 
@@ -47,84 +53,115 @@ b=>b.toString(16).padStart(2,"0")
 
 
 
-export default {
 
+async function getUser(env,id){
+
+return await env.DB.prepare(
+`
+SELECT *
+FROM users
+WHERE id=?
+`
+)
+.bind(id)
+.first();
+
+}
+
+
+
+
+
+
+async function requireAdmin(env,id){
+
+const user =
+await getUser(env,id);
+
+
+
+if(
+!user ||
+(
+user.role!=="administrator"
+&&
+user.role!=="superadministrator"
+)
+){
+
+return null;
+
+}
+
+
+return user;
+
+}
+
+
+
+
+
+
+
+async function requireSA(env,id){
+
+const user =
+await getUser(env,id);
+
+
+
+if(
+!user ||
+user.role!=="superadministrator"
+){
+
+return null;
+
+}
+
+
+return user;
+
+}
+
+
+
+
+
+
+
+
+export default {
 
 async fetch(request,env){
 
 
-const headers=cors();
-
-
-
-if(request.method==="OPTIONS"){
-
-return new Response(
-null,
-{
-headers
-}
-);
-
-}
-
-
+const headers =
+cors();
 
 const url =
 new URL(request.url);
 
-
-
-
 // =====================================
-// TEST
+// ACCOUNT RECOVERY
 // =====================================
 
+
+// 忘记密码发送验证码
 if(
-url.pathname==="/api/test"
-){
-
-return Response.json(
-{
-message:
-"BoardingPassMuseum API V4.3.1 online"
-},
-{
-headers
-}
-);
-
-}
-
-
-
-
-
-// =====================================
-// SEND CODE
-// =====================================
-
-
-if(
-url.pathname==="/api/send-code"
+url.pathname==="/api/account/reset/send-code"
 &&
 request.method==="POST"
 ){
 
-const {
-email
-}=await request.json();
-
-
+const { email } = await request.json();
 
 const code =
 Math.floor(
 100000+
 Math.random()*900000
-)
-.toString();
-
-
+).toString();
 
 await env.DB.prepare(
 `
@@ -147,95 +184,11 @@ Date.now()+10*60*1000
 )
 .run();
 
-// Send email with Resend
-
-await fetch(
-"https://api.resend.com/emails",
-{
-method:"POST",
-
-headers:{
-"Authorization":
-`Bearer ${env.RESEND_API_KEY}`,
-
-"Content-Type":
-"application/json"
-},
-
-body:JSON.stringify({
-
-from:
-"BoardingPassMuseum <noreply@bpmuseum.org.cn>",
-
-to:[
-email
-],
-
-subject:
-"BoardingPassMuseum 验证码 / Verification Code",
-
-html:
-`
-<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.6">
-
-<h2>BoardingPassMuseum</h2>
-
-<p>
-您好，您正在进行 BoardingPassMuseum 账户验证。
-</p>
-
-<p>
-Hello, you are verifying your BoardingPassMuseum account.
-</p>
-
-
-<p>
-您的验证码：
-<br>
-Your verification code:
-</p>
-
-
-<h1>${code}</h1>
-
-
-<p>
-验证码将在 10 分钟后失效。
-<br>
-This code will expire in 10 minutes.
-</p>
-
-
-<p>
-如果这不是您的操作，请忽略此邮件。
-<br>
-If you did not request this code, please ignore this email.
-</p>
-
-
-<hr>
-
-<p style="font-size:12px;color:#666">
-
-BoardingPassMuseum<br>
-Preserving memories of every journey.
-
-记录每一次旅程的登机牌博物馆。
-
-</p>
-
-</div>
-`
-
-})
-
-}
-);
 
 return Response.json(
 {
 success:true,
-message:"Verification code sent"
+message:"Verification code generated"
 },
 {
 headers
@@ -243,6 +196,413 @@ headers
 );
 
 }
+
+
+
+// 重置密码
+
+if(
+url.pathname==="/api/account/reset-password"
+&&
+request.method==="POST"
+){
+
+const {
+email,
+code,
+password
+}=await request.json();
+
+
+
+const verify =
+await env.DB.prepare(
+`
+SELECT *
+FROM email_codes
+WHERE email=?
+AND code=?
+ORDER BY id DESC
+LIMIT 1
+`
+)
+.bind(
+email,
+code
+)
+.first();
+
+
+
+if(!verify){
+
+return Response.json(
+{
+error:"验证码错误"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+
+const hash =
+await hashPassword(
+password
+);
+
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET password=?
+WHERE email=?
+`
+)
+.bind(
+hash,
+email
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+// 修改邮箱发送验证码
+
+if(
+url.pathname==="/api/account/change-email/send-code"
+&&
+request.method==="POST"
+){
+
+const {
+email
+}=await request.json();
+
+
+const code =
+Math.floor(
+100000+
+Math.random()*900000
+).toString();
+
+
+
+await env.DB.prepare(
+`
+INSERT INTO email_codes
+(email,code,expires_at)
+VALUES(?,?,?)
+`
+)
+.bind(
+email,
+code,
+new Date(
+Date.now()+10*60*1000
+).toISOString()
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+// 修改邮箱
+
+if(
+url.pathname==="/api/account/change-email"
+&&
+request.method==="POST"
+){
+
+const {
+user_id,
+password,
+new_email,
+code
+}=await request.json();
+
+
+
+const user =
+await env.DB.prepare(
+`
+SELECT *
+FROM users
+WHERE id=?
+`
+)
+.bind(
+user_id
+)
+.first();
+
+
+
+if(!user){
+
+return Response.json(
+{
+error:"User not found"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+
+const oldHash =
+await hashPassword(
+password
+);
+
+
+
+if(
+oldHash!==user.password
+){
+
+return Response.json(
+{
+error:"密码错误"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+const verify =
+await env.DB.prepare(
+`
+SELECT *
+FROM email_codes
+WHERE email=?
+AND code=?
+ORDER BY id DESC
+LIMIT 1
+`
+)
+.bind(
+new_email,
+code
+)
+.first();
+
+
+
+if(!verify){
+
+return Response.json(
+{
+error:"验证码错误"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET email=?
+WHERE id=?
+`
+)
+.bind(
+new_email,
+user_id
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+if(
+request.method==="OPTIONS"
+){
+
+return new Response(
+null,
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+console.log(
+request.method,
+url.pathname
+);
+
+
+
+
+
+
+
+
+// =====================================
+// TEST
+// =====================================
+
+
+if(
+url.pathname==="/api/test"
+){
+
+return Response.json(
+{
+message:
+"BoardingPassMuseum API V5.0 online"
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+
+
+
+// =====================================
+// SEND CODE
+// =====================================
+
+
+if(
+url.pathname==="/api/send-code"
+&&
+request.method==="POST"
+){
+
+const {
+email
+}
+=
+await request.json();
+
+
+
+
+const code =
+Math.floor(
+100000+
+Math.random()*900000
+)
+.toString();
+
+
+
+
+
+await env.DB.prepare(
+`
+INSERT INTO email_codes
+(
+email,
+code,
+expires_at
+)
+VALUES
+(?,?,?)
+`
+)
+.bind(
+email,
+code,
+new Date(
+Date.now()+10*60*1000
+)
+.toISOString()
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true,
+message:"Verification code generated"
+},
+{
+headers
+}
+);
+
+}
+
+
+
 
 
 
@@ -260,19 +620,68 @@ url.pathname==="/api/register"
 request.method==="POST"
 ){
 
-const body =
+const {
+
+username,
+
+email,
+
+password,
+
+code
+
+}
+=
 await request.json();
 
 
 
-const password =
-await hashPassword(
-body.password
+
+
+const verify =
+await env.DB.prepare(
+`
+SELECT *
+FROM email_codes
+WHERE email=?
+AND code=?
+ORDER BY id DESC
+LIMIT 1
+`
+)
+.bind(
+email,
+code
+)
+.first();
+
+
+
+
+
+if(!verify){
+
+return Response.json(
+{
+error:"Invalid code"
+},
+{
+status:400,
+headers
+}
 );
 
+}
 
 
-try{
+
+
+
+const hash =
+await hashPassword(password);
+
+
+
 
 
 await env.DB.prepare(
@@ -281,18 +690,22 @@ INSERT INTO users
 (
 username,
 email,
-password
+password,
+role
 )
 VALUES
-(?,?,?)
+(?,?,?,?)
 `
 )
 .bind(
-body.username,
-body.email,
-password
+username,
+email,
+hash,
+"user"
 )
 .run();
+
+
 
 
 
@@ -305,26 +718,9 @@ headers
 }
 );
 
-
-}
-catch(e){
-
-
-return Response.json(
-{
-error:e.message
-},
-{
-status:400,
-headers
-}
-);
-
-
 }
 
 
-}
 
 
 
@@ -343,24 +739,43 @@ url.pathname==="/api/login"
 request.method==="POST"
 ){
 
+const {
 
-const body =
+email,
+
+password
+
+}
+=
 await request.json();
+
+
+
+
+
+const hash =
+await hashPassword(password);
+
+
 
 
 
 const user =
 await env.DB.prepare(
 `
-SELECT *
+SELECT id,username,email,role
 FROM users
 WHERE email=?
+AND password=?
 `
 )
 .bind(
-body.email
+email,
+hash
 )
 .first();
+
+
 
 
 
@@ -368,32 +783,7 @@ if(!user){
 
 return Response.json(
 {
-error:"User not found"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-
-const password =
-await hashPassword(
-body.password
-);
-
-
-
-if(
-password!==user.password
-){
-
-return Response.json(
-{
-error:"Wrong password"
+error:"Invalid login"
 },
 {
 status:401,
@@ -405,23 +795,10 @@ headers
 
 
 
+
+
 return Response.json(
-{
-success:true,
-
-user:{
-
-id:user.id,
-
-username:user.username,
-
-email:user.email,
-
-role:user.role
-
-}
-
-},
+user,
 {
 headers
 }
@@ -430,8 +807,9 @@ headers
 }
 
 // =====================================
-// SUBMIT FLIGHT
+// SUBMIT
 // =====================================
+
 
 if(
 url.pathname==="/api/submit"
@@ -439,56 +817,26 @@ url.pathname==="/api/submit"
 request.method==="POST"
 ){
 
-const body =
-await request.json();
+const {
 
+user_id,
 
+airline,
 
-// 找 administrator
+flight,
 
-const admins =
-await env.DB.prepare(
-`
-SELECT id
-FROM users
-WHERE role='administrator'
-ORDER BY id ASC
-`
-)
-.all();
+airport,
 
+date,
 
+story,
 
-let reviewer_id=null;
-
-
-
-if(
-admins.results.length>0
-){
-
-const total =
-await env.DB.prepare(
-`
-SELECT COUNT(*) as count
-FROM flights
-WHERE reviewer_id IS NOT NULL
-`
-)
-.first();
-
-
-
-const index =
-total.count %
-admins.results.length;
-
-
-
-reviewer_id =
-admins.results[index].id;
+image
 
 }
+=
+await request.json();
+
 
 
 
@@ -506,94 +854,90 @@ aircraft,
 airport,
 image,
 story,
-status,
-reviewer_id
+status
 )
 VALUES
-(?,?,?,?,?,?,?,?,?,'pending',?)
+(?,?,?,?,?,?,?,?,?,?)
 `
 )
 .bind(
 
-body.user_id,
+user_id,
 
-body.airline || "",
+airline || "",
 
-body.flight || "",
+flight || "",
 
-body.route || "",
+"",
 
-body.date || "",
+date || "",
 
-body.aircraft || "",
+"",
 
-body.airport || "",
+airport || "",
 
-body.image || "",
+image || "",
 
-body.story || "",
+story || "",
 
-reviewer_id
+"pending"
 
 )
 .run();
 
 
 
+
+
 return Response.json(
 {
 success:true,
-message:"Submission received",
-reviewer_id
+message:"Submission received"
 },
 {
 headers
 }
 );
 
-
 }
 
 
+
+
+
+
+
+
+
 // =====================================
-// CHANGE PASSWORD
+// PUBLIC GALLERY
 // =====================================
+
 
 if(
-url.pathname==="/api/change-password"
+url.pathname==="/api/flights"
 &&
-request.method==="POST"
+request.method==="GET"
 ){
 
-const body =
-await request.json();
-
-
-// 查询用户
-
-const user =
+const result =
 await env.DB.prepare(
 `
 SELECT *
-FROM users
-WHERE id=?
+FROM flights
+WHERE status='approved'
+ORDER BY id DESC
 `
 )
-.bind(
-body.user_id
-)
-.first();
+.all();
 
 
 
-if(!user){
+
 
 return Response.json(
+result.results,
 {
-error:"User not found"
-},
-{
-status:404,
 headers
 }
 );
@@ -602,79 +946,19 @@ headers
 
 
 
-// 验证旧密码
-
-const oldPassword =
-await hashPassword(
-body.old_password
-);
 
 
 
-if(
-oldPassword !== user.password
-){
-
-return Response.json(
-{
-error:"Old password incorrect"
-},
-{
-status:401,
-headers
-}
-);
-
-}
-
-
-
-// 更新新密码
-
-const newPassword =
-await hashPassword(
-body.new_password
-);
-
-
-
-await env.DB.prepare(
-`
-UPDATE users
-SET password=?
-WHERE id=?
-`
-)
-.bind(
-newPassword,
-body.user_id
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true,
-message:"Password changed"
-},
-{
-headers
-}
-);
-
-
-}
 
 
 
 // =====================================
-// MY SUBMISSIONS
+// USER SUBMISSIONS
 // =====================================
 
 
 if(
-url.pathname==="/api/my-submissions"
+url.pathname==="/api/my-flights"
 &&
 request.method==="GET"
 ){
@@ -683,6 +967,8 @@ const user_id =
 url.searchParams.get(
 "user_id"
 );
+
+
 
 
 
@@ -702,6 +988,146 @@ user_id
 
 
 
+
+
+return Response.json(
+result.results,
+{
+headers
+}
+);
+
+}
+
+
+
+// =====================================
+// CREATE APPEAL
+// =====================================
+
+if(
+url.pathname==="/api/appeal"
+&&
+request.method==="POST"
+){
+
+const data =
+await request.json();
+
+
+const {
+user_id,
+flight_id,
+reason
+}
+=
+data;
+
+
+
+if(
+!user_id ||
+!flight_id ||
+!reason
+){
+
+return Response.json(
+{
+error:"Missing fields"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+INSERT INTO appeals
+(
+user_id,
+flight_id,
+reason
+)
+
+VALUES
+(?,?,?)
+`
+)
+.bind(
+user_id,
+flight_id,
+reason
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+
+}
+
+
+
+
+
+// =====================================
+// FAVORITES LIST
+// =====================================
+
+
+if(
+url.pathname==="/api/favorites"
+&&
+request.method==="GET"
+){
+
+const user_id =
+url.searchParams.get(
+"user_id"
+);
+
+
+
+
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+flights.*
+FROM favorites
+
+JOIN flights
+
+ON favorites.flight_id=flights.id
+
+WHERE favorites.user_id=?
+
+ORDER BY favorites.id DESC
+`
+)
+.bind(
+user_id
+)
+.all();
+
+
+
+
+
 return Response.json(
 result.results,
 {
@@ -715,6 +1141,127 @@ headers
 
 
 
+
+
+
+
+// =====================================
+// ADD FAVORITE
+// =====================================
+
+
+if(
+url.pathname==="/api/favorites/add"
+&&
+request.method==="POST"
+){
+
+const {
+
+user_id,
+
+flight_id
+
+}
+=
+await request.json();
+
+
+
+
+
+await env.DB.prepare(
+`
+INSERT INTO favorites
+(
+user_id,
+flight_id
+)
+VALUES
+(?,?)
+`
+)
+.bind(
+user_id,
+flight_id
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// REMOVE FAVORITE
+// =====================================
+
+
+if(
+url.pathname==="/api/favorites/remove"
+&&
+request.method==="POST"
+){
+
+const {
+
+user_id,
+
+flight_id
+
+}
+=
+await request.json();
+
+
+
+
+
+await env.DB.prepare(
+`
+DELETE FROM favorites
+WHERE user_id=?
+AND flight_id=?
+`
+)
+.bind(
+user_id,
+flight_id
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
 
 // =====================================
 // ADMIN PENDING
@@ -734,29 +1281,16 @@ url.searchParams.get(
 
 
 
+
 const admin =
-await env.DB.prepare(
-`
-SELECT role
-FROM users
-WHERE id=?
-`
-)
-.bind(
+await requireAdmin(
+env,
 admin_id
-)
-.first();
+);
 
 
 
-if(
-!admin ||
-(
-admin.role!=="administrator"
-&&
-admin.role!=="superadministrator"
-)
-){
+if(!admin){
 
 return Response.json(
 {
@@ -772,15 +1306,9 @@ headers
 
 
 
-let result;
 
 
-
-if(
-admin.role==="superadministrator"
-){
-
-result =
+const result =
 await env.DB.prepare(
 `
 SELECT *
@@ -792,26 +1320,6 @@ ORDER BY id DESC
 .all();
 
 
-}
-else
-{
-
-result =
-await env.DB.prepare(
-`
-SELECT *
-FROM flights
-WHERE status='pending'
-AND reviewer_id=?
-ORDER BY id DESC
-`
-)
-.bind(
-admin_id
-)
-.all();
-
-}
 
 
 
@@ -822,6 +1330,82 @@ headers
 }
 );
 
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// ADMIN APPROVED
+// =====================================
+
+
+if(
+url.pathname==="/api/admin/approved"
+&&
+request.method==="GET"
+){
+
+const admin_id =
+url.searchParams.get(
+"admin_id"
+);
+
+
+
+
+const admin =
+await requireAdmin(
+env,
+admin_id
+);
+
+
+
+if(!admin){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+
+
+const result =
+await env.DB.prepare(
+`
+SELECT *
+FROM flights
+WHERE status='approved'
+ORDER BY id DESC
+`
+)
+.all();
+
+
+
+
+
+return Response.json(
+result.results,
+{
+headers
+}
+);
 
 }
 
@@ -831,8 +1415,10 @@ headers
 
 
 
+
+
 // =====================================
-// ADMIN APPROVE
+// APPROVE
 // =====================================
 
 
@@ -842,36 +1428,81 @@ url.pathname==="/api/admin/approve"
 request.method==="POST"
 ){
 
-const body =
+const {
+
+admin_id,
+
+flight_id
+
+}
+=
 await request.json();
+
+
+
+
+
+const admin =
+await requireAdmin(
+env,
+admin_id
+);
+
+
+
+if(!admin){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
 
 
 
 await env.DB.prepare(
 `
 UPDATE flights
-SET status='approved'
+
+SET
+
+status='approved',
+
+reviewer_id=?
+
 WHERE id=?
+
 `
 )
 .bind(
-body.id
+admin.id,
+flight_id
 )
 .run();
 
 
 
-return {
- success:true,
- message:"Verification code sent"
+
+
+return Response.json(
+{
+success:true
 },
 {
 headers
 }
-;
-
+);
 
 }
+
 
 
 
@@ -881,7 +1512,7 @@ headers
 
 
 // =====================================
-// ADMIN REJECT
+// REJECT
 // =====================================
 
 
@@ -891,23 +1522,356 @@ url.pathname==="/api/admin/reject"
 request.method==="POST"
 ){
 
-const body =
+const {
+
+admin_id,
+
+flight_id,
+
+reason
+
+}
+=
 await request.json();
+
+
+
+
+
+const admin =
+await requireAdmin(
+env,
+admin_id
+);
+
+
+
+if(!admin){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
 
 
 
 await env.DB.prepare(
 `
 UPDATE flights
+
 SET
+
 status='rejected',
-reject_reason=?
+
+reject_reason=?,
+
+reviewer_id=?
+
+WHERE id=?
+
+`
+)
+.bind(
+
+reason || "",
+
+admin.id,
+
+flight_id
+
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// ADMIN EDIT
+// =====================================
+
+
+if(
+url.pathname==="/api/admin/edit"
+&&
+request.method==="POST"
+){
+
+const data =
+await request.json();
+
+
+
+
+
+const {
+
+admin_id,
+
+flight_id,
+
+airline,
+
+flight,
+
+airport,
+
+date,
+
+story,
+
+image
+
+}
+=
+data;
+
+
+
+
+
+const admin =
+await requireAdmin(
+env,
+admin_id
+);
+
+
+
+if(!admin){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+
+
+await env.DB.prepare(
+`
+UPDATE flights
+
+SET
+
+airline=?,
+
+flight=?,
+
+airport=?,
+
+date=?,
+
+story=?,
+
+image=?
+
+WHERE id=?
+
+`
+)
+.bind(
+
+airline || "",
+
+flight || "",
+
+airport || "",
+
+date || "",
+
+story || "",
+
+image || "",
+
+flight_id
+
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+// =====================================
+// SA VIEW APPEALS
+// =====================================
+
+
+if(
+url.pathname==="/api/sa/appeals"
+&&
+request.method==="GET"
+){
+
+const sa_id =
+url.searchParams.get(
+"sa_id"
+);
+
+
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+
+
+const result =
+await env.DB.prepare(
+`
+SELECT *
+FROM appeals
+ORDER BY id DESC
+`
+)
+.all();
+
+
+
+
+
+return Response.json(
+result.results,
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+// =====================================
+// SA APPROVE APPEAL
+// =====================================
+
+if(
+url.pathname==="/api/sa/appeal/approve"
+&&
+request.method==="POST"
+){
+
+const data =
+await request.json();
+
+
+const sa =
+await requireSA(
+env,
+data.sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+UPDATE flights
+SET status='pending'
 WHERE id=?
 `
 )
 .bind(
-body.reason || "",
-body.id
+data.flight_id
+)
+.run();
+
+
+
+await env.DB.prepare(
+`
+UPDATE appeals
+SET status='approved'
+WHERE id=?
+`
+)
+.bind(
+data.appeal_id
 )
 .run();
 
@@ -922,41 +1886,57 @@ headers
 }
 );
 
+}
+
+
+
+
+// =====================================
+// SA REJECT APPEAL
+// =====================================
+
+if(
+url.pathname==="/api/sa/appeal/reject"
+&&
+request.method==="POST"
+){
+
+const data =
+await request.json();
+
+
+const sa =
+await requireSA(
+env,
+data.sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
 
 }
 
 
 
-// =====================================
-// CREATE APPEAL
-// =====================================
-
-if(
-url.pathname==="/api/appeal"
-&&
-request.method==="POST"
-){
-
-const body =
-await request.json();
-
-
 await env.DB.prepare(
 `
-INSERT INTO appeals
-(
-user_id,
-flight_id,
-reason
-)
-VALUES
-(?,?,?)
+UPDATE appeals
+SET status='rejected'
+WHERE id=?
 `
 )
 .bind(
-body.user_id,
-body.flight_id,
-body.reason
+data.appeal_id
 )
 .run();
 
@@ -964,8 +1944,7 @@ body.reason
 
 return Response.json(
 {
-success:true,
-message:"Appeal submitted"
+success:true
 },
 {
 headers
@@ -976,98 +1955,40 @@ headers
 
 
 
-
-
-
 // =====================================
-// USER APPEALS
+// SA WITHDRAW APPROVED
 // =====================================
+
 
 if(
-url.pathname==="/api/my-appeals"
+url.pathname==="/api/sa/withdraw"
 &&
-request.method==="GET"
+request.method==="POST"
 ){
 
-const user_id =
-url.searchParams.get(
-"user_id"
-);
+const {
 
+sa_id,
 
-
-const result =
-await env.DB.prepare(
-`
-SELECT *
-FROM appeals
-WHERE user_id=?
-ORDER BY id DESC
-`
-)
-.bind(
-user_id
-)
-.all();
-
-
-
-return Response.json(
-result.results,
-{
-headers
-}
-);
+flight_id
 
 }
+=
+await request.json();
 
 
 
 
 
-
-// =====================================
-// ADMIN VIEW APPEALS
-// =====================================
-
-if(
-url.pathname==="/api/admin/appeals"
-&&
-request.method==="GET"
-){
-
-
-const admin_id =
-url.searchParams.get(
-"admin_id"
+const sa =
+await requireSA(
+env,
+sa_id
 );
 
 
 
-const admin =
-await env.DB.prepare(
-`
-SELECT role
-FROM users
-WHERE id=?
-`
-)
-.bind(
-admin_id
-)
-.first();
-
-
-
-if(
-!admin
-||
-(
-admin.role!=="administrator"
-&&
-admin.role!=="superadministrator"
-)
-){
+if(!sa){
 
 return Response.json(
 {
@@ -1084,15 +2005,199 @@ headers
 
 
 
+
+await env.DB.prepare(
+`
+UPDATE flights
+
+SET
+
+status='pending',
+
+reviewer_id=NULL
+
+WHERE id=?
+
+`
+)
+.bind(
+flight_id
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true,
+message:"Returned to review"
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// SA RE-REVIEW REJECTED
+// =====================================
+
+
+if(
+url.pathname==="/api/sa/review"
+&&
+request.method==="POST"
+){
+
+const {
+
+sa_id,
+
+flight_id
+
+}
+=
+await request.json();
+
+
+
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+
+
+await env.DB.prepare(
+`
+UPDATE flights
+
+SET
+
+status='pending',
+
+reject_reason=NULL
+
+WHERE id=?
+
+`
+)
+.bind(
+flight_id
+)
+.run();
+
+
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// SA UPDATE LOGS
+// =====================================
+
+
+if(
+url.pathname==="/api/sa/updates"
+&&
+request.method==="GET"
+){
+
+const sa_id =
+url.searchParams.get(
+"sa_id"
+);
+
+
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+
+
 const result =
 await env.DB.prepare(
 `
 SELECT *
-FROM appeals
+FROM updates
 ORDER BY id DESC
 `
 )
 .all();
+
+
 
 
 
@@ -1103,52 +2208,54 @@ headers
 }
 );
 
-
 }
 
-// =====================================
-// RESET PASSWORD
-// =====================================
+
+
+
+
+
+
+
 
 if(
-url.pathname==="/api/reset-password"
+url.pathname==="/api/sa/updates"
 &&
 request.method==="POST"
 ){
 
-const body =
+const {
+
+sa_id,
+
+title,
+
+content
+
+}
+=
 await request.json();
 
 
-const record =
-await env.DB.prepare(
-`
-SELECT *
-FROM email_codes
-WHERE email=?
-AND code=?
-AND expires_at > ?
-ORDER BY id DESC
-LIMIT 1
-`
-)
-.bind(
-body.email,
-body.code,
-new Date().toISOString()
-)
-.first();
 
 
 
-if(!record){
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
 
 return Response.json(
 {
-error:"Invalid code"
+error:"No permission"
 },
 {
-status:400,
+status:403,
 headers
 }
 );
@@ -1157,51 +2264,52 @@ headers
 
 
 
-const password =
-await hashPassword(
-body.new_password
-);
-
 
 
 await env.DB.prepare(
 `
-UPDATE users
-SET password=?
-WHERE email=?
+INSERT INTO updates
+(
+title,
+content
+)
+VALUES
+(?,?)
 `
 )
 .bind(
-password,
-body.email
+title,
+content
 )
 .run();
 
-await env.DB.prepare(
-`
-DELETE FROM email_codes
-WHERE email=?
-AND code=?
-`
-)
-.bind(
-body.email,
-body.code
-)
-.run();
+
+
+
 
 return Response.json(
 {
-success:true,
-message:"Password updated"
+success:true
 },
 {
 headers
 }
 );
 
-
 }
+
+
+
+
+
+
+
+
+
+// =====================================
+// NOT FOUND
+// =====================================
+
 
 return Response.json(
 {
@@ -1214,8 +2322,7 @@ headers
 );
 
 
-
 }
 
-
 };
+

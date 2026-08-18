@@ -531,7 +531,7 @@ submitBtn.onclick = submitFlight;
 // =====================================
 
 
-function submitFlight(){
+async function submitFlight(){
 
 
 
@@ -721,6 +721,8 @@ id:
 
 Date.now(),
 
+user_id:
+1,
 
 
 author:
@@ -833,43 +835,43 @@ status:
 // -------------------------
 
 
-let pendingFlights =
 
-JSON.parse(
 
-localStorage.getItem(
-"pendingFlights"
-)
-
-)
-||
-[];
+console.log(
+"发送JSON:",
+JSON.stringify(flightData)
+);
 
 
 
+await fetch(
+API_BASE + "/api/submit",
+{
+method:"POST",
 
+headers:{
+"Content-Type":"application/json"
+},
 
-
-pendingFlights.push(
+body:JSON.stringify(
 flightData
-);
-
-
-
-
-
-
-
-localStorage.setItem(
-
-"pendingFlights",
-
-JSON.stringify(
-pendingFlights
 )
 
+}
+)
+.then(
+res=>res.json()
+)
+.then(
+data=>{
+
+console.log(
+"投稿结果:",
+data
 );
 
+}
+);
 
 
 

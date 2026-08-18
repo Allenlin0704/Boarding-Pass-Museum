@@ -1,180 +1,223 @@
 // =================================
 // BoardingPassMuseum
-// my.js
-// 我的投稿状态
+// My Submissions V5.2
 // =================================
+
+
+const API =
+"https://api.bpmuseum.org.cn";
+
+
+
+
+
+try{
+
+currentUser =
+JSON.parse(
+localStorage.getItem("currentUser")
+);
+
+}catch(e){
+
+currentUser=null;
+
+}
 
 
 
 const submissions =
 document.getElementById(
-    "mySubmissions"
+"mySubmissions"
 );
 
 
 
 const welcome =
 document.getElementById(
-    "welcome"
+"welcome"
 );
 
 
 
-
-// 检查登录
-
 if(!currentUser){
-
 
 alert(
 "请登录后查看"
 );
 
+location.href="login.html";
 
-window.location.href =
-"login.html";
-
+throw new Error(
+"not login"
+);
 
 }
 
 
 
+if(welcome){
 
-// 显示用户名
-
-if(welcome && currentUser){
-
-
-welcome.innerHTML =
-
+welcome.innerHTML=
 `
 你好，${currentUser.username}
-`
-
-;
+`;
 
 }
 
 
 
+async function loadMySubmissions(){
 
 
-// 获取投稿
-
-const pendingFlights =
-
-JSON.parse(
-
-localStorage.getItem(
-"pendingFlights"
-)
-
-)
-
-||
-[];
+try{
 
 
+const res =
+await fetch(
+`${API}/api/my-flights?user_id=${currentUser.id}`
+);
 
 
+const flights =
+await res.json();
 
-const myFlights =
 
-pendingFlights.filter(
-
-item =>
-
-item.author === currentUser.username
-
+renderSubmissions(
+flights
 );
 
 
 
+}catch(e){
+
+
+console.error(
+e
+);
+
+
+submissions.innerHTML=
+`
+<p>
+加载失败
+</p>
+`;
+
+}
+
+
+}
 
 
 
 
-// 没有投稿
+function renderSubmissions(
+flights
+){
 
-if(myFlights.length===0){
 
+if(
+!Array.isArray(flights)
+||
+flights.length===0
+){
 
-submissions.innerHTML =
-
+submissions.innerHTML=
 `
 <p>
 暂无投稿
 </p>
 `;
 
-
+return;
 
 }
 
 
 
+submissions.innerHTML="";
 
 
-// 渲染
 
-myFlights.forEach(
-
+flights.forEach(
 flight=>{
 
 
-const card =
-
-document.createElement(
-"div"
-);
-
-
-
-card.className =
-"card";
-
-
-
-
-
-let statusText = "";
-
+let statusText="";
 
 
 if(
 flight.status==="pending"
 ){
 
-statusText =
-"🟡 审核中";
+statusText="🟡 审核中";
 
 }
 
 
-else if(
+if(
 flight.status==="approved"
 ){
 
-statusText =
-"🟢 已通过";
+statusText="🟢 已通过";
 
 }
 
 
-else if(
+if(
 flight.status==="rejected"
 ){
 
-statusText =
-"🔴 未通过";
+statusText="🔴 未通过";
 
 }
 
 
 
+let appeal="";
 
-card.innerHTML =
 
+
+if(
+flight.status==="rejected"
+){
+
+appeal=
+
+`
+
+<button
+
+class="appeal-btn"
+
+data-id="${flight.id}"
+
+>
+
+提交申诉
+
+</button>
+
+`;
+
+}
+
+
+
+const card =
+document.createElement(
+"div"
+);
+
+
+
+card.className=
+"card";
+
+
+
+card.innerHTML=
 `
 
 <img
@@ -186,25 +229,34 @@ class="ticket-image"
 >
 
 
+
 <h3>
 
-${flight.flight}
+${flight.airline || ""}
 
 </h3>
 
 
 <p>
 
-${flight.airline}
+${flight.flight || ""}
 
 </p>
 
 
 <p>
 
-📅 ${flight.date}
+${flight.airport || ""}
 
 </p>
+
+
+<p>
+
+${flight.date || ""}
+
+</p>
+
 
 
 <p>
@@ -216,15 +268,150 @@ ${statusText}
 </p>
 
 
+${
+flight.reject_reason
+
+?
+
+`
+
+<p>
+
+拒绝原因：
+
+${flight.reject_reason}
+
+</p>
+
+`
+
+:
+
+""
+
+}
+
+
+
+${appeal}
+
+
 `;
 
 
 
-
-submissions.appendChild(card);
+submissions.appendChild(
+card
+);
 
 
 
 }
 
 );
+
+
+}
+
+
+
+
+document.addEventListener(
+"click",
+async(e)=>{
+
+
+if(
+!e.target.classList.contains(
+"appeal-btn"
+)
+){
+
+return;
+
+}
+
+
+
+const flight_id =
+Number(
+e.target.dataset.id
+);
+
+
+
+const reason =
+prompt(
+"请输入申诉理由"
+);
+
+
+
+if(!reason){
+
+return;
+
+}
+
+
+
+const res =
+await fetch(
+`${API}/api/appeal`,
+{
+
+method:"POST",
+
+headers:{
+"Content-Type":
+"application/json"
+},
+
+body:
+JSON.stringify({
+
+user_id:
+currentUser.id,
+
+flight_id,
+
+reason
+
+})
+
+}
+
+);
+
+
+
+const data =
+await res.json();
+
+
+
+if(
+data.success
+){
+
+alert(
+"申诉提交成功"
+);
+
+}else{
+
+alert(
+data.error ||
+"提交失败"
+);
+
+}
+
+
+
+}
+);
+
+
+
+loadMySubmissions();

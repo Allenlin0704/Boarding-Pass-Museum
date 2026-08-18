@@ -38,7 +38,7 @@ try{
 
 const res =
 await fetch(
-"http://localhost:8788/api/login",
+"https://api.bpmuseum.org.cn/api/login",
 {
 
 method:"POST",
@@ -71,7 +71,7 @@ await res.json();
 
 
 if(
-data.success
+data.id
 ){
 
 
@@ -81,7 +81,7 @@ data.success
 localStorage.setItem(
 "currentUser",
 JSON.stringify(
-data.user
+data
 )
 );
 
