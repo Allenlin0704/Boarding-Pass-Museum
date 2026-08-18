@@ -53643,7 +53643,7 @@
     "id": 4607,
     "name_cn": "",
     "name_en": "\"Spring Airlines\"",
-    "iata": "9S",
+    "iata": "9C",
     "icao": "CQH",
     "callsign": "AIR SPRING",
     "country_cn": "",
@@ -65975,18 +65975,7 @@
     "active": true,
     "passenger": true
   },
-  {
-    "id": 15999,
-    "name_cn": "",
-    "name_en": "\"China SSS\"",
-    "iata": "9C",
-    "icao": "\\N",
-    "callsign": "",
-    "country_cn": "",
-    "country": "China",
-    "active": true,
-    "passenger": true
-  },
+  
   {
     "id": 16025,
     "name_cn": "",

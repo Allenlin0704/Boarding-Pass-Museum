@@ -1,5 +1,5 @@
 const API =
-"https://boardingpassmuseum-api.allenlin-developer.workers.dev";
+"https://api.bpmuseum.org.cn";
 
 
 const sendCodeBtn = document.getElementById("sendCodeBtn");
