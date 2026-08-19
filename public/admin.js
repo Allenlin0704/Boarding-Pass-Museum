@@ -95,6 +95,8 @@ await loadApproved();
 // =====================================
 
 
+
+
 function loadUser(){
 
 try{
@@ -111,6 +113,7 @@ localStorage.getItem(
 currentUser=null;
 
 }
+
 
 checkSA();
 
