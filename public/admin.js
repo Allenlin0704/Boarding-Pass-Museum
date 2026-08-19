@@ -31,7 +31,7 @@ init();
 async function init(){
 
 loadUser();
-checkSA();
+
 
 if(!currentUser){
 
@@ -111,6 +111,8 @@ localStorage.getItem(
 currentUser=null;
 
 }
+
+checkSA();
 
 }
 
