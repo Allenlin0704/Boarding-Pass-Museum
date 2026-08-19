@@ -31,7 +31,7 @@ init();
 async function init(){
 
 loadUser();
-
+checkSA();
 
 if(!currentUser){
 
@@ -114,6 +114,22 @@ currentUser=null;
 
 }
 
+function checkSA(){
+
+const saLink =
+document.getElementById("saLink");
+
+if(
+saLink &&
+currentUser &&
+currentUser.role==="superadministrator"
+){
+
+saLink.style.display="block";
+
+}
+
+}
 
 // =====================================
 // EVENTS
