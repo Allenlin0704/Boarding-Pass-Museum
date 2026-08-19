@@ -32,6 +32,8 @@ async function init(){
 
 loadUser();
 
+checkSA();
+
 
 if(!currentUser){
 
