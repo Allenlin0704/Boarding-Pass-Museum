@@ -1090,3 +1090,31 @@ padding:8px 18px;
 cursor:pointer;
 
 }
+
+@media(max-width:768px){
+
+nav{
+flex-wrap:wrap;
+height:auto;
+}
+
+nav a{
+margin:6px;
+}
+
+.container{
+width:100%;
+padding:16px;
+box-sizing:border-box;
+}
+
+.card{
+width:100%;
+}
+
+img{
+max-width:100%;
+height:auto;
+}
+
+}
