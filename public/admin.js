@@ -7,7 +7,7 @@ const API =
 "https://api.bpmuseum.org.cn";
 
 
-let currentUser = null;
+let adminUser = null;
 
 let pendingFlights = [];
 
