@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name_cn": "中国东方航空",
+    "name_en": "China Eastern Airlines",
+    "iata": "MU",
+    "icao": "CES",
+    "callsign": "",
+    "country_cn": "",
+    "country": "",
+    "active": true,
+    "passenger": true
+  },
+  {
+    "id": 2,
+    "name_cn": "中国南方航空",
+    "name_en": "China Southern Airlines",
+    "iata": "CZ",
+    "icao": "CSN",
+    "callsign": "",
+    "country_cn": "",
+    "country": "",
+    "active": true,
+    "passenger": true
+  }
+]
