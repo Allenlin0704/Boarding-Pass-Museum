@@ -43,7 +43,7 @@ try {
 
 const response =
 await fetch(
-`${API_URL}/api/send-code`,
+`${API}/api/send-code`,
 {
 method:"POST",
 
