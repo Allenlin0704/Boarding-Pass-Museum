@@ -1,0 +1,15 @@
+ [
+  {
+"id":1,
+"airline":"中国东方航空",
+"flight":"MU5309",
+"route":"上海虹桥 - 广州白云",
+"date":"2026-08-01",
+"aircraft":"Airbus A320",
+"airport":"SHA",
+"image":"images/MU5309.jpeg",
+"story":"BoardingPassMuseum 开馆收藏之一，记录一次普通航程背后的旅行记忆。",
+"author":"BoardingPassMuseum",
+"status":"approved"
+}
+]
