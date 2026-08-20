@@ -15,8 +15,333 @@
 
 <div id="appeals"></div>
 
+<section class="sa-panel">
+
+<h2>
+👤 管理员申请
+</h2>
+
+<div id="adminRequests">
+加载中...
+</div>
+
+</section>
+
+<section class="sa-panel">
+
+<h2>
+📢 更新日志管理
+</h2>
+
+<p>
+发布新的 BoardingPassMuseum 更新日志。
+</p>
+
+<input
+id="noticeVersion"
+placeholder="版本号，例如 v1.0.1"
+>
+
+<textarea
+id="noticeContent"
+placeholder="输入本次更新内容……"
+></textarea>
+
+<div class="sa-editor-tools">
+<button
+type="button"
+class="red-text-btn"
+onclick="markSelectedRed('noticeContent')"
+>
+🔴 标红选中文字
+</button>
+</div>
+
+<button id="publishNotice">
+发布更新
+</button>
+
+</section>
+
+
+<section class="sa-panel">
+
+<h2>
+📌 长期置顶事项
+</h2>
+
+<p>
+这里用于发布长期有效的公告、QQ群、技术支持等信息。
+</p>
+
+<textarea
+id="updateContent"
+placeholder="输入长期置顶内容……"
+></textarea>
+
+<div class="sa-editor-tools">
+<button
+type="button"
+class="red-text-btn"
+onclick="markSelectedRed('updateContent')"
+>
+🔴 标红选中文字
+</button>
+</div>
+
+<p class="rules-fixed-note">
+📋 长期固定入口：
+<a href="rules.html" target="_blank">
+投稿及审核条例
+</a>
+</p>
+
+<button id="publishUpdate">
+发布置顶事项
+</button>
+
+</section>
+
+<section class="sa-panel">
+
+<h2>
+👥 管理人员管理
+</h2>
+
+<div id="users">
+加载中...
+</div>
+
+</section>
+
 <script src="auth.js"></script>
 <script src="sa.js"></script>
+
+
+
+
+<!-- =====================================
+     移除管理员确认窗口
+===================================== -->
+
+<div
+id="demoteOverlay"
+class="demote-overlay"
+>
+
+<div class="demote-modal">
+
+<h2>移除管理员权限</h2>
+
+<p>
+确定要移除
+<strong id="demoteUsername"></strong>
+的管理员权限吗？
+</p>
+
+<p class="demote-warning">
+⚠️ 此操作不会删除账号，只会将管理员恢复为普通用户。
+</p>
+
+<p>
+请输入
+<strong>移除</strong>
+以确认：
+</p>
+
+<input
+id="demoteConfirmInput"
+type="text"
+placeholder="请输入：移除"
+autocomplete="off"
+>
+
+<div class="demote-buttons">
+
+<button
+type="button"
+onclick="closeDemoteModal()"
+>
+取消
+</button>
+
+<button
+type="button"
+class="danger-button"
+onclick="confirmDemote()"
+>
+确认移除
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<style>
+
+.demote-overlay{
+display:none;
+position:fixed;
+inset:0;
+z-index:2000;
+background:rgba(0,0,0,.6);
+backdrop-filter:blur(8px);
+align-items:center;
+justify-content:center;
+padding:20px;
+}
+
+.demote-modal{
+width:min(460px,92vw);
+background:#fff;
+color:#222;
+border-radius:20px;
+padding:30px;
+box-shadow:0 25px 80px rgba(0,0,0,.4);
+}
+
+.demote-modal h2{
+margin-top:0;
+color:#222 !important;
+}
+
+.demote-modal p{
+color:#333 !important;
+line-height:1.7;
+}
+
+.demote-warning{
+color:#c62828 !important;
+font-weight:600;
+}
+
+#demoteConfirmInput{
+width:100%;
+box-sizing:border-box;
+padding:13px 15px;
+margin:8px 0 20px;
+border:1px solid #ccc;
+border-radius:10px;
+font-size:16px;
+color:#222;
+background:#fff;
+}
+
+.demote-buttons{
+display:flex;
+gap:12px;
+justify-content:flex-end;
+}
+
+.demote-buttons button{
+padding:11px 18px;
+border:0;
+border-radius:10px;
+cursor:pointer;
+font-weight:600;
+}
+
+.danger-button{
+background:#d93025 !important;
+color:#fff !important;
+}
+
+</style>
+
+
+<script>
+
+document.addEventListener("keydown",function(e){
+
+if(e.key==="Escape"){
+
+closeDemoteModal();
+
+}
+
+});
+
+</script>
+
+
+
+<style>
+
+.sa-editor-tools{
+    margin:8px 0 14px;
+}
+
+.red-text-btn{
+    padding:8px 14px;
+    border:1px solid #d0d0d0;
+    border-radius:10px;
+    background:#f5f5f7;
+    color:#c62828;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.red-text-btn:hover{
+    background:#ffecec;
+}
+
+.rules-fixed-note{
+    margin:8px 0 14px;
+    font-size:14px;
+    color:#666;
+}
+
+.rules-fixed-note a{
+    color:#0071e3;
+    font-weight:600;
+    text-decoration:none;
+}
+
+.rules-fixed-note a:hover{
+    text-decoration:underline;
+}
+
+</style>
+
+<script>
+
+function markSelectedRed(id){
+
+    const textarea = document.getElementById(id);
+
+    if(!textarea){
+        return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    if(start === end){
+        alert("请先选中要标红的文字。");
+        return;
+    }
+
+    const selected = textarea.value.substring(start, end);
+
+    const replacement =
+        "[[RED]]" +
+        selected +
+        "[[/RED]]";
+
+    textarea.setRangeText(
+        replacement,
+        start,
+        end,
+        "end"
+    );
+
+    textarea.focus();
+}
+
+</script>
 
 </body>
 </html>

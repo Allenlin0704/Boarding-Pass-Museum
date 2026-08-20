@@ -188,27 +188,124 @@ Admin Console
 
 
 
+
 <!-- =====================
-     Pending
+     Review Rules
 ===================== -->
 
+<section class="admin-review-layout">
 
-<section class="admin-section">
-
+<div class="admin-review-main">
 
 <h2>
 待审核展品
 </h2>
 
-
 <div id="pendingList"
 class="admin-grid">
-
+</div>
 
 </div>
 
 
+<aside class="admin-rules-panel">
+
+<div class="admin-rules-header">
+
+<div>
+
+<h2>📋 投稿及审核条例</h2>
+
+<p>
+审核投稿时请依据本站正式条例进行判断。
+</p>
+
+</div>
+
+<a
+href="rules.html"
+target="_blank"
+class="rules-full-link"
+>
+查看完整条例 →
+</a>
+
+</div>
+
+
+<div class="admin-rules-content">
+
+<h3>🔴 二、投稿基本要求</h3>
+
+<p class="rule-important">
+禁止投稿泄露国家秘密、违反国家法规、违背公序良俗、未经授权的非本人稿件。
+</p>
+
+<p class="rule-important">
+隐私信息未按照条例要求遮挡的稿件不得通过审核。
+</p>
+
+
+<h3>🔴 三、隐私守护规范</h3>
+
+<p class="rule-important">
+姓名、涉及隐私的二维码及条形码、常客卡号、票号以及 PNR 预订编码必须遮挡。
+</p>
+
+<p>
+座位号、登机口、序列号、登机时间、目的地及日期属于建议遮挡信息。
+</p>
+
+<p class="rule-important">
+航司名称及 Logo、航班号、出发机场不得遮挡，否则稿件将被驳回。
+</p>
+
+
+<h3>🔴 四、审核要求</h3>
+
+<p class="rule-important">
+管理员应当公私分明，不得公报私仇或以权谋私。
+</p>
+
+<p class="rule-important">
+管理员不得审核本人提交的投稿、与本人存在直接利益关系的投稿，或其他可能影响审核公正性的投稿。
+</p>
+
+<p>
+遇到上述情况，应主动回避并交由其他管理员处理。
+</p>
+
+<p class="rule-important">
+驳回投稿时必须引用本站条例作为驳回依据。
+</p>
+
+<p class="rule-important">
+本站完全免费。任何管理员不得向用户索要钱财。
+</p>
+
+
+<h3>🔴 超级管理员</h3>
+
+<p>
+超级管理员负责管理员申请、管理员权限管理以及用户申诉处理，并监督管理员审核工作。
+</p>
+
+<p class="rule-important">
+超级管理员不得滥用管理权限，不得无正当理由修改或干预正常审核结果。
+</p>
+
+</div>
+
+</aside>
+
 </section>
+
+<!-- =====================
+     Pending
+===================== -->
+
+
+
 
 
 
@@ -270,7 +367,7 @@ class="admin-grid">
 
 
 
-<button id="applyAdmin">
+<button id="applyAdmin" class="admin-apply-button">
 
 提交申请
 
@@ -446,11 +543,504 @@ allenlin_developer@outlook.com
 
 
 
-<script src="app.js"></script>
-<script src="auth.js"></script>
-<script src="admin.js"></script>
+
+<style>
+
+/* =================================
+   Admin Review Rules
+================================= */
+
+.admin-review-layout{
+display:grid;
+grid-template-columns:minmax(0, 1fr) 380px;
+gap:28px;
+max-width:1400px;
+margin:40px auto;
+padding:0 24px;
+align-items:start;
+}
+
+.admin-review-main{
+min-width:0;
+}
+
+.admin-rules-panel{
+position:sticky;
+top:90px;
+border:1px solid rgba(128,128,128,.25);
+border-radius:18px;
+background:rgba(128,128,128,.06);
+overflow:hidden;
+max-height:calc(100vh - 120px);
+box-shadow:0 10px 35px rgba(0,0,0,.08);
+}
+
+.admin-rules-header{
+padding:20px;
+border-bottom:1px solid rgba(128,128,128,.2);
+background:rgba(128,128,128,.08);
+}
+
+.admin-rules-header h2{
+margin:0 0 6px;
+font-size:21px;
+}
+
+.admin-rules-header p{
+margin:0 0 12px;
+font-size:13px;
+opacity:.7;
+}
+
+.rules-full-link{
+font-weight:700;
+text-decoration:none;
+}
+
+.admin-rules-content{
+padding:20px;
+overflow-y:auto;
+max-height:calc(100vh - 250px);
+}
+
+.admin-rules-content h3{
+font-size:17px;
+margin:22px 0 10px;
+}
+
+.admin-rules-content h3:first-child{
+margin-top:0;
+}
+
+.admin-rules-content p{
+font-size:14px;
+line-height:1.75;
+margin:10px 0;
+}
+
+.rule-important{
+color:#ff3b30;
+font-weight:700;
+font-size:15px !important;
+}
+
+.admin-apply-button{
+font-size:18px !important;
+font-weight:700 !important;
+padding:15px 30px !important;
+min-height:54px;
+min-width:180px;
+border-radius:12px !important;
+cursor:pointer;
+}
+
+@media(max-width:900px){
+
+.admin-review-layout{
+grid-template-columns:1fr;
+}
+
+.admin-rules-panel{
+position:relative;
+top:auto;
+max-height:520px;
+}
+
+.admin-rules-content{
+max-height:420px;
+}
+
+}
+
+@media(max-width:600px){
+
+.admin-review-layout{
+padding:0 16px;
+margin:28px auto;
+}
+
+.admin-apply-button{
+width:100%;
+font-size:18px !important;
+min-height:58px;
+}
+
+}
+
+</style>
 
 
+<script src="app.js?v=2"></script>
+<script src="auth.js?v=2"></script>
+<script src="admin.js?v=3"></script>
+
+
+
+<!-- =====================================
+     审核条例快捷查阅
+===================================== -->
+
+<button
+id="rulesFloatingBtn"
+type="button"
+>
+📖 查阅投稿及审核条例
+</button>
+
+
+<div
+id="rulesOverlay"
+class="rules-overlay"
+>
+
+<div
+class="rules-modal"
+>
+
+<div class="rules-modal-header">
+
+<div>
+<h2>投稿及审核条例</h2>
+<p>审核展品时可随时查阅本站审核规范</p>
+</div>
+
+<button
+id="closeRules"
+type="button"
+class="rules-close"
+>
+×
+</button>
+
+</div>
+
+
+<div class="rules-content">
+
+<h3>Boarding Pass Museum 投稿及审核条例</h3>
+
+<p>
+本站审核秉持守护国家利益、符合国家法规、确保稿件真实以及保护用户隐私的总原则。
+</p>
+
+<h4>一、投稿基本要求</h4>
+
+<ul>
+<li>本站仅接受使用个人邮箱并注册本站账户的用户进行投稿。</li>
+<li>本站仅接受民航电子登机牌及纸质登机牌投稿，支持全球数据。</li>
+<li>登机牌必须完整，稿件不能是“撕大留小”的产物（特殊纪念登机牌除外）。</li>
+<li>自助机打印的热敏纸登机牌，如字体消失 60% 以上或模糊不清，将被驳回。</li>
+</ul>
+
+<h4 class="rules-important">二、禁止投稿</h4>
+
+<ul>
+<li>泄露国家秘密、违反国家法规的稿件。</li>
+<li>违背公序良俗或基本道德的稿件。</li>
+<li>非本人稿件且未经过稿件所有人合法授权的稿件。</li>
+<li>未遮挡登机牌敏感隐私信息的稿件。</li>
+<li>使用白色或马赛克以外图层遮挡隐私信息的稿件。</li>
+</ul>
+
+<h4 class="rules-important">三、隐私守护规范</h4>
+
+<p class="rules-warning">
+以下信息<strong>必须遮挡</strong>：
+</p>
+
+<ul>
+<li><strong>姓名</strong></li>
+<li><strong>所有涉及隐私的二维码 / 条形码</strong></li>
+<li><strong>常客卡号及票号</strong></li>
+<li><strong>PNR 预定编码（外航适用）</strong></li>
+</ul>
+
+<p>
+以下信息建议遮挡，可以选择不遮挡：
+</p>
+
+<ul>
+<li>座位号</li>
+<li>登机口</li>
+<li>序列号（登机序号）</li>
+<li>登机时间</li>
+<li>目的地</li>
+<li>日期</li>
+</ul>
+
+<p class="rules-warning">
+以下信息<strong>不得遮挡</strong>，遮挡后稿件将被驳回：
+</p>
+
+<ul>
+<li><strong>航司名称及 Logo</strong></li>
+<li><strong>航班号</strong></li>
+<li><strong>出发机场</strong></li>
+</ul>
+
+<h4>四、审核流程及管理员职责</h4>
+
+<ul>
+<li>投稿提交后进入管理员审核。</li>
+<li>通过审核的稿件将进入主页展厅。</li>
+<li>被驳回的稿件应当给出符合本条例的拒绝理由。</li>
+<li>管理员应当公私分明，不得公报私仇或以权谋私。</li>
+<li>管理员应仔细审核，不放过违规内容，也不得无理由拒绝合规稿件。</li>
+<li>本站为免费网站，如发现管理员向用户索要钱财，应保留证据并向维护邮箱举报。</li>
+</ul>
+
+<h4>五、用户权利与义务</h4>
+
+<ul>
+<li>用户可以在“我的投稿”页面查看投稿状态。</li>
+<li>对审核结果有疑问的，可以通过“我的投稿”页面提出申诉。</li>
+<li>用户投稿即授权本站以非商业用途进行展示。</li>
+<li>用户可以通过官方 QQ 群或技术支持邮箱申请下架自己的投稿。</li>
+<li>用户应保证上传内容合法合规，并承担因隐私泄漏或侵权产生的相应责任。</li>
+</ul>
+
+<h4>六、管理员申请</h4>
+
+<p>
+用户有权向超级管理员提出成为管理员的申请。申请时必须填写社交媒体账号，以供超级管理员参考。
+</p>
+
+<h4>七、附则</h4>
+
+<p>
+本条例最终解释权、修订权、生效日期及更新通知方式归本站所有。
+如有更新，将同步在网站首页更新日志弹窗以及官方用户群进行通知。
+</p>
+
+<div class="rules-footer-link">
+<a href="rules.html" target="_blank">
+查看完整《投稿及审核条例》 →
+</a>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<style>
+
+#rulesFloatingBtn{
+position:fixed;
+right:28px;
+bottom:28px;
+z-index:900;
+padding:14px 22px;
+border:1px solid rgba(255,255,255,.18);
+border-radius:14px;
+background:rgba(30,30,30,.92);
+color:#fff;
+font-size:15px;
+font-weight:600;
+cursor:pointer;
+box-shadow:0 8px 30px rgba(0,0,0,.25);
+backdrop-filter:blur(16px);
+transition:.2s;
+}
+
+#rulesFloatingBtn:hover{
+transform:translateY(-2px);
+background:#222;
+}
+
+.rules-overlay{
+display:none;
+position:fixed;
+inset:0;
+z-index:1000;
+background:rgba(0,0,0,.58);
+backdrop-filter:blur(8px);
+align-items:center;
+justify-content:center;
+padding:30px;
+}
+
+.rules-modal{
+width:min(900px,94vw);
+height:min(780px,88vh);
+background:#fff;
+color:#222;
+border-radius:22px;
+box-shadow:0 25px 80px rgba(0,0,0,.4);
+overflow:hidden;
+display:flex;
+flex-direction:column;
+}
+
+.rules-modal-header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:22px 28px;
+border-bottom:1px solid #e8e8e8;
+flex-shrink:0;
+}
+
+.rules-modal-header h2{
+margin:0 0 4px;
+font-size:24px;
+}
+
+.rules-modal-header p{
+margin:0;
+font-size:13px;
+color:#777;
+}
+
+.rules-close{
+width:40px;
+height:40px;
+border:0;
+border-radius:50%;
+background:#f1f1f1;
+font-size:28px;
+line-height:1;
+cursor:pointer;
+color:#333;
+}
+
+.rules-content{
+overflow-y:auto;
+padding:28px 34px 40px;
+font-size:15px;
+line-height:1.8;
+}
+
+.rules-content h3{
+margin-top:0;
+font-size:20px;
+}
+
+.rules-content h4{
+margin:28px 0 10px;
+font-size:17px;
+}
+
+.rules-content ul{
+padding-left:24px;
+}
+
+.rules-important{
+color:#c62828;
+}
+
+.rules-warning{
+color:#c62828;
+font-weight:600;
+}
+
+.rules-footer-link{
+margin-top:35px;
+padding-top:20px;
+border-top:1px solid #eee;
+text-align:center;
+}
+
+.rules-footer-link a{
+color:#0071e3;
+font-weight:600;
+text-decoration:none;
+}
+
+.rules-footer-link a:hover{
+text-decoration:underline;
+}
+
+@media(max-width:600px){
+
+#rulesFloatingBtn{
+right:16px;
+bottom:16px;
+padding:12px 16px;
+font-size:14px;
+}
+
+.rules-overlay{
+padding:12px;
+}
+
+.rules-modal{
+height:92vh;
+border-radius:18px;
+}
+
+.rules-modal-header{
+padding:18px;
+}
+
+.rules-content{
+padding:22px;
+font-size:14px;
+}
+
+}
+
+</style>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded",function(){
+
+const btn=document.getElementById("rulesFloatingBtn");
+const overlay=document.getElementById("rulesOverlay");
+const close=document.getElementById("closeRules");
+
+if(!btn || !overlay || !close) return;
+
+btn.onclick=function(){
+overlay.style.display="flex";
+};
+
+close.onclick=function(){
+overlay.style.display="none";
+};
+
+overlay.onclick=function(e){
+if(e.target===overlay){
+overlay.style.display="none";
+}
+};
+
+document.addEventListener("keydown",function(e){
+if(e.key==="Escape"){
+overlay.style.display="none";
+}
+});
+
+});
+
+</script>
+
+
+
+<style>
+.rules-modal,
+.rules-modal h2,
+.rules-modal h3,
+.rules-modal h4,
+.rules-modal p,
+.rules-modal li,
+.rules-modal strong{
+    color:#222 !important;
+}
+
+.rules-modal .rules-important,
+.rules-modal .rules-warning{
+    color:#c62828 !important;
+}
+
+.rules-modal .rules-footer-link a{
+    color:#0071e3 !important;
+}
+</style>
 </body>
 
 </html>
