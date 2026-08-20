@@ -1139,3 +1139,426 @@ transition:.2s;
 transform:translateY(-1px);
 opacity:.85;
 }
+
+@media(max-width:768px){
+
+.menubar{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:12px;
+}
+
+.menubar nav{
+    width:100%;
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    white-space:nowrap;
+}
+
+.menubar nav a{
+    display:inline-block;
+}
+
+.brand{
+    font-size:18px;
+}
+
+}
+
+/* =====================
+   SA Announcement Panel
+===================== */
+
+.sa-panel{
+
+margin-top:30px;
+
+padding:24px;
+
+border-radius:20px;
+
+background:rgba(255,255,255,0.05);
+
+border:1px solid rgba(255,255,255,0.12);
+
+backdrop-filter:blur(20px);
+
+}
+
+
+.sa-panel h2{
+
+margin-bottom:20px;
+
+font-size:22px;
+
+}
+
+
+
+.sa-panel input,
+.sa-panel textarea{
+
+width:100%;
+
+box-sizing:border-box;
+
+margin-bottom:15px;
+
+padding:14px 16px;
+
+border-radius:14px;
+
+border:1px solid rgba(255,255,255,.15);
+
+background:#1c1c1e;
+
+color:white;
+
+font-size:15px;
+
+outline:none;
+
+transition:.2s;
+
+}
+
+
+
+.sa-panel textarea{
+
+min-height:140px;
+
+resize:vertical;
+
+}
+
+
+
+.sa-panel input:focus,
+.sa-panel textarea:focus{
+
+border-color:#007aff;
+
+box-shadow:0 0 0 3px rgba(0,122,255,.2);
+
+}
+
+
+
+.sa-panel button{
+
+padding:12px 24px;
+
+border-radius:14px;
+
+border:none;
+
+background:#007aff;
+
+color:white;
+
+font-weight:600;
+
+cursor:pointer;
+
+transition:.2s;
+
+}
+
+
+
+.sa-panel button:hover{
+
+transform:translateY(-1px);
+
+opacity:.85;
+
+}
+/* =====================================
+   BoardingPassMuseum Account UI V5
+   Login / Register / Recovery
+   ===================================== */
+
+.submit-form input,
+.container input {
+    min-height: 52px;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    font-size: 16px;
+    border-radius: 14px;
+}
+
+.submit-form button,
+.container button {
+    min-height: 52px;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.submit-form > button,
+.container > button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.verify-box {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.verify-box input {
+    flex: 1;
+    min-width: 0;
+}
+
+.verify-box button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.password-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrap input {
+    width: 100%;
+    padding-right: 52px;
+}
+
+.password-toggle {
+    position: absolute !important;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 19px !important;
+    line-height: 40px;
+    cursor: pointer;
+    opacity: .7;
+}
+
+.password-toggle:hover {
+    opacity: 1;
+}
+
+.submit-form a {
+    display: inline-block;
+    margin: 8px 0;
+}
+
+@media (max-width: 600px) {
+
+    .submit-form,
+    .container {
+        width: calc(100% - 32px);
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .verify-box {
+        flex-direction: column;
+    }
+
+    .verify-box button {
+        width: 100%;
+    }
+
+    .submit-form input,
+    .container input {
+        min-height: 56px;
+        font-size: 17px;
+    }
+
+    .submit-form button,
+    .container button {
+        min-height: 56px;
+        font-size: 17px;
+    }
+}
+
+
+/* =====================================
+   BoardingPassMuseum Account UI V5.1
+   ===================================== */
+
+/* Password field */
+
+.password-wrap {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 10px 0 !important;
+}
+
+.password-wrap input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding-right: 54px !important;
+    margin: 0 !important;
+}
+
+.password-wrap .password-toggle {
+    position: absolute !important;
+
+    top: 50% !important;
+    right: 8px !important;
+
+    transform: translateY(-50%) !important;
+
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: none !important;
+    outline: none !important;
+
+    background: transparent !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    font-size: 18px !important;
+    line-height: 1 !important;
+
+    color: inherit !important;
+    opacity: .65;
+
+    cursor: pointer;
+}
+
+.password-wrap .password-toggle:hover {
+    opacity: 1;
+}
+
+/* =====================================
+   App Store style primary buttons
+   ===================================== */
+
+#loginBtn,
+#registerBtn,
+#resetBtn {
+
+    width: 100% !important;
+
+    min-height: 56px !important;
+
+    margin-top: 16px !important;
+
+    padding: 0 24px !important;
+
+    border: none !important;
+
+    border-radius: 16px !important;
+
+    font-size: 17px !important;
+
+    font-weight: 600 !important;
+
+    letter-spacing: .1px;
+
+    cursor: pointer;
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease,
+        opacity .15s ease;
+
+    box-shadow:
+        0 4px 12px rgba(0,0,0,.18),
+        0 1px 2px rgba(0,0,0,.12);
+}
+
+#loginBtn:hover,
+#registerBtn:hover,
+#resetBtn:hover {
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 7px 18px rgba(0,0,0,.22),
+        0 2px 4px rgba(0,0,0,.12);
+}
+
+#loginBtn:active,
+#registerBtn:active,
+#resetBtn:active {
+
+    transform: scale(.98);
+
+    box-shadow:
+        0 2px 6px rgba(0,0,0,.16);
+}
+
+/* Verification button */
+
+#sendCodeBtn {
+
+    min-height: 52px !important;
+
+    padding: 0 20px !important;
+
+    border-radius: 14px !important;
+
+    font-size: 15px !important;
+
+    font-weight: 600 !important;
+
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+
+    #loginBtn,
+    #registerBtn,
+    #resetBtn {
+
+        min-height: 58px !important;
+
+        border-radius: 17px !important;
+
+        font-size: 17px !important;
+    }
+
+}
+
+
+/* =====================================
+   Admin Apply Button
+===================================== */
+
+.admin-apply button#applyAdmin{
+font-size:18px;
+font-weight:700;
+padding:16px 32px;
+min-width:180px;
+min-height:54px;
+border-radius:14px;
+cursor:pointer;
+}
+
+
+/* ================================
+   首页更新日志：标红文字
+================================ */
+
+.notice-red{
+    color:#d60000 !important;
+    font-weight:600;
+}

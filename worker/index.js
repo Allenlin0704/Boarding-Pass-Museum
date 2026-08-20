@@ -126,7 +126,103 @@ return user;
 }
 
 
+// =====================================
+// RESEND EMAIL
+// =====================================
 
+async function sendVerificationEmail(env,email,code){
+
+const response =
+await fetch(
+"https://api.resend.com/emails",
+{
+method:"POST",
+
+headers:{
+"Authorization":
+`Bearer ${env.RESEND_API_KEY}`,
+
+"Content-Type":
+"application/json"
+},
+
+body:JSON.stringify({
+
+from:
+"BoardingPassMuseum <noreply@bpmuseum.org.cn>",
+
+to:[email],
+
+subject:
+"BoardingPassMuseum 账户验证码",
+
+html:`
+<div style="
+font-family:-apple-system,BlinkMacSystemFont,
+'Segoe UI',Arial,sans-serif;
+line-height:1.7;
+max-width:600px;
+margin:0 auto;
+padding:32px 24px;
+color:#222;
+">
+
+<h2>BoardingPassMuseum</h2>
+
+<p>
+您好，您正在进行 BoardingPassMuseum 账户验证。
+</p>
+
+<p>
+Hello, you are verifying your BoardingPassMuseum account.
+</p>
+
+<p>
+您的验证码：<br>
+Your verification code:
+</p>
+
+<div style="
+font-size:32px;
+font-weight:700;
+letter-spacing:8px;
+margin:24px 0;
+">
+${code}
+</div>
+
+<p>
+验证码将在 10 分钟后失效。<br>
+This code will expire in 10 minutes.
+</p>
+
+<p>
+如果这不是您的操作，请忽略此邮件。<br>
+If you did not request this code, please ignore this email.
+</p>
+
+<hr style="
+border:0;
+border-top:1px solid #ddd;
+margin:32px 0;
+">
+
+<p>
+<strong>BoardingPassMuseum</strong><br>
+Preserving memories of every journey.<br>
+记录每一次旅程的登机牌博物馆。
+</p>
+
+</div>
+`
+
+})
+}
+);
+
+return response.ok;
+
+}
 
 
 
@@ -184,6 +280,11 @@ Date.now()+10*60*1000
 )
 .run();
 
+await sendVerificationEmail(
+env,
+email,
+code
+);
 
 return Response.json(
 {
@@ -461,7 +562,11 @@ user_id
 )
 .run();
 
-
+await sendVerificationEmail(
+env,
+email,
+code
+);
 
 return Response.json(
 {
@@ -585,9 +690,11 @@ Date.now()+10*60*1000
 )
 .run();
 
-
-
-
+await sendVerificationEmail(
+env,
+email,
+code
+);
 
 return Response.json(
 {
@@ -1790,6 +1897,7 @@ await env.DB.prepare(
 `
 SELECT *
 FROM appeals
+WHERE status='pending'
 ORDER BY id DESC
 `
 )
@@ -2301,9 +2409,692 @@ headers
 
 
 
+// =====================================
+// ANNOUNCEMENTS / UPDATES
+// =====================================
+
+// 获取首页更新日志
+
+if(
+url.pathname==="/api/announcements"
+&&
+request.method==="GET"
+){
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+id,
+version,
+content,
+created_at
+FROM announcements
+ORDER BY id DESC
+`
+).all();
+
+return Response.json(
+result.results || [],
+{
+headers
+}
+);
+
+}
+
+
+// 获取长期置顶事项
+
+if(
+url.pathname==="/api/updates"
+&&
+request.method==="GET"
+){
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+id,
+title,
+content,
+created_at
+FROM updates
+ORDER BY id DESC
+`
+).all();
+
+return Response.json(
+result.results || [],
+{
+headers
+}
+);
+
+}
+
+
+// SA 发布更新日志
+
+if(
+url.pathname==="/api/sa/announcement"
+&&
+request.method==="POST"
+){
+
+const {
+sa_id,
+version,
+content
+}=await request.json();
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+if(
+!version ||
+!content
+){
+
+return Response.json(
+{
+error:"版本号和内容不能为空"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+await env.DB.prepare(
+`
+INSERT INTO announcements
+(version,content)
+VALUES (?,?)
+`
+)
+.bind(
+version.trim(),
+content.trim()
+)
+.run();
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+// SA 发布长期置顶事项
+
+if(
+url.pathname==="/api/sa/update"
+&&
+request.method==="POST"
+){
+
+const {
+sa_id,
+title,
+content
+}=await request.json();
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+if(
+!content
+){
+
+return Response.json(
+{
+error:"内容不能为空"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+await env.DB.prepare(
+`
+INSERT INTO updates
+(title,content)
+VALUES (?,?)
+`
+)
+.bind(
+(title || "").trim(),
+content.trim()
+)
+.run();
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
 
 
 
+// =====================================
+// SA USER MANAGEMENT
+// =====================================
+
+
+// 获取用户列表
+
+if(
+url.pathname==="/api/sa/users"
+&&
+request.method==="GET"
+){
+
+const sa_id =
+url.searchParams.get("sa_id");
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+const users =
+await env.DB.prepare(
+`
+SELECT
+id,
+username,
+email,
+role,
+created_at
+FROM users
+ORDER BY id ASC
+`
+)
+.all();
+
+
+
+return Response.json(
+users.results,
+{
+headers
+}
+);
+
+}
+
+
+
+// 提升管理员
+
+if(
+url.pathname==="/api/sa/promote"
+&&
+request.method==="POST"
+){
+
+const {
+sa_id,
+user_id
+}=await request.json();
+
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET role='administrator'
+WHERE id=?
+AND role!='superadministrator'
+`
+)
+.bind(
+user_id
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+// 撤销管理员
+
+if(
+url.pathname==="/api/sa/demote"
+&&
+request.method==="POST"
+){
+
+const {
+sa_id,
+user_id
+}=await request.json();
+
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET role='user'
+WHERE id=?
+AND role='administrator'
+`
+)
+.bind(
+user_id
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+// =====================================
+// USER APPLY ADMIN
+// =====================================
+
+if(
+url.pathname==="/api/account/admin-request"
+&&
+request.method==="POST"
+){
+
+const {
+user_id,
+reason,
+social
+}=await request.json();
+
+
+await env.DB.prepare(
+`
+INSERT INTO admin_requests
+(
+user_id,
+reason,
+social
+)
+VALUES
+(?,?,?)
+`
+)
+.bind(
+user_id,
+reason,
+social
+)
+.run();
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+// =====================================
+// SA VIEW ADMIN REQUEST
+// =====================================
+
+if(
+url.pathname==="/api/sa/admin-requests"
+){
+
+const {
+sa_id
+}=Object.fromEntries(
+url.searchParams
+);
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+
+admin_requests.*,
+
+users.username,
+users.email,
+
+COUNT(flights.id)
+AS upload_count
+
+FROM admin_requests
+
+JOIN users
+ON users.id=admin_requests.user_id
+
+LEFT JOIN flights
+ON flights.user_id=users.id
+
+WHERE admin_requests.status='pending'
+
+GROUP BY admin_requests.id
+
+ORDER BY admin_requests.id DESC
+
+`
+)
+.all();
+
+
+return Response.json(
+result.results,
+{
+headers
+}
+);
+
+}
+
+
+
+// =====================================
+// SA APPROVE ADMIN
+// =====================================
+
+if(
+url.pathname==="/api/sa/admin-request/approve"
+&&
+request.method==="POST"
+){
+
+const {
+sa_id,
+request_id,
+user_id
+}=await request.json();
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET role='administrator'
+WHERE id=?
+`
+)
+.bind(user_id)
+.run();
+
+
+
+await env.DB.prepare(
+`
+UPDATE admin_requests
+SET status='approved'
+WHERE id=?
+`
+)
+.bind(request_id)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+// =====================================
+// SA REJECT ADMIN
+// =====================================
+
+if(
+url.pathname==="/api/sa/admin-request/reject"
+&&
+request.method==="POST"
+){
+
+const {
+sa_id,
+request_id
+}=await request.json();
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+await env.DB.prepare(
+`
+UPDATE admin_requests
+SET status='rejected'
+WHERE id=?
+`
+)
+.bind(request_id)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
 
 
 // =====================================

@@ -35,7 +35,7 @@ loadUser();
 checkSA();
 
 
-if(!currentUser){
+if(!adminUser){
 
 location.href="login.html";
 
@@ -45,9 +45,9 @@ return;
 
 
 if(
-currentUser.role!=="administrator"
+adminUser.role!=="administrator"
 &&
-currentUser.role!=="superadministrator"
+adminUser.role!=="superadministrator"
 ){
 
 document.body.innerHTML=`
@@ -62,6 +62,22 @@ return;
 
 }
 
+const adminApply =
+document.querySelector(".admin-apply");
+
+if(
+adminApply &&
+(
+adminUser.role==="administrator"
+||
+adminUser.role==="superadministrator"
+)
+){
+
+adminApply.style.display="none";
+
+}
+
 
 const welcome =
 document.getElementById(
@@ -73,7 +89,7 @@ if(welcome){
 
 welcome.innerText =
 `
-欢迎回来，${currentUser.username}
+欢迎回来，${adminUser.username}
 `;
 
 }
@@ -103,7 +119,7 @@ function loadUser(){
 
 try{
 
-currentUser =
+adminUser =
 JSON.parse(
 localStorage.getItem(
 "currentUser"
@@ -112,7 +128,7 @@ localStorage.getItem(
 
 }catch(e){
 
-currentUser=null;
+adminUser=null;
 
 }
 
@@ -128,8 +144,8 @@ document.getElementById("saLink");
 
 if(
 saLink &&
-currentUser &&
-currentUser.role==="superadministrator"
+adminUser &&
+adminUser.role==="superadministrator"
 ){
 
 saLink.style.display="block";
@@ -253,7 +269,7 @@ try{
 
 const res =
 await fetch(
-`${API}/api/admin/pending?admin_id=${currentUser.id}`
+`${API}/api/admin/pending?admin_id=${adminUser.id}`
 );
 
 
@@ -299,7 +315,7 @@ async function loadPending(){
 
 const res =
 await fetch(
-`${API}/api/admin/pending?admin_id=${currentUser.id}`
+`${API}/api/admin/pending?admin_id=${adminUser.id}`
 );
 
 
@@ -373,7 +389,7 @@ async function loadApproved(){
 
 const res =
 await fetch(
-`${API}/api/admin/approved?admin_id=${currentUser.id}`
+`${API}/api/admin/approved?admin_id=${adminUser.id}`
 );
 
 
@@ -577,7 +593,7 @@ body:
 JSON.stringify({
 
 admin_id:
-currentUser.id,
+adminUser.id,
 
 flight_id:
 id
@@ -658,7 +674,7 @@ body:
 JSON.stringify({
 
 admin_id:
-currentUser.id,
+adminUser.id,
 
 flight_id:
 id,
@@ -827,7 +843,7 @@ const body={
 
 
 admin_id:
-currentUser.id,
+adminUser.id,
 
 
 flight_id:

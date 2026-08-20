@@ -101,6 +101,8 @@ autocomplete="one-time-code"
 
 
 
+<div class="password-wrap">
+
 <input
 id="password"
 type="password"
@@ -108,7 +110,18 @@ placeholder="密码"
 autocomplete="new-password"
 >
 
+<button
+type="button"
+class="password-toggle"
+data-password="password"
+aria-label="显示密码"
+>👁</button>
 
+</div>
+
+
+
+<div class="password-wrap">
 
 <input
 id="confirmPassword"
@@ -116,6 +129,15 @@ type="password"
 placeholder="确认密码"
 autocomplete="new-password"
 >
+
+<button
+type="button"
+class="password-toggle"
+data-password="confirmPassword"
+aria-label="显示密码"
+>👁</button>
+
+</div>
 
 
 
@@ -201,6 +223,7 @@ allenlin_developer@outlook.com
 
 </footer>
 
+<script src="password-toggle.js"></script>
 </body>
 
 </html>
