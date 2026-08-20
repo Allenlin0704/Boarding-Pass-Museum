@@ -1820,3 +1820,56 @@ html:not(.light-theme) .appeal-cancel {
     }
 }
 
+
+/* =====================================
+   BoardingPassMuseum Theme V1.1
+   修复浅色模式全局颜色覆盖
+===================================== */
+
+html.light-theme,
+html.light-theme body {
+    background-color: #f5f5f7 !important;
+    color: #111 !important;
+}
+
+html.light-theme .menubar {
+    background: rgba(255,255,255,.88) !important;
+    color: #111 !important;
+    border-bottom: 1px solid rgba(0,0,0,.10) !important;
+}
+
+html.light-theme .menubar a,
+html.light-theme .menubar .brand {
+    color: #111 !important;
+}
+
+html.light-theme main,
+html.light-theme section,
+html.light-theme .container {
+    color: #111 !important;
+}
+
+html.light-theme .card {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: rgba(0,0,0,.10) !important;
+}
+
+html.light-theme .card p,
+html.light-theme .card .story,
+html.light-theme .gallery-desc {
+    color: #666 !important;
+}
+
+html.light-theme input,
+html.light-theme textarea,
+html.light-theme select {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: rgba(0,0,0,.12) !important;
+}
+
+html.light-theme footer {
+    color: #666 !important;
+}
+
