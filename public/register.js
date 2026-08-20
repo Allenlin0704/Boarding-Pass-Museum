@@ -120,7 +120,7 @@ async () => {
         document.getElementById("password").value;
 
     const code =
-        document.getElementById("code").value.trim();
+        document.getElementById("verifyCode").value.trim();
 
 
     if(!username){
