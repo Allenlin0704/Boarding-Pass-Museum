@@ -44,20 +44,34 @@ return;
 }
 
 
+// =====================================
+// 普通用户：允许进入 Admin 页面申请管理员
+// =====================================
+
 if(
 adminUser.role!=="administrator"
 &&
 adminUser.role!=="superadministrator"
 ){
 
-document.body.innerHTML=`
+// 隐藏管理员专用内容
+document.querySelectorAll(
+".admin-header, .dashboard, .admin-review-layout, .admin-section"
+).forEach(
+el=>{
+el.style.display="none";
+}
+);
 
-<h1 style="text-align:center;margin-top:100px">
-无权限访问
-</h1>
+// 显示管理员申请区域
+const adminApply =
+document.querySelector(".admin-apply");
 
-`;
+if(adminApply){
+adminApply.style.display="block";
+}
 
+// 不再继续加载管理员后台
 return;
 
 }

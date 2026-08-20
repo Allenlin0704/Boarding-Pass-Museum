@@ -1562,3 +1562,261 @@ cursor:pointer;
     color:#d60000 !important;
     font-weight:600;
 }
+
+/* =====================================
+   BoardingPassMuseum Theme V1
+   浅色 / 深色模式
+   ===================================== */
+
+:root {
+    --bg: #111;
+    --surface: #1c1c1e;
+    --surface-2: #242426;
+    --text: #eee;
+    --text-secondary: #aaa;
+    --border: rgba(255,255,255,.12);
+}
+
+html.light-theme {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --surface-2: #f2f2f2;
+    --text: #111;
+    --text-secondary: #666;
+    --border: rgba(0,0,0,.10);
+}
+
+html.light-theme body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+html.light-theme .menubar {
+    background: rgba(255,255,255,.82);
+    color: var(--text);
+    border-bottom-color: var(--border);
+}
+
+html.light-theme .menubar a,
+html.light-theme .menubar .brand {
+    color: var(--text);
+}
+
+html.light-theme main,
+html.light-theme section,
+html.light-theme .container {
+    color: var(--text);
+}
+
+html.light-theme input,
+html.light-theme textarea,
+html.light-theme select {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+html.light-theme .card {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+html.light-theme header:not(.menubar) {
+    background: linear-gradient(135deg,#f5f5f7,#e8eaed);
+}
+
+html.light-theme header:not(.menubar) p {
+    color: var(--text-secondary);
+}
+
+/* 浅色模式按钮 */
+
+.theme-toggle {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 17px;
+    padding: 6px 8px;
+    border-radius: 10px;
+}
+
+.theme-toggle:hover {
+    background: rgba(127,127,127,.12);
+}
+
+
+/* =====================================
+   BoardingPassMuseum Update Notice
+   更新日志重点文字
+   ===================================== */
+
+
+
+/* =====================================
+   投稿图片点击放大
+   ===================================== */
+
+.ticket-image {
+    cursor: zoom-in;
+    transition: transform .2s ease, opacity .2s ease;
+}
+
+.ticket-image:hover {
+    opacity: .92;
+}
+
+.image-preview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    background: rgba(0,0,0,.82);
+    cursor: zoom-out;
+}
+
+.image-preview-overlay.show {
+    display: flex;
+}
+
+.image-preview-overlay img {
+    max-width: 92vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 20px 80px rgba(0,0,0,.45);
+}
+
+
+/* =====================================
+   Admin 申请按钮强化
+===================================== */
+
+.admin-apply-button{
+    display:block;
+    width:100%;
+    max-width:420px;
+    margin:28px auto 10px;
+    min-height:60px;
+    padding:16px 28px;
+    border:0;
+    border-radius:16px;
+    background:#007aff;
+    color:#fff;
+    font-size:18px;
+    font-weight:700;
+    letter-spacing:.3px;
+    cursor:pointer;
+    transition:
+        transform .2s ease,
+        opacity .2s ease,
+        box-shadow .2s ease;
+}
+
+.admin-apply-button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(0,122,255,.25);
+}
+
+.admin-apply-button:active{
+    transform:translateY(0);
+    opacity:.85;
+}
+
+html.light-theme .admin-apply-button{
+    background:#007aff;
+    color:#fff;
+}
+
+
+/* =====================================
+   BoardingPassMuseum Appeal UI
+===================================== */
+
+.appeal-box {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #f5f5f7;
+}
+
+.appeal-input {
+    width: 100%;
+    min-height: 110px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    border: 1px solid #d2d2d7;
+    border-radius: 12px;
+    background: #fff;
+    color: #111;
+    font: inherit;
+    resize: vertical;
+    outline: none;
+}
+
+.appeal-input:focus {
+    border-color: #007aff;
+    box-shadow: 0 0 0 3px rgba(0,122,255,.12);
+}
+
+.appeal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.appeal-submit,
+.appeal-cancel {
+    min-height: 44px;
+    padding: 10px 18px;
+    border: 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.appeal-submit {
+    background: #007aff;
+    color: #fff;
+}
+
+.appeal-cancel {
+    background: #e5e5ea;
+    color: #333;
+}
+
+html.light-theme .appeal-box {
+    background: #f5f5f7;
+}
+
+html:not(.light-theme) .appeal-box {
+    background: #1c1c1e;
+}
+
+html:not(.light-theme) .appeal-input {
+    background: #2c2c2e;
+    border-color: #48484a;
+    color: #fff;
+}
+
+html:not(.light-theme) .appeal-cancel {
+    background: #3a3a3c;
+    color: #fff;
+}
+
+@media (max-width: 600px) {
+    .appeal-actions {
+        flex-direction: column;
+    }
+
+    .appeal-submit,
+    .appeal-cancel {
+        width: 100%;
+    }
+}
+
