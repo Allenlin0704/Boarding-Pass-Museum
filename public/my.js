@@ -5,15 +5,6 @@
 
 const API = "https://api.bpmuseum.org.cn";
 
-let currentUser = null;
-
-try {
-  currentUser = JSON.parse(
-    localStorage.getItem("currentUser")
-  );
-} catch (e) {
-  currentUser = null;
-}
 
 const submissions =
   document.getElementById("mySubmissions");
@@ -22,7 +13,7 @@ const welcome =
   document.getElementById("welcome");
 
 if (!currentUser) {
-  alert("请登录后查看");
+  showToast("请登录后查看");
   location.href = "login.html";
   throw new Error("not login");
 }
@@ -47,6 +38,9 @@ async function loadMySubmissions() {
     );
 
     const flights = await res.json();
+
+    console.log("API返回投稿:", flights);
+console.log("数量:", flights.length);
 
     renderSubmissions(flights);
 
@@ -161,6 +155,31 @@ function renderSubmissions(flights) {
         : "";
 
 
+
+    const appealStatus =
+      flight.appeal_status
+        ?
+        `
+        <div class="appeal-status">
+
+          ${
+            flight.appeal_status === "pending"
+            ?
+            "⚠ 申诉处理中"
+            :
+            flight.appeal_status === "approved"
+            ?
+            "✅ 申诉已通过"
+            :
+            "❌ 申诉未通过"
+          }
+
+        </div>
+        `
+        :
+        "";
+
+
     const appeal =
       flight.status === "rejected"
         ? `
@@ -178,32 +197,69 @@ function renderSubmissions(flights) {
     const card =
       document.createElement("article");
 
-    card.className = "card submission-card";
+
+    card.className =
+      "card submission-card";
 
 
     card.innerHTML = `
 
-      ${imageHTML}
+      <div class="submission-image-wrap">
+
+        ${
+          flight.image
+          ?
+          `
+          <img
+            src="${flight.image}"
+            class="ticket-image"
+            alt="登机牌"
+            loading="lazy"
+            data-preview="${flight.image}"
+          >
+
+          <div class="image-zoom-hint">
+            点击查看大图
+          </div>
+          `
+          :
+          `
+          <div class="submission-image-empty">
+            暂无图片
+          </div>
+          `
+        }
+
+      </div>
+
+
 
       <div class="submission-content">
 
+
         <h3>
-          ${flight.airline || ""}
+          ${flight.airline || "未知航空公司"}
         </h3>
 
+
         <p class="submission-flight">
-          ${flight.flight || ""}
+          ✈ ${flight.flight || ""}
         </p>
 
-        <p>
-          ${flight.airport || ""}
-        </p>
 
         <p>
-          ${flight.date || ""}
+          📍 ${flight.airport || "未知机场"}
         </p>
+
+
+        <p>
+          📅 ${flight.date || ""}
+        </p>
+
+
 
         <div class="submission-status ${status.className}">
+
           <span class="status-icon">
             ${status.icon}
           </span>
@@ -211,15 +267,37 @@ function renderSubmissions(flights) {
           <span>
             ${status.text}
           </span>
+
         </div>
+
+
 
         ${rejectReason}
 
-        ${appeal}
+
+        ${appealStatus}
+
+
+        <div class="submission-actions">
+
+          <button
+            type="button"
+            class="detail-btn"
+            onclick="location.href='detail.html?id=${flight.id}'"
+          >
+            查看详情
+          </button>
+
+
+          ${appeal}
+
+        </div>
+
 
       </div>
 
     `;
+
 
 
     submissions.appendChild(card);
@@ -403,7 +481,7 @@ document.addEventListener(
         appealInput.value.trim();
 
       if (!reason) {
-        alert("请输入申诉理由");
+        showToast("请输入申诉理由");
         appealInput.focus();
         return;
       }
@@ -439,13 +517,13 @@ document.addEventListener(
 
         if (data.success) {
 
-          alert("申诉提交成功");
+          showToast("申诉提交成功");
 
           appealBox.remove();
 
         } else {
 
-          alert(
+          showToast(
             data.error ||
             "提交失败"
           );
@@ -458,7 +536,7 @@ document.addEventListener(
 
         console.error(error);
 
-        alert(
+        showToast(
           "网络错误，请稍后再试"
         );
 
@@ -500,13 +578,13 @@ document.addEventListener(
 
       if (data.success) {
 
-        alert(
+        showToast(
           "申诉提交成功"
         );
 
       } else {
 
-        alert(
+        showToast(
           data.error ||
           "提交失败"
         );
@@ -518,7 +596,7 @@ document.addEventListener(
 
       console.error(error);
 
-      alert(
+      showToast(
         "网络错误，请稍后再试"
       );
 

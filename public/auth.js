@@ -97,26 +97,36 @@ function updateNavbar(){
         </a>
 
 
-        <a href="my.html">
-        我的投稿
-        </a>
+        <div class="user-menu">
 
 
-        <a href="favorites.html">
-        我的收藏
-        </a>
+            <button id="userMenuBtn">
+            ${currentUser.username} ▼
+            </button>
 
 
-        <a href="admin.html">
-        Admin
-        </a>
+            <div id="userDropdown" class="user-dropdown">
 
 
-        <span>
+                <a href="account.html">
+                账户设置
+                </a>
 
-        ${currentUser.username}
 
-        </span>
+                <a href="my.html">
+                我的投稿
+                </a>
+
+
+                <a href="favorites.html">
+                我的收藏
+                </a>
+
+
+            </div>
+
+
+        </div>
 
 
         <a href="#" id="logout">
@@ -128,6 +138,43 @@ function updateNavbar(){
 
 
 
+        const btn =
+        document.getElementById(
+            "userMenuBtn"
+        );
+
+
+        const menu =
+        document.getElementById(
+            "userDropdown"
+        );
+
+
+
+        btn.onclick=function(e){
+
+            e.stopPropagation();
+
+            menu.classList.toggle(
+                "show"
+            );
+
+        };
+
+
+
+        document.addEventListener(
+        "click",
+        function(){
+
+            menu.classList.remove(
+                "show"
+            );
+
+        });
+
+
+
         const logout =
         document.getElementById(
             "logout"
@@ -136,9 +183,7 @@ function updateNavbar(){
 
         if(logout){
 
-
-            logout.onclick = function(e){
-
+            logout.onclick=function(e){
 
                 e.preventDefault();
 
@@ -150,9 +195,7 @@ function updateNavbar(){
 
                 location.reload();
 
-
             };
-
 
         }
 
@@ -161,7 +204,6 @@ function updateNavbar(){
 
 
 }
-
 
 // 执行
 

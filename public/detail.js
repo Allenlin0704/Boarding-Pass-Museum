@@ -17,46 +17,29 @@ params.get("id");
 // =======================
 
 
-let flights =
-
-JSON.parse(
-
-localStorage.getItem(
-"flights"
-)
-
-);
+let flights = [];
 
 
-
-if(!flights || flights.length === 0){
-
-
-fetch("/data/flights.json")
+fetch("https://api.bpmuseum.org.cn/api/flights")
 
 .then(res=>res.json())
 
 .then(data=>{
 
-
 flights = data;
 
-
 showDetail();
 
+})
+
+.catch(err=>{
+
+console.error(
+"加载展品失败",
+err
+);
 
 });
-
-
-}
-
-else{
-
-
-showDetail();
-
-
-}
 
 
 
@@ -108,68 +91,89 @@ container.innerHTML=
 
 `
 
+<div class="detail-header">
+
+<h1>
+✈ ${flight.airline || "Unknown"}
+</h1>
+
+<h2>
+${flight.flight || ""}
+</h2>
+
+<p>
+📅 ${flight.date || ""}
+</p>
+
+</div>
+
+
 <img
 
 src="${flight.image || ''}"
 
 class="ticket-image"
 
+data-preview="${flight.image || ''}"
+
 
 >
 
 
+<section class="detail-card">
 
-<h1>
-
-${flight.flight}
-
-</h1>
-
+<h2>
+航班信息
+</h2>
 
 
 <p>
-
-✈ 航空公司：
-
+<strong>航空公司</strong><br>
 ${flight.airline || "Unknown"}
-
 </p>
 
 
-
-
-
-
-
 <p>
-
-日期：
-
-${flight.date}
-
+<strong>航班号</strong><br>
+${flight.flight || "Unknown"}
 </p>
 
 
-
-
-
-
-
 <p>
-
-📍 机场：
-
+<strong>出发机场</strong><br>
 ${flight.airport || "Unknown"}
-
 </p>
-
 
 
 <p>
-
-${flight.story || ""}
-
+<strong>日期</strong><br>
+${flight.date || "Unknown"}
 </p>
+
+
+<p>
+<strong>上传者</strong><br>
+${flight.username || "匿名用户"}
+</p>
+
+
+</section>
+
+
+
+<section class="detail-story">
+
+<h2>
+✈ 藏品故事
+</h2>
+
+
+<p>
+${flight.story || "暂无故事"}
+</p>
+
+
+</section>
 
 
 
@@ -304,4 +308,33 @@ btn.innerHTML =
 
 
 
+
+
+
+// =====================================
+// DETAIL IMAGE PREVIEW
+// =====================================
+
+document.addEventListener(
+"click",
+e=>{
+
+    const img =
+        e.target.closest(
+            ".ticket-image"
+        );
+
+
+    if(
+        img &&
+        img.dataset.preview
+    ){
+
+        openImagePreview(
+            img.dataset.preview
+        );
+
+    }
+
+});
 

@@ -84,6 +84,159 @@ async function loadAppeals(){
 
 
 
+
+// ==========================
+// 展品管理
+// ==========================
+
+async function loadSAFlights(){
+
+    const box =
+    document.getElementById("saFlights");
+
+
+    if(!box)return;
+
+
+    try{
+
+        const res = await fetch(
+            `${API}/api/sa/flights?sa_id=${user.id}`
+        );
+
+
+        const data =
+        await res.json();
+
+
+        box.innerHTML="";
+
+
+        if(!Array.isArray(data) || data.length===0){
+
+            box.innerHTML="暂无展品";
+
+            return;
+
+        }
+
+
+
+        data.forEach(x=>{
+
+            box.innerHTML += `
+
+            <div class="card">
+
+                <img
+                src="${x.image || ''}"
+                class="ticket-image"
+                data-preview="${x.image || ''}"
+                alt="登机牌"
+                >
+
+                <h3>
+                ${x.airline || ""}
+                ${x.flight || ""}
+                </h3>
+
+                <p>
+                投稿用户：
+                ${x.username || "未知"}
+                </p>
+
+                <p>
+                状态：
+                ${x.status || ""}
+                </p>
+
+                <p>
+                日期：
+                ${x.date || ""}
+                </p>
+
+                <button
+                class="danger-button"
+                onclick="deleteSAFlight(${x.id})"
+                >
+                🗑 移除展品
+                </button>
+
+            </div>
+
+            `;
+
+        });
+
+
+    }catch(e){
+
+        box.innerHTML =
+        "加载失败:"+e.message;
+
+    }
+
+}
+
+
+
+async function deleteSAFlight(id){
+
+    if(
+        !confirm(
+        "确定移除该展品？此操作无法恢复。"
+        )
+    ){
+        return;
+    }
+
+
+    const res =
+    await fetch(
+        `${API}/api/sa/delete-flight`,
+        {
+            method:"POST",
+
+            headers:{
+                "Content-Type":
+                "application/json"
+            },
+
+            body:JSON.stringify({
+
+                sa_id:user.id,
+
+                flight_id:id
+
+            })
+
+        }
+    );
+
+
+    const data =
+    await res.json();
+
+
+    if(data.success){
+
+        showToast("移除成功");
+
+        loadSAFlights();
+
+    }else{
+
+        showToast(
+            data.error ||
+            "操作失败"
+        );
+
+    }
+
+}
+
+
+
 // ==========================
 // 管理员申请
 // ==========================
@@ -261,7 +414,7 @@ async function approveAdmin(id,user_id){
     );
 
 
-    alert("管理员申请已处理");
+    showToast("管理员申请已处理");
 
     loadAdminRequests();
     loadUsers();
@@ -287,7 +440,7 @@ async function rejectAdmin(id){
     );
 
 
-    alert("申请已拒绝");
+    showToast("申请已拒绝");
 
     loadAdminRequests();
 
@@ -320,7 +473,7 @@ function openDemoteModal(id,username){
 
     if(id===user.id){
 
-        alert("不能移除自己的超级管理员权限");
+        showToast("不能移除自己的超级管理员权限");
         return;
 
     }
@@ -371,7 +524,7 @@ async function confirmDemote(){
 
     if(!input || input.value.trim()!=="移除"){
 
-        alert('请输入“移除”后再确认。');
+        showToast('请输入“移除”后再确认。');
         return;
 
     }
@@ -404,7 +557,7 @@ async function confirmDemote(){
 
     if(data.success){
 
-        alert("管理员权限已移除");
+        showToast("管理员权限已移除");
 
         closeDemoteModal();
 
@@ -412,7 +565,7 @@ async function confirmDemote(){
 
     }else{
 
-        alert(
+        showToast(
             data.error ||
             "移除失败"
         );
@@ -452,7 +605,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
             if(!version){
 
-                alert("请输入版本号。");
+                showToast("请输入版本号。");
                 return;
 
             }
@@ -460,7 +613,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
             if(!content){
 
-                alert("请输入更新内容。");
+                showToast("请输入更新内容。");
                 return;
 
             }
@@ -493,7 +646,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 if(data.success){
 
-                    alert("更新日志发布成功。");
+                    showToast("更新日志发布成功。");
 
                     document.getElementById(
                         "noticeVersion"
@@ -505,7 +658,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 }else{
 
-                    alert(
+                    showToast(
                         data.error ||
                         "发布失败"
                     );
@@ -517,7 +670,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 console.error(e);
 
-                alert(
+                showToast(
                     "网络错误，发布失败。"
                 );
 
@@ -551,7 +704,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
             if(!content){
 
-                alert("请输入置顶事项内容。");
+                showToast("请输入置顶事项内容。");
                 return;
 
             }
@@ -584,7 +737,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 if(data.success){
 
-                    alert("长期置顶事项发布成功。");
+                    showToast("长期置顶事项发布成功。");
 
                     document.getElementById(
                         "updateTitle"
@@ -596,7 +749,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 }else{
 
-                    alert(
+                    showToast(
                         data.error ||
                         "发布失败"
                     );
@@ -608,7 +761,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 console.error(e);
 
-                alert(
+                showToast(
                     "网络错误，发布失败。"
                 );
 
@@ -620,6 +773,72 @@ document.addEventListener("DOMContentLoaded", function(){
             }
 
         });
+
+    }
+
+});
+
+
+// =====================================
+// SA IMAGE PREVIEW
+// =====================================
+
+document.addEventListener(
+"click",
+e=>{
+
+    const img =
+        e.target.closest(
+            ".ticket-image"
+        );
+
+
+    if(
+        img &&
+        img.dataset.preview
+    ){
+
+        let overlay =
+        document.getElementById(
+            "imagePreviewOverlay"
+        );
+
+
+        if(!overlay){
+
+            overlay=document.createElement("div");
+
+            overlay.id="imagePreviewOverlay";
+
+            overlay.innerHTML=`
+            
+            <img
+            id="previewImage"
+            >
+
+            `;
+
+            document.body.appendChild(
+                overlay
+            );
+
+
+            overlay.onclick=()=>{
+
+                overlay.style.display="none";
+
+            };
+
+        }
+
+
+        document.getElementById(
+            "previewImage"
+        ).src =
+        img.dataset.preview;
+
+
+        overlay.style.display="flex";
 
     }
 
