@@ -7,32 +7,25 @@ new URLSearchParams(
 window.location.search
 );
 
-
 const id =
 params.get("id");
 
 
 const detail =
-document.getElementById(
-"detail"
-);
+document.getElementById("detail");
 
 
 async function loadDetail(){
 
-
 if(!id){
 
-detail.innerHTML =
-"缺少展品ID";
-
+detail.innerHTML="缺少展品ID";
 return;
 
 }
 
 
 try{
-
 
 const res =
 await fetch(
@@ -44,16 +37,18 @@ const data =
 await res.json();
 
 
+console.log("DETAIL DATA:",data);
+
 
 if(!res.ok){
 
-throw new Error();
+detail.innerHTML="找不到该展品";
+return;
 
 }
 
 
-
-detail.innerHTML = `
+detail.innerHTML=`
 
 <h1>
 ${data.airline || ""}
@@ -61,10 +56,7 @@ ${data.flight || ""}
 </h1>
 
 
-<p>
-<strong>ID:</strong>
-#${data.id}
-</p>
+<p><strong>ID：</strong>#${data.id}</p>
 
 
 <img
@@ -73,96 +65,49 @@ class="detail-image"
 >
 
 
-<p>
-<strong>航司：</strong>
-${data.airline || ""}
-</p>
+<p><strong>航司：</strong>${data.airline || ""}</p>
 
+<p><strong>航班：</strong>${data.flight || ""}</p>
 
-<p>
-<strong>航班：</strong>
-${data.flight || ""}
-</p>
+<p><strong>机场：</strong>${data.airport || ""}</p>
 
+<p><strong>问题机场：</strong>${data.issue_airport || "无"}</p>
 
-<p>
-<strong>机场：</strong>
-${data.airport || ""}
-</p>
+<p><strong>日期：</strong>${data.date || ""}</p>
 
+<p><strong>投稿人：</strong>${data.username || ""}</p>
 
-<p>
-<strong>问题机场：</strong>
-${data.issue_airport || "无"}
-</p>
-
-
-<p>
-<strong>日期：</strong>
-${data.date || ""}
-</p>
-
-
-<p>
-<strong>投稿人：</strong>
-${data.username || ""}
-</p>
-
-
-<p>
-<strong>状态：</strong>
-${data.status || ""}
-</p>
+<p><strong>状态：</strong>${data.status || ""}</p>
 
 
 ${
 data.reject_reason
 ?
-`
-<p>
-<strong>拒绝理由：</strong>
-${data.reject_reason}
-</p>
-`
+`<p><strong>拒绝理由：</strong>${data.reject_reason}</p>`
 :
 ""
 }
-
 
 
 ${
 data.appeal_reason
 ?
-`
-<p>
-<strong>申诉理由：</strong>
-${data.appeal_reason}
-</p>
-`
+`<p><strong>申诉理由：</strong>${data.appeal_reason}</p>`
 :
 ""
 }
-
 
 
 ${
 data.appeal_status
 ?
-`
-<p>
-<strong>申诉状态：</strong>
-${data.appeal_status}
-</p>
-`
+`<p><strong>申诉状态：</strong>${data.appeal_status}</p>`
 :
 ""
 }
 
 
-
-<h2>
-展品故事
-</h2>
+<h2>展品故事</h2>
 
 <p>
 ${data.story || ""}
@@ -172,14 +117,12 @@ ${data.story || ""}
 `;
 
 
+}catch(e){
 
-}
-catch(e){
+console.error(e);
 
-console.error("DETAIL ERROR:", e);
-
-detail.innerHTML =
-"展品加载失败：" + e.message;
+detail.innerHTML=
+"加载失败："+e.message;
 
 }
 
