@@ -71,7 +71,7 @@ class="detail-image"
 
 <p><strong>机场：</strong>${data.airport || ""}</p>
 
-<p><strong>问题机场：</strong>${data.issue_airport || "无"}</p>
+<p><strong>登机牌签发机场：</strong>${data.issue_airport || "无"}</p>
 
 <p><strong>日期：</strong>${data.date || ""}</p>
 
