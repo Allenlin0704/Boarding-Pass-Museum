@@ -1,84 +1,39 @@
-const params =
+// =====================================
+// BoardingPassMuseum
+// detail.js V2
+// D1 API Detail
+// =====================================
 
+
+const API =
+"https://api.bpmuseum.org.cn";
+
+
+const params =
 new URLSearchParams(
 window.location.search
 );
 
 
-
 const id =
-
 params.get("id");
 
 
 
-// =======================
-// 获取展品数据
-// =======================
-
-
-let flights = [];
-
-
-fetch("https://api.bpmuseum.org.cn/api/flights")
-
-.then(res=>res.json())
-
-.then(data=>{
-
-flights = data;
-
-showDetail();
-
-})
-
-.catch(err=>{
-
-console.error(
-"加载展品失败",
-err
-);
-
-});
-
-
-
-
-// =======================
-// 显示详情
-// =======================
-
-
-function showDetail(){
-
-
-
-const flight =
-flights.find(
-item => item.id == id
-);
-
-
 const container =
-
 document.getElementById(
 "detail"
 );
 
 
 
-if(!flight){
+async function loadDetail(){
 
 
-container.innerHTML=
+if(!id){
 
-`
-
-<h2>
-找不到该展品
-</h2>
-
-`;
+container.innerHTML =
+"<p>展品编号不存在</p>";
 
 return;
 
@@ -86,255 +41,136 @@ return;
 
 
 
+try{
 
-container.innerHTML=
 
-`
+const res =
+await fetch(
+`${API}/api/flight/${id}`
+);
 
-<div class="detail-header">
+
+
+const data =
+await res.json();
+
+
+
+if(!res.ok){
+
+throw new Error(
+"not found"
+);
+
+}
+
+
+
+container.innerHTML = `
+
+<div class="detail-card">
+
 
 <h1>
-✈ ${flight.airline || "Unknown"}
+${data.airline || ""}
+${data.flight || ""}
 </h1>
 
-<h2>
-${flight.flight || ""}
-</h2>
 
-<p>
-📅 ${flight.date || ""}
-</p>
+<div class="detail-image">
+
+<img 
+src="${data.image || ""}"
+alt="boarding pass">
 
 </div>
 
 
-<img
 
-src="${flight.image || ''}"
-
-class="ticket-image"
-
-data-preview="${flight.image || ''}"
+<div class="detail-info">
 
 
->
+<p>
+<strong>航司：</strong>
+${data.airline || ""}
+</p>
 
 
-<section class="detail-card">
+<p>
+<strong>航班：</strong>
+${data.flight || ""}
+</p>
+
+
+<p>
+<strong>机场：</strong>
+${data.airport || ""}
+</p>
+
+
+<p>
+<strong>问题机场：</strong>
+${data.issue_airport || "无"}
+</p>
+
+
+<p>
+<strong>日期：</strong>
+${data.date || ""}
+</p>
+
+
+<p>
+<strong>投稿人：</strong>
+${data.username || ""}
+</p>
+
+
+</div>
+
+
+
+<div class="story">
 
 <h2>
-航班信息
+展品故事
 </h2>
 
-
 <p>
-<strong>航空公司</strong><br>
-${flight.airline || "Unknown"}
+${data.story || ""}
 </p>
 
 
-<p>
-<strong>航班号</strong><br>
-${flight.flight || "Unknown"}
-</p>
+</div>
 
 
-<p>
-<strong>出发机场</strong><br>
-${flight.airport || "Unknown"}
-</p>
-
-
-<p>
-<strong>日期</strong><br>
-${flight.date || "Unknown"}
-</p>
-
-
-<p>
-<strong>上传者</strong><br>
-${flight.username || "匿名用户"}
-</p>
-
-
-</section>
-
-
-
-<section class="detail-story">
-
-<h2>
-✈ 藏品故事
-</h2>
-
-
-<p>
-${flight.story || "暂无故事"}
-</p>
-
-
-</section>
-
-
-
-<button id="favoriteBtn">
-
-☆ 收藏
-
-</button>
-
+</div>
 
 `;
 
 
+}
+catch(err){
 
 
-// 收藏按钮
-
-const btn =
-
-document.getElementById(
-"favoriteBtn"
+console.error(
+err
 );
 
 
-
-if(btn){
-
-
-let favorites =
-
-JSON.parse(
-
-localStorage.getItem(
-"favorites"
-)
-
-)
-||
-[];
+container.innerHTML =
+`
+<p>
+展品加载失败
+</p>
+`;
 
 
-
-
-if(
-
-favorites.includes(
-id
-)
-
-){
-
-
-btn.innerHTML =
-"★ 已收藏";
+}
 
 
 }
 
 
 
-
-btn.onclick=function(){
-
-
-if(
-!favorites.includes(id)
-){
-
-
-favorites.push(id);
-
-
-localStorage.setItem(
-"favorites",
-JSON.stringify(favorites)
-);
-
-
-btn.innerHTML =
-"★ 已收藏";
-
-
-}
-
-else{
-
-
-favorites =
-favorites.filter(
-item => item !== id
-);
-
-
-localStorage.setItem(
-"favorites",
-JSON.stringify(favorites)
-);
-
-
-btn.innerHTML =
-"☆ 收藏";
-
-
-}
-
-
-};
-
-
-
-
-
-btn.innerHTML =
-"★ 已收藏";
-
-
-}
-
-else{
-
-
-btn.innerHTML =
-"★ 已收藏";
-
-
-}
-
-
-};
-
-
-
-
-
-
-
-
-// =====================================
-// DETAIL IMAGE PREVIEW
-// =====================================
-
-document.addEventListener(
-"click",
-e=>{
-
-    const img =
-        e.target.closest(
-            ".ticket-image"
-        );
-
-
-    if(
-        img &&
-        img.dataset.preview
-    ){
-
-        openImagePreview(
-            img.dataset.preview
-        );
-
-    }
-
-});
-
+loadDetail();
