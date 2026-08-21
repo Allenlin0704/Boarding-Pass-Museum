@@ -283,7 +283,7 @@ airports,
 
 issueAirportResults,
 
-"issueAirport"
+"issue_airport"
 
 );
 
@@ -480,7 +480,7 @@ displayName(item);
 
 
 
-if(type==="issueAirport"){
+if(type==="issue_airport"){
 
 
 selectedIssueAirport = item;
