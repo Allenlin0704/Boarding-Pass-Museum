@@ -176,10 +176,10 @@ ${data.story || ""}
 }
 catch(e){
 
-console.error(e);
+console.error("DETAIL ERROR:", e);
 
 detail.innerHTML =
-"展品加载失败";
+"展品加载失败：" + e.message;
 
 }
 
