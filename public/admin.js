@@ -796,7 +796,10 @@ document.getElementById(
 ).value =
 item.airport || "";
 
-
+document.getElementById(
+"editIssueAirport"
+).value =
+item.issue_airport || "";
 
 document.getElementById(
 "editDate"
@@ -882,6 +885,10 @@ document.getElementById(
 "editAirport"
 ).value,
 
+issue_airport:
+document.getElementById(
+"editIssueAirport"
+).value,
 
 date:
 document.getElementById(

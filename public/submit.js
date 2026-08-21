@@ -848,7 +848,7 @@ id:
 Date.now(),
 
 user_id:
-1,
+currentUser.id,
 
 
 author:
