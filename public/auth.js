@@ -123,6 +123,11 @@ function updateNavbar(){
                 </a>
 
 
+                <a href="admin.html">
+                管理员中心
+                </a>
+
+
             </div>
 
 
