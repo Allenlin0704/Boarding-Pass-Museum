@@ -596,7 +596,10 @@ submitBtn.onclick = submitFlight;
 
 async function submitFlight(){
 
-
+if(!currentUser || !currentUser.id){
+    showToast("请先登录");
+    return;
+}
 
 try{
 
