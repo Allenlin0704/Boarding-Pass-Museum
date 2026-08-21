@@ -1235,9 +1235,110 @@ headers
 
 
 
+// =====================================
+// SINGLE FLIGHT DETAIL
+// =====================================
+
+if(
+url.pathname.startsWith("/api/flight/")
+&&
+request.method==="GET"
+){
+
+const id =
+url.pathname.split("/").pop();
+
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+flights.*,
+users.username,
+appeals.reason AS appeal_reason,
+appeals.status AS appeal_status
+FROM flights
+LEFT JOIN users
+ON flights.user_id = users.id
+LEFT JOIN appeals
+ON flights.id = appeals.flight_id
+WHERE flights.id=?
+`
+)
+.bind(id)
+.first();
 
 
 
+if(!result){
+
+return Response.json(
+{
+error:"Not found"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+
+return Response.json(
+result,
+{
+headers
+}
+);
+
+}
+
+// =====================================
+// USER WITHDRAW
+// =====================================
+
+if(
+url.pathname==="/api/my/withdraw"
+&&
+request.method==="POST"
+){
+
+const {
+flight_id,
+user_id
+}
+=
+await request.json();
+
+
+await env.DB.prepare(
+`
+UPDATE flights
+SET status='hidden'
+WHERE id=?
+AND user_id=?
+`
+)
+.bind(
+flight_id,
+user_id
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
 
 
 // =====================================

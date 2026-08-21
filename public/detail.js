@@ -1,10 +1,3 @@
-// =====================================
-// BoardingPassMuseum
-// detail.js V2
-// D1 API Detail
-// =====================================
-
-
 const API =
 "https://api.bpmuseum.org.cn";
 
@@ -19,12 +12,10 @@ const id =
 params.get("id");
 
 
-
-const container =
+const detail =
 document.getElementById(
 "detail"
 );
-
 
 
 async function loadDetail(){
@@ -32,13 +23,12 @@ async function loadDetail(){
 
 if(!id){
 
-container.innerHTML =
-"<p>展品编号不存在</p>";
+detail.innerHTML =
+"缺少展品ID";
 
 return;
 
 }
-
 
 
 try{
@@ -50,7 +40,6 @@ await fetch(
 );
 
 
-
 const data =
 await res.json();
 
@@ -58,18 +47,13 @@ await res.json();
 
 if(!res.ok){
 
-throw new Error(
-"not found"
-);
+throw new Error();
 
 }
 
 
 
-container.innerHTML = `
-
-<div class="detail-card">
-
+detail.innerHTML = `
 
 <h1>
 ${data.airline || ""}
@@ -77,17 +61,16 @@ ${data.flight || ""}
 </h1>
 
 
-<div class="detail-image">
+<p>
+<strong>ID:</strong>
+#${data.id}
+</p>
 
-<img 
+
+<img
 src="${data.image || ""}"
-alt="boarding pass">
-
-</div>
-
-
-
-<div class="detail-info">
+class="detail-image"
+>
 
 
 <p>
@@ -126,11 +109,56 @@ ${data.username || ""}
 </p>
 
 
-</div>
+<p>
+<strong>状态：</strong>
+${data.status || ""}
+</p>
+
+
+${
+data.reject_reason
+?
+`
+<p>
+<strong>拒绝理由：</strong>
+${data.reject_reason}
+</p>
+`
+:
+""
+}
 
 
 
-<div class="story">
+${
+data.appeal_reason
+?
+`
+<p>
+<strong>申诉理由：</strong>
+${data.appeal_reason}
+</p>
+`
+:
+""
+}
+
+
+
+${
+data.appeal_status
+?
+`
+<p>
+<strong>申诉状态：</strong>
+${data.appeal_status}
+</p>
+`
+:
+""
+}
+
+
 
 <h2>
 展品故事
@@ -141,36 +169,22 @@ ${data.story || ""}
 </p>
 
 
-</div>
-
-
-</div>
-
 `;
 
 
+
 }
-catch(err){
+catch(e){
 
+console.error(e);
 
-console.error(
-err
-);
-
-
-container.innerHTML =
-`
-<p>
-展品加载失败
-</p>
-`;
-
+detail.innerHTML =
+"展品加载失败";
 
 }
 
 
 }
-
 
 
 loadDetail();

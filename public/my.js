@@ -237,6 +237,11 @@ function renderSubmissions(flights) {
       <div class="submission-content">
 
 
+        <p class="submission-id">
+          🆔 展品 ID: #${flight.id}
+        </p>
+
+
         <h3>
           ${flight.airline || "未知航空公司"}
         </h3>
@@ -288,6 +293,22 @@ function renderSubmissions(flights) {
             查看详情
           </button>
 
+
+          <button
+            type="button"
+            class="withdraw-btn"
+            onclick="withdrawFlight(${flight.id})"
+          >
+            下架
+          </button>
+
+          <button
+type="button"
+class="withdraw-btn"
+onclick="withdrawFlight(${flight.id})"
+>
+下架
+</button>
 
           ${appeal}
 
@@ -615,3 +636,82 @@ document.addEventListener(
 // =================================
 
 loadMySubmissions();
+
+async function withdrawFlight(id){
+
+if(!confirm("确定下架这个展品吗？")){
+return;
+}
+
+
+const res =
+await fetch(
+`${API}/api/my/withdraw`,
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+flight_id:id,
+user_id:currentUser.id
+})
+}
+);
+
+
+const data =
+await res.json();
+
+
+if(data.success){
+
+showToast("已下架");
+
+loadMySubmissions();
+
+}else{
+
+showToast("下架失败");
+
+}
+
+}
+
+async function withdrawFlight(id){
+
+if(!confirm("确定下架这个展品吗？")){
+return;
+}
+
+const res =
+await fetch(
+`${API}/api/my/withdraw`,
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+flight_id:id,
+user_id:currentUser.id
+})
+}
+);
+
+const data =
+await res.json();
+
+if(data.success){
+
+showToast("下架成功");
+loadMySubmissions();
+
+}else{
+
+showToast("下架失败");
+
+}
+
+}
+
