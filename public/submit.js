@@ -11,7 +11,7 @@
 
 if(!currentUser){
 
-    alert(
+    showToast(
         "请登录后再投稿"
     );
 
@@ -34,6 +34,7 @@ let airports = [];
 let selectedAirline = null;
 
 let selectedAirport = null;
+let selectedIssueAirport = null;
 
 
 
@@ -64,6 +65,18 @@ document.getElementById(
 const airportResults =
 document.getElementById(
     "departureResults"
+);
+
+
+const issueAirportInput =
+document.getElementById(
+    "issueAirportSearch"
+);
+
+
+const issueAirportResults =
+document.getElementById(
+    "issueAirportResults"
 );
 
 
@@ -238,6 +251,41 @@ airportResults,
 
 );
 
+
+
+}
+
+
+);
+
+
+}
+
+
+
+
+if(issueAirportInput){
+
+
+issueAirportInput.addEventListener(
+"input",
+
+function(){
+
+selectedIssueAirport = null;
+
+
+searchList(
+
+this.value,
+
+airports,
+
+issueAirportResults,
+
+"issueAirport"
+
+);
 
 
 }
@@ -432,6 +480,21 @@ displayName(item);
 
 
 
+if(type==="issueAirport"){
+
+
+selectedIssueAirport = item;
+
+
+issueAirportInput.value =
+displayName(item);
+
+
+
+}
+
+
+
 container.innerHTML = "";
 
 
@@ -547,7 +610,7 @@ try{
 if(!selectedAirline){
 
 
-alert(
+showToast(
 "请选择航空公司"
 );
 
@@ -562,7 +625,7 @@ return;
 if(!selectedAirport){
 
 
-alert(
+showToast(
 "请选择出发机场"
 );
 
@@ -630,7 +693,7 @@ flightInput.value.trim();
 if(!flight){
 
 
-alert(
+showToast(
 "请输入航班号"
 );
 
@@ -646,7 +709,7 @@ return;
 if(!dateInput.value){
 
 
-alert(
+showToast(
 "请选择日期"
 );
 
@@ -679,7 +742,7 @@ document.getElementById(
 if(!canvas || canvas.width===0){
 
 
-alert(
+showToast(
 "请先上传并处理图片"
 );
 
@@ -694,15 +757,78 @@ return;
 
 
 
-const image =
+const blob =
 
-canvas.toDataURL(
+await new Promise(resolve =>
+
+canvas.toBlob(
+
+resolve,
 
 "image/jpeg",
 
 0.9
 
+)
+
 );
+
+
+
+const formData = new FormData();
+
+
+formData.append(
+
+"image",
+
+blob,
+
+"ticket.jpg"
+
+);
+
+
+
+const uploadResponse =
+
+await fetch(
+
+"https://api.bpmuseum.org.cn/api/upload-image",
+
+{
+
+method:"POST",
+
+body:formData
+
+}
+
+);
+
+
+
+const uploadResult =
+
+await uploadResponse.json();
+
+
+
+if(!uploadResult.success){
+
+showToast(
+"图片上传失败"
+);
+
+return;
+
+}
+
+
+
+const image =
+
+uploadResult.url;
 
 
 
@@ -785,6 +911,15 @@ airport_icao:
 
 selectedAirport.icao
 ||
+"",
+
+
+issue_airport:
+
+selectedIssueAirport
+?
+displayName(selectedIssueAirport)
+:
 "",
 
 
@@ -878,10 +1013,8 @@ data
 
 
 
-alert(
-
-"投稿成功！\n已进入管理员审核队列"
-
+showToast(
+"投稿成功！已进入管理员审核队列"
 );
 
 
@@ -911,10 +1044,8 @@ error
 
 
 
-alert(
-
-"投稿失败，请查看控制台"
-
+showToast(
+"投稿失败，请稍后重试"
 );
 
 

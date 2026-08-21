@@ -1873,3 +1873,550 @@ html.light-theme footer {
     color: #666 !important;
 }
 
+
+
+/* ==========================
+   展品详情页新版
+   ========================== */
+
+
+.ticket-image {
+
+display:block;
+
+width:100%;
+
+max-width:900px;
+
+height:auto;
+
+max-height:600px;
+
+object-fit:contain;
+
+margin:30px auto;
+
+background:#fafafa;
+
+border-radius:16px;
+
+box-shadow:
+0 15px 40px rgba(0,0,0,0.15);
+
+}
+
+
+
+.detail-header{
+
+max-width:800px;
+
+margin:40px auto 20px;
+
+text-align:center;
+
+}
+
+
+
+.detail-header h1{
+
+font-size:36px;
+
+margin-bottom:10px;
+
+}
+
+
+
+.detail-header h2{
+
+font-size:28px;
+
+margin:10px 0;
+
+}
+
+
+
+.detail-header p{
+
+color:#aaa;
+
+font-size:16px;
+
+}
+
+
+
+.detail-card h2{
+
+font-size:24px;
+
+margin-bottom:25px;
+
+}
+
+
+
+.detail-card p{
+
+margin:20px 0;
+
+line-height:1.8;
+
+}
+
+
+
+.detail-story{
+
+max-width:800px;
+
+margin:30px auto;
+
+padding:30px;
+
+background:white;
+
+color:#111;
+
+border-radius:25px;
+
+box-shadow:
+0 20px 50px rgba(0,0,0,0.12);
+
+line-height:1.8;
+
+}
+
+
+
+.detail-story h2{
+
+margin-top:0;
+
+}
+
+
+
+
+/* =================================
+   Appeal Status
+   ================================= */
+
+.appeal-status{
+
+margin-top:15px;
+
+padding:10px 14px;
+
+border-radius:12px;
+
+background:#f5f5f7;
+
+color:#555;
+
+font-size:14px;
+
+display:inline-block;
+
+}
+
+
+
+
+/* =====================================
+   Universal Image Preview
+   ===================================== */
+
+
+.image-preview-overlay{
+
+position:fixed;
+
+inset:0;
+
+z-index:9999;
+
+display:none;
+
+align-items:center;
+
+justify-content:center;
+
+padding:30px;
+
+background:rgba(0,0,0,.85);
+
+backdrop-filter:blur(10px);
+
+}
+
+
+.image-preview-overlay.show{
+
+display:flex;
+
+}
+
+
+.image-preview-large{
+
+max-width:95vw;
+
+max-height:90vh;
+
+object-fit:contain;
+
+border-radius:18px;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,.5);
+
+}
+
+
+.image-preview-close{
+
+position:absolute;
+
+top:25px;
+
+right:30px;
+
+width:45px;
+
+height:45px;
+
+border-radius:50%;
+
+border:none;
+
+font-size:30px;
+
+cursor:pointer;
+
+background:white;
+
+color:#111;
+
+}
+
+
+.bpm-toast-show{
+
+position:fixed;
+right:30px;
+bottom:30px;
+
+background:#222;
+color:white;
+
+padding:14px 22px;
+
+border-radius:14px;
+
+z-index:9999;
+
+box-shadow:0 10px 30px rgba(0,0,0,.3);
+
+animation:bpmToast .25s;
+
+}
+
+
+@keyframes bpmToast{
+
+from{
+opacity:0;
+transform:translateY(20px);
+}
+
+to{
+opacity:1;
+transform:none;
+}
+
+}
+
+#imagePreviewOverlay{
+
+display:none;
+
+position:fixed;
+
+inset:0;
+
+background:rgba(0,0,0,.75);
+
+backdrop-filter:blur(8px);
+
+z-index:9999;
+
+align-items:center;
+
+justify-content:center;
+
+}
+
+
+#imagePreviewOverlay img{
+
+max-width:90%;
+
+max-height:90%;
+
+border-radius:16px;
+
+}
+
+
+
+/* =====================================
+   BoardingPassMuseum Toast
+===================================== */
+
+
+#bpmToast{
+
+position:fixed;
+
+right:30px;
+
+bottom:30px;
+
+padding:14px 22px;
+
+background:rgba(30,30,30,.9);
+
+color:white;
+
+border-radius:14px;
+
+font-size:15px;
+
+z-index:99999;
+
+opacity:0;
+
+transform:translateY(20px);
+
+transition:.25s;
+
+pointer-events:none;
+
+backdrop-filter:blur(10px);
+
+}
+
+
+
+#bpmToast.bpm-toast-show{
+
+opacity:1;
+
+transform:translateY(0);
+
+}
+
+
+
+
+/* =====================================
+   长期置顶事项开屏弹窗
+===================================== */
+
+.bpm-update-overlay{
+
+position:fixed;
+inset:0;
+
+background:rgba(0,0,0,.55);
+
+backdrop-filter:blur(12px);
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+z-index:9999;
+
+}
+
+
+.bpm-update-modal{
+
+width:min(420px,85vw);
+
+background:#fff;
+
+color:#111;
+
+border-radius:24px;
+
+padding:30px;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,.35);
+
+animation:
+bpmUpdateShow .25s ease;
+
+}
+
+
+.bpm-update-modal h2{
+
+margin-top:0;
+
+font-size:24px;
+
+}
+
+
+.bpm-update-modal p{
+
+line-height:1.7;
+
+white-space:pre-wrap;
+
+}
+
+
+.bpm-update-modal button{
+
+margin-top:20px;
+
+width:100%;
+
+padding:12px;
+
+border:0;
+
+border-radius:14px;
+
+background:#111;
+
+color:white;
+
+font-size:16px;
+
+cursor:pointer;
+
+}
+
+
+@keyframes bpmUpdateShow{
+
+from{
+
+opacity:0;
+
+transform:translateY(20px) scale(.96);
+
+}
+
+to{
+
+opacity:1;
+
+transform:none;
+
+}
+
+}
+
+
+
+/* =================================
+   用户中心下拉菜单
+================================= */
+
+.user-menu{
+
+position:relative;
+
+display:inline-block;
+
+}
+
+
+#userMenuBtn{
+
+background:none;
+
+border:0;
+
+color:inherit;
+
+font-size:16px;
+
+cursor:pointer;
+
+padding:8px 12px;
+
+font-family:inherit;
+
+}
+
+
+.user-dropdown{
+
+position:absolute;
+
+right:0;
+
+top:45px;
+
+min-width:180px;
+
+background:#fff;
+
+border-radius:18px;
+
+box-shadow:
+0 15px 40px rgba(0,0,0,.18);
+
+padding:8px;
+
+display:none;
+
+z-index:9999;
+
+overflow:hidden;
+
+}
+
+
+.user-dropdown.show{
+
+display:block;
+
+}
+
+
+.user-dropdown a{
+
+display:block;
+
+padding:12px 16px;
+
+border-radius:12px;
+
+color:#111;
+
+text-decoration:none;
+
+}
+
+
+.user-dropdown a:hover{
+
+background:#f2f2f2;
+
+}
+
+

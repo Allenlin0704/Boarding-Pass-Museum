@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>账户设置 - BoardingPassMuseum</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+
+<header class="menubar">
+
+<nav>
+
+</nav>
+
+</header>
+
+
+
+<main class="account-page">
+
+
+<h1>
+账户设置
+</h1>
+
+
+<section class="account-card">
+
+<h2>
+基本信息
+</h2>
+
+
+<label>
+用户名
+</label>
+
+<input id="usernameInput">
+
+
+<label>
+邮箱
+</label>
+
+<input id="emailInput">
+
+
+<button id="saveInfo">
+保存修改
+</button>
+
+
+</section>
+
+
+
+
+<section class="account-card">
+
+<h2>
+修改邮箱
+</h2>
+
+<label>
+新邮箱
+</label>
+
+<input id="newEmail">
+
+
+<button id="sendEmailCode">
+发送验证码
+</button>
+
+
+<label>
+验证码
+</label>
+
+<input id="emailCode">
+
+
+<label>
+当前密码
+</label>
+
+<div class="password-wrap">
+
+<input
+type="password"
+id="emailPassword"
+>
+
+<button
+class="password-toggle"
+data-password="emailPassword"
+>
+👁
+</button>
+
+</div>
+
+
+<button id="changeEmail">
+修改邮箱
+</button>
+
+
+</section>
+
+
+
+<section class="account-card">
+
+
+<h2>
+隐私设置
+</h2>
+
+
+<label>
+
+<input 
+type="checkbox"
+id="publicFavorites"
+>
+
+公开我的收藏
+
+</label>
+
+
+<button id="savePrivacy">
+
+保存设置
+
+</button>
+
+
+</section>
+
+
+</main>
+
+
+
+
+<section class="account-card">
+
+<h2>
+修改密码
+</h2>
+
+
+<button id="sendPasswordCode">
+发送验证码到当前邮箱
+</button>
+
+
+<label>
+验证码
+</label>
+
+<input id="passwordCode">
+
+
+<label>
+新密码
+</label>
+
+<div class="password-wrap">
+
+<input
+type="password"
+id="newPassword"
+>
+
+<button
+class="password-toggle"
+data-password="newPassword"
+>
+👁
+</button>
+
+</div>
+
+
+<label>
+确认新密码
+</label>
+
+<div class="password-wrap">
+
+<input
+type="password"
+id="confirmPassword"
+>
+
+<button
+class="password-toggle"
+data-password="confirmPassword"
+>
+👁
+</button>
+
+</div>
+
+
+<button id="changePassword">
+修改密码
+</button>
+
+
+</section>
+
+
+
+<script src="auth.js"></script>
+
+<script src="password-toggle.js"></script>
+
+<script src="account.js"></script>
+
+
+</body>
+
+</html>

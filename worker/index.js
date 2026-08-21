@@ -580,6 +580,108 @@ headers
 }
 
 
+// ================================
+// 修改用户名
+// ================================
+
+if(
+url.pathname==="/api/account/change-username"
+&&
+request.method==="POST"
+){
+
+const {
+user_id,
+password,
+new_username
+}=await request.json();
+
+
+
+const user =
+await env.DB.prepare(
+`
+SELECT *
+FROM users
+WHERE id=?
+`
+)
+.bind(
+user_id
+)
+.first();
+
+
+
+if(!user){
+
+return Response.json(
+{
+error:"User not found"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+
+const oldHash =
+await hashPassword(
+password
+);
+
+
+
+if(
+oldHash!==user.password
+){
+
+return Response.json(
+{
+error:"密码错误"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET username=?
+WHERE id=?
+`
+)
+.bind(
+new_username,
+user_id
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
 if(
 request.method==="OPTIONS"
 ){
@@ -830,7 +932,77 @@ headers
 
 
 
+// =====================================
+// IMAGE UPLOAD TO R2
+// =====================================
 
+if(
+url.pathname === "/api/upload-image"
+&&
+request.method === "POST"
+){
+
+const form =
+await request.formData();
+
+
+const file =
+form.get("image");
+
+
+if(!file){
+
+return Response.json(
+{
+error:"No image"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+const ext =
+file.type === "image/png"
+?
+"png"
+:
+"jpg";
+
+
+const key =
+`tickets/${Date.now()}.${ext}`;
+
+
+
+await env.IMAGES.put(
+key,
+file,
+{
+httpMetadata:{
+contentType:file.type
+}
+}
+);
+
+
+
+return Response.json(
+{
+success:true,
+
+url:
+`https://images.bpmuseum.org.cn/${key}`
+},
+{
+headers
+}
+);
+
+}
 
 
 
@@ -938,7 +1110,9 @@ date,
 
 story,
 
-image
+image,
+
+issue_airport
 
 }
 =
@@ -959,12 +1133,13 @@ route,
 date,
 aircraft,
 airport,
+issue_airport,
 image,
 story,
 status
 )
 VALUES
-(?,?,?,?,?,?,?,?,?,?)
+(?,?,?,?,?,?,?,?,?,?,?)
 `
 )
 .bind(
@@ -982,6 +1157,8 @@ date || "",
 "",
 
 airport || "",
+
+issue_airport || "",
 
 image || "",
 
@@ -1030,10 +1207,14 @@ request.method==="GET"
 const result =
 await env.DB.prepare(
 `
-SELECT *
+SELECT
+flights.*,
+users.username
 FROM flights
-WHERE status='approved'
-ORDER BY id DESC
+LEFT JOIN users
+ON flights.user_id = users.id
+WHERE flights.status='approved'
+ORDER BY flights.id DESC
 `
 )
 .all();
@@ -1082,10 +1263,15 @@ url.searchParams.get(
 const result =
 await env.DB.prepare(
 `
-SELECT *
+SELECT
+flights.*,
+appeals.status AS appeal_status,
+appeals.id AS appeal_id
 FROM flights
-WHERE user_id=?
-ORDER BY id DESC
+LEFT JOIN appeals
+ON flights.id = appeals.flight_id
+WHERE flights.user_id=?
+ORDER BY flights.id DESC
 `
 )
 .bind(
@@ -2250,7 +2436,151 @@ headers
 
 
 
+
 // =====================================
+// SA DELETE FLIGHT
+// =====================================
+
+
+if(
+url.pathname==="/api/sa/delete-flight"
+&&
+request.method==="POST"
+){
+
+const {
+
+sa_id,
+
+flight_id
+
+}
+=
+await request.json();
+
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+await env.DB.prepare(
+`
+DELETE FROM flights
+WHERE id=?
+`
+)
+.bind(
+flight_id
+)
+.run();
+
+
+
+return Response.json(
+{
+success:true,
+message:"Flight deleted"
+},
+{
+headers
+}
+);
+
+}
+
+
+
+
+
+
+
+// =====================================
+
+
+// =====================================
+// SA ALL FLIGHTS
+// =====================================
+
+if(
+url.pathname==="/api/sa/flights"
+&&
+request.method==="GET"
+){
+
+const sa_id =
+url.searchParams.get("sa_id");
+
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+flights.*,
+users.username
+FROM flights
+LEFT JOIN users
+ON flights.user_id = users.id
+ORDER BY flights.id DESC
+`
+)
+.all();
+
+
+
+return Response.json(
+result.results || [],
+{
+headers
+}
+);
+
+}
+
+
 // SA UPDATE LOGS
 // =====================================
 
@@ -2529,11 +2859,12 @@ headers
 await env.DB.prepare(
 `
 INSERT INTO announcements
-(version,content)
-VALUES (?,?)
+(title,version,content)
+VALUES (?,?,?)
 `
 )
 .bind(
+"BoardingPassMuseum 更新日志",
 version.trim(),
 content.trim()
 )

@@ -84,7 +84,7 @@ function renderMuseum() {
       card.onclick = function() {
 
         location.href =
-          `detail.html?id=${index}`;
+          `detail.html?id=${flight.id}`;
 
       };
 
@@ -95,6 +95,7 @@ function renderMuseum() {
           src="${flight.image || ''}"
           class="ticket-image"
           alt="登机牌"
+          data-preview="${flight.image || ''}"
         >
 
         <span class="tag">
@@ -111,6 +112,10 @@ function renderMuseum() {
 
         <p>
           📅 ${flight.date || ""}
+        </p>
+
+        <p>
+          👤 上传者：${flight.username || "匿名用户"}
         </p>
 
         <p class="story">
@@ -132,3 +137,34 @@ function renderMuseum() {
 // =====================
 
 loadFlights();
+
+
+// =====================================
+// GALLERY IMAGE PREVIEW
+// =====================================
+
+document.addEventListener(
+"click",
+e=>{
+
+    const img =
+        e.target.closest(
+            ".ticket-image"
+        );
+
+
+    if(
+        img &&
+        img.dataset.preview
+    ){
+
+        e.stopPropagation();
+
+        openImagePreview(
+            img.dataset.preview
+        );
+
+    }
+
+});
+

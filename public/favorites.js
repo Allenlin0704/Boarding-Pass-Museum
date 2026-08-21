@@ -20,7 +20,7 @@ localStorage.getItem("currentUser")
 if(!user){
 
 
-alert(
+showToast(
 "请先登录"
 );
 

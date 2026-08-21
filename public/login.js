@@ -87,7 +87,7 @@ data
 
 
 
-alert(
+showToast(
 "登录成功"
 );
 
@@ -103,7 +103,7 @@ window.location.href =
 else{
 
 
-alert(
+showToast(
 data.error ||
 "账号或密码错误"
 );
@@ -121,7 +121,7 @@ catch(e){
 console.error(e);
 
 
-alert(
+showToast(
 "服务器连接失败"
 );
 

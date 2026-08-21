@@ -1,144 +1,133 @@
-// =================================
-// BoardingPassMuseum
-// notice.js
-// 首页更新日志弹窗
-// =================================
+function showToast(message){
 
-window.addEventListener("DOMContentLoaded", async function(){
+    let toast =
+    document.getElementById(
+        "bpmToast"
+    );
 
-    const overlay = document.createElement("div");
-    overlay.id = "noticeOverlay";
 
-    const box = document.createElement("div");
-    box.id = "noticeBox";
+    if(!toast){
 
-    box.innerHTML = `
-        <h2>BoardingPassMuseum 更新日志</h2>
-        <p>正在加载更新日志……</p>
-    `;
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-
-    try {
-
-        const res = await fetch(
-            "https://api.bpmuseum.org.cn/api/announcements"
+        toast =
+        document.createElement(
+            "div"
         );
 
-        const data = await res.json();
+        toast.id="bpmToast";
 
-        if(!Array.isArray(data) || data.length === 0){
-
-            box.innerHTML = `
-                <h2>BoardingPassMuseum 更新日志</h2>
-
-                <p>
-                    暂无更新日志。
-                </p>
-
-                <button id="closeNotice">
-                    知道了
-                </button>
-            `;
-
-        }else{
-
-            let html = `
-                <h2>
-                    BoardingPassMuseum 更新日志
-                </h2>
-            `;
-
-            data.forEach(item => {
-
-                html += `
-                    <div class="notice-update">
-
-                        <h3>
-                            ${escapeNoticeHtml(item.version)}
-                        </h3>
-
-                        <div class="notice-content">
-                            ${formatNoticeContent(item.content)}
-                        </div>
-
-                    </div>
-                `;
-
-            });
-
-            html += `
-                <button id="closeNotice">
-                    知道了
-                </button>
-            `;
-
-            box.innerHTML = html;
-
-        }
-
-    }catch(e){
-
-        console.error("更新日志加载失败:", e);
-
-        box.innerHTML = `
-            <h2>
-                BoardingPassMuseum 更新日志
-            </h2>
-
-            <p>
-                更新日志暂时无法加载。
-            </p>
-
-            <button id="closeNotice">
-                知道了
-            </button>
-        `;
+        document.body.appendChild(
+            toast
+        );
 
     }
 
-    const closeNotice =
-        document.getElementById("closeNotice");
 
-    if(closeNotice){
+    toast.innerText =
+    message;
 
-        closeNotice.onclick = function(){
+
+    toast.className =
+    "bpm-toast-show";
+
+
+    setTimeout(()=>{
+
+        toast.className="";
+
+    },2500);
+
+}
+
+
+// =====================================
+// 长期置顶事项开屏显示
+// =====================================
+
+async function loadPinnedUpdate(){
+
+    try{
+
+        const res =
+        await fetch(
+            "https://api.bpmuseum.org.cn/api/updates"
+        );
+
+
+        const data =
+        await res.json();
+
+
+        if(
+            !Array.isArray(data)
+            ||
+            data.length===0
+        ){
+            return;
+        }
+
+
+        const item=data[0];
+
+
+        const overlay =
+        document.createElement("div");
+
+
+        overlay.className =
+        "bpm-update-overlay";
+
+
+        overlay.innerHTML = `
+
+        <div class="bpm-update-modal">
+
+            <h2>
+            ${item.title || "网站更新"}
+            </h2>
+
+            <p>
+            ${item.content || ""}
+            </p>
+
+            <button id="closeBpmUpdate">
+            我知道了
+            </button>
+
+        </div>
+
+        `;
+
+
+        document.body.appendChild(
+            overlay
+        );
+
+
+        document.getElementById(
+            "closeBpmUpdate"
+        ).onclick=function(){
 
             overlay.remove();
 
         };
 
+
+    }catch(e){
+
+        console.error(
+            "加载置顶事项失败",
+            e
+        );
+
     }
 
+}
+
+
+document.addEventListener(
+"DOMContentLoaded",
+()=>{
+
+    loadPinnedUpdate();
+
 });
-
-
-// =================================
-// 防止更新日志内容直接执行 HTML
-// =================================
-
-function escapeNoticeHtml(text){
-
-    return String(text || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
-}
-
-
-// =================================
-// 更新日志内容格式化
-// =================================
-
-function formatNoticeContent(text){
-
-    return escapeNoticeHtml(text)
-        .replace(/\[\[RED\]\]([\s\S]*?)\[\[\/RED\]\]/g,
-            '<span class="notice-red">$1</span>'
-        )
-        .replace(/\n/g, "<br>");
-}

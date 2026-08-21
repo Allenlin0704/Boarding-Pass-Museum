@@ -18,7 +18,7 @@
     "iata": "",
     "icao": "GNL",
     "callsign": "GENERAL",
-    "country_cn": "",
+    "country_cn": "美利坚合众国",
     "country": "United States",
     "active": true,
     "passenger": true
@@ -30,7 +30,7 @@
     "iata": "1T",
     "icao": "RNX",
     "callsign": "NEXTIME",
-    "country_cn": "",
+    "country_cn": "南非",
     "country": "South Africa",
     "active": true,
     "passenger": true
@@ -42,7 +42,7 @@
     "iata": "",
     "icao": "WYT",
     "callsign": "",
-    "country_cn": "",
+    "country_cn": "大不列颠及北爱尔兰联合王国",
     "country": "United Kingdom",
     "active": true,
     "passenger": true
@@ -54,7 +54,7 @@
     "iata": "",
     "icao": "TFU",
     "callsign": "",
-    "country_cn": "",
+    "country_cn": "俄罗斯",
     "country": "Russia",
     "active": true,
     "passenger": true
@@ -66,7 +66,7 @@
     "iata": "",
     "icao": "CHD",
     "callsign": "CHKALOVSK-AVIA",
-    "country_cn": "",
+    "country_cn": "俄罗斯",
     "country": "Russia",
     "active": true,
     "passenger": true
@@ -78,7 +78,7 @@
     "iata": "",
     "icao": "TTF",
     "callsign": "CARGO UNIT",
-    "country_cn": "",
+    "country_cn": "俄罗斯",
     "country": "Russia",
     "active": true,
     "passenger": true
@@ -90,7 +90,7 @@
     "iata": "",
     "icao": "TWF",
     "callsign": "CLOUD RUNNER",
-    "country_cn": "",
+    "country_cn": "大不列颠及北爱尔兰联合王国",
     "country": "United Kingdom",
     "active": true,
     "passenger": true
@@ -102,7 +102,7 @@
     "iata": "",
     "icao": "SEC",
     "callsign": "SECUREX",
-    "country_cn": "",
+    "country_cn": "美利坚合众国",
     "country": "United States",
     "active": true,
     "passenger": true
@@ -114,7 +114,7 @@
     "iata": "Q5",
     "icao": "MLA",
     "callsign": "MILE-AIR",
-    "country_cn": "",
+    "country_cn": "美利坚合众国",
     "country": "United States",
     "active": true,
     "passenger": true
@@ -126,7 +126,7 @@
     "iata": "",
     "icao": "QRT",
     "callsign": "QUARTET",
-    "country_cn": "",
+    "country_cn": "泰王国",
     "country": "Thailand",
     "active": true,
     "passenger": true
@@ -138,7 +138,7 @@
     "iata": "",
     "icao": "THD",
     "callsign": "DONUT",
-    "country_cn": "",
+    "country_cn": "加拿大",
     "country": "Canada",
     "active": true,
     "passenger": true
@@ -150,7 +150,7 @@
     "iata": "AN",
     "icao": "AAA",
     "callsign": "ANSETT",
-    "country_cn": "",
+    "country_cn": "澳大利亚",
     "country": "Australia",
     "active": true,
     "passenger": true
@@ -162,7 +162,7 @@
     "iata": "1B",
     "icao": "",
     "callsign": "",
-    "country_cn": "",
+    "country_cn": "新加坡",
     "country": "Singapore",
     "active": true,
     "passenger": true

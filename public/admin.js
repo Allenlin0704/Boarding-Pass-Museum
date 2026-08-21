@@ -487,6 +487,7 @@ return `
 <img
 class="admin-card-image"
 src="${item.image || ''}"
+data-preview="${item.image || ''}"
 >
 
 
@@ -631,7 +632,7 @@ data.success
 data.message
 ){
 
-alert(
+showToast(
 "审核通过"
 );
 
@@ -644,7 +645,7 @@ await loadApproved();
 }else{
 
 
-alert(
+showToast(
 data.error ||
 "操作失败"
 );
@@ -715,7 +716,7 @@ data.success
 data.message
 ){
 
-alert(
+showToast(
 "已拒绝"
 );
 
@@ -726,7 +727,7 @@ await loadPending();
 }else{
 
 
-alert(
+showToast(
 data.error ||
 "操作失败"
 );
@@ -934,7 +935,7 @@ if(
 data.success
 ){
 
-alert(
+showToast(
 "修改完成"
 );
 
@@ -950,7 +951,7 @@ await loadApproved();
 }else{
 
 
-alert(
+showToast(
 data.error ||
 "修改失败"
 );
@@ -965,3 +966,31 @@ data.error ||
 // =====================================
 // END
 // =====================================
+
+// =====================================
+// ADMIN IMAGE PREVIEW
+// =====================================
+
+document.addEventListener(
+"click",
+e=>{
+
+    const img =
+        e.target.closest(
+            ".admin-card-image"
+        );
+
+
+    if(
+        img &&
+        img.dataset.preview
+    ){
+
+        openImagePreview(
+            img.dataset.preview
+        );
+
+    }
+
+});
+
