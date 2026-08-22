@@ -2630,3 +2630,207 @@ padding:25px;
 
 }
 
+
+
+/* =========================
+   ACCOUNT PAGE V2
+========================= */
+
+
+.account-page{
+
+max-width:900px;
+margin:40px auto;
+padding:20px;
+
+}
+
+
+.account-page h1{
+
+font-size:36px;
+margin-bottom:30px;
+
+}
+
+
+.account-card{
+
+background:
+rgba(255,255,255,.08);
+
+backdrop-filter:
+blur(20px);
+
+border-radius:24px;
+
+padding:30px;
+
+margin-bottom:25px;
+
+box-shadow:
+0 10px 30px rgba(0,0,0,.12);
+
+}
+
+
+.account-card h2{
+
+font-size:22px;
+
+margin-bottom:25px;
+
+}
+
+
+.account-card label{
+
+display:block;
+
+margin-top:18px;
+
+margin-bottom:8px;
+
+font-weight:600;
+
+}
+
+
+.account-card input,
+.account-card textarea{
+
+width:100%;
+
+box-sizing:border-box;
+
+padding:14px 16px;
+
+border-radius:14px;
+
+border:
+
+1px solid rgba(255,255,255,.15);
+
+background:
+
+rgba(255,255,255,.06);
+
+color:inherit;
+
+font-size:15px;
+
+outline:none;
+
+}
+
+
+.account-card textarea{
+
+min-height:110px;
+
+resize:vertical;
+
+}
+
+
+.account-card input:focus,
+.account-card textarea:focus{
+
+border-color:#888;
+
+}
+
+
+.account-card button{
+
+margin-top:25px;
+
+padding:12px 25px;
+
+border-radius:999px;
+
+border:none;
+
+cursor:pointer;
+
+font-size:15px;
+
+background:#fff;
+
+color:#111;
+
+transition:.2s;
+
+}
+
+
+.account-card button:hover{
+
+transform:translateY(-2px);
+
+}
+
+
+/* avatar area */
+
+
+#profileAvatarPreview{
+
+display:block;
+
+width:140px;
+
+height:140px;
+
+border-radius:50%;
+
+object-fit:cover;
+
+margin:20px auto;
+
+border:5px solid rgba(255,255,255,.8);
+
+}
+
+
+
+@media(max-width:700px){
+
+.account-page{
+
+padding:15px;
+
+}
+
+
+.account-page h1{
+
+font-size:28px;
+
+}
+
+
+.account-card{
+
+padding:22px;
+
+}
+
+}
+
+
+.avatar-editor{
+text-align:center;
+margin:20px 0;
+}
+
+.avatar-button{
+display:inline-block;
+padding:10px 25px;
+border-radius:999px;
+background:#fff;
+color:#111;
+cursor:pointer;
+margin-top:15px;
+}
+

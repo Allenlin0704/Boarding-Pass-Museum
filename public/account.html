@@ -168,22 +168,29 @@ id="publicFavorites"
 头像链接
 </label>
 
-<input
-id="profileAvatarInput"
-placeholder="头像地址自动生成"
-readonly
->
-
-<input
-type="file"
-id="avatarFile"
-accept="image/*"
->
+<div class="avatar-editor">
 
 <img
 id="profileAvatarPreview"
 src="logo.png"
 class="profile-avatar"
+>
+
+<label class="avatar-button">
+更换头像
+<input
+type="file"
+id="avatarFile"
+accept="image/*"
+hidden
+>
+</label>
+
+</div>
+
+<input
+id="profileAvatarInput"
+type="hidden"
 >
 
 
