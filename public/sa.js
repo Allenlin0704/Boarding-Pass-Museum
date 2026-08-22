@@ -222,7 +222,7 @@ async function deleteSAFlight(id){
 
         showToast("移除成功");
 
-        loadSAFlights();
+        document.getElementById("saFlights").innerHTML="已移除，请重新查询";
 
     }else{
 
