@@ -792,3 +792,79 @@ loadProfileSettings();
 
 });
 
+
+
+// ================================
+// AVATAR UPLOAD
+// ================================
+
+const avatarFile =
+document.getElementById("avatarFile");
+
+if(avatarFile){
+
+avatarFile.onchange = async function(){
+
+const file=this.files[0];
+
+if(!file)
+return;
+
+
+const formData =
+new FormData();
+
+formData.append(
+"image",
+file
+);
+
+
+try{
+
+showToast("正在上传头像");
+
+
+const res =
+await fetch(
+"https://api.bpmuseum.org.cn/api/upload-image",
+{
+method:"POST",
+body:formData
+}
+);
+
+
+const data =
+await res.json();
+
+
+if(data.url){
+
+avatarInput.value=data.url;
+
+avatarPreview.src=data.url;
+
+showToast("头像上传成功");
+
+}else{
+
+showToast("上传失败");
+
+}
+
+
+}catch(e){
+
+console.error(e);
+
+showToast("网络错误");
+
+}
+
+
+};
+
+
+}
+
