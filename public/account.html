@@ -168,8 +168,23 @@ id="publicFavorites"
 头像链接
 </label>
 
-<input id="profileAvatarInput"
-placeholder="https://">
+<input
+id="profileAvatarInput"
+placeholder="头像地址自动生成"
+readonly
+>
+
+<input
+type="file"
+id="avatarFile"
+accept="image/*"
+>
+
+<img
+id="profileAvatarPreview"
+src="logo.png"
+class="profile-avatar"
+>
 
 
 <img
