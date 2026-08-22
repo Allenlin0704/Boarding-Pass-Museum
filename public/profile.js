@@ -202,6 +202,10 @@ ${flight.flight || ""}
 📅 ${flight.date || ""}
 </p>
 
+<p>
+❤️ ${flight.favorite_count || 0} 收藏
+</p>
+
 
 </div>
 
