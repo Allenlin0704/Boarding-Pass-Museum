@@ -2430,3 +2430,25 @@ background:#f2f2f2;
     object-fit:contain;
     margin:20px auto;
 }
+
+.creator-box{
+
+display:flex;
+align-items:center;
+gap:10px;
+margin-top:12px;
+cursor:pointer;
+
+}
+
+
+.creator-avatar{
+
+width:32px;
+height:32px;
+border-radius:50%;
+object-fit:cover;
+
+}
+
+
