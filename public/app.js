@@ -267,6 +267,10 @@ function renderMuseum() {
           📅 ${flight.date || ""}
         </p>
 
+        <p>
+          ❤️ ${flight.favorite_count || 0} 收藏
+        </p>
+
         <div
 class="creator-box"
 onclick="event.stopPropagation();location.href='profile.html?id=${flight.user_id}'"
