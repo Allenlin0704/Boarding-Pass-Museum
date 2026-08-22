@@ -80,6 +80,22 @@ function applyMuseumFilter(){
   });
 
 
+  const sort =
+  document.getElementById("museumSort")?.value;
+
+
+  if(sort==="latest"){
+
+    displayFlights.sort(
+      (a,b)=>
+      new Date(b.created_at || 0)
+      -
+      new Date(a.created_at || 0)
+    );
+
+  }
+
+
   renderMuseum();
 
 }
@@ -94,6 +110,14 @@ document.addEventListener(
   .getElementById("museumSearch")
   ?.addEventListener(
     "input",
+    applyMuseumFilter
+  );
+
+
+  document
+  .getElementById("museumSort")
+  ?.addEventListener(
+    "change",
     applyMuseumFilter
   );
 
