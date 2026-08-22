@@ -75,7 +75,12 @@ class="detail-image"
 
 <p><strong>日期：</strong>${data.date || ""}</p>
 
-<p><strong>投稿人：</strong>${data.username || ""}</p>
+<p>
+<strong>投稿人：</strong>
+<a href="profile.html?id=${data.user_id}">
+${data.username || ""}
+</a>
+</p>
 
 <p><strong>状态：</strong>${data.status || ""}</p>
 
