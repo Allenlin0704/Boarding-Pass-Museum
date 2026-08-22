@@ -1,33 +1,24 @@
 function showToast(message){
 
     let toast =
-    document.getElementById(
-        "bpmToast"
-    );
+    document.getElementById("bpmToast");
 
 
     if(!toast){
 
         toast =
-        document.createElement(
-            "div"
-        );
+        document.createElement("div");
 
         toast.id="bpmToast";
 
-        document.body.appendChild(
-            toast
-        );
+        document.body.appendChild(toast);
 
     }
 
 
-    toast.innerText =
-    message;
+    toast.innerText = message;
 
-
-    toast.className =
-    "bpm-toast-show";
+    toast.className="bpm-toast-show";
 
 
     setTimeout(()=>{
@@ -39,34 +30,62 @@ function showToast(message){
 }
 
 
+
 // =====================================
-// 长期置顶事项开屏显示
+// 公告 + 更新日志统一弹窗
 // =====================================
 
-async function loadPinnedUpdate(){
+async function loadNotice(){
 
     try{
 
-        const res =
+
+        const pinnedRes =
         await fetch(
             "https://api.bpmuseum.org.cn/api/updates"
         );
 
 
-        const data =
-        await res.json();
+        const pinned =
+        await pinnedRes.json();
 
 
-        if(
-            !Array.isArray(data)
-            ||
-            data.length===0
-        ){
+
+        const noticeRes =
+        await fetch(
+            "https://api.bpmuseum.org.cn/api/announcements"
+        );
+
+
+        const notices =
+        await noticeRes.json();
+
+
+
+        const pinnedItem =
+        Array.isArray(pinned) && pinned.length
+        ?
+        pinned[0]
+        :
+        null;
+
+
+
+        const updateItem =
+        Array.isArray(notices) && notices.length
+        ?
+        notices[0]
+        :
+        null;
+
+
+
+        if(!pinnedItem && !updateItem){
+
             return;
+
         }
 
-
-        const item=data[0];
 
 
         const overlay =
@@ -77,30 +96,71 @@ async function loadPinnedUpdate(){
         "bpm-update-overlay";
 
 
+
         overlay.innerHTML = `
 
         <div class="bpm-update-modal">
 
-            <h2>
-            ${item.title || "网站更新"}
-            </h2>
 
-            <p>
-            ${item.content || ""}
-            </p>
+        <h2>
+        📢 BoardingPassMuseum 公告
+        </h2>
 
-            <button id="closeBpmUpdate">
-            我知道了
-            </button>
+
+
+        ${
+        pinnedItem
+        ?
+        `
+        <h3>
+        📌 长期事项
+        </h3>
+
+        <p>
+        ${pinnedItem.content || ""}
+        </p>
+
+        `
+        :
+        ""
+        }
+
+
+
+        ${
+        updateItem
+        ?
+        `
+        <hr>
+
+        <h3>
+        📝 更新日志
+        </h3>
+
+        <p>
+        ${updateItem.content || ""}
+        </p>
+
+        `
+        :
+        ""
+        }
+
+
+
+        <button id="closeBpmUpdate">
+        我知道了
+        </button>
+
 
         </div>
 
         `;
 
 
-        document.body.appendChild(
-            overlay
-        );
+
+        document.body.appendChild(overlay);
+
 
 
         document.getElementById(
@@ -112,10 +172,11 @@ async function loadPinnedUpdate(){
         };
 
 
+
     }catch(e){
 
         console.error(
-            "加载置顶事项失败",
+            "公告加载失败",
             e
         );
 
@@ -124,10 +185,11 @@ async function loadPinnedUpdate(){
 }
 
 
+
 document.addEventListener(
 "DOMContentLoaded",
 ()=>{
 
-    loadPinnedUpdate();
+    loadNotice();
 
 });
