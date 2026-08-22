@@ -579,6 +579,109 @@ async function confirmDemote(){
 // 更新日志 / 长期置顶事项
 // ==========================
 
+
+
+// ==========================
+// SA 展品 ID 查询
+// ==========================
+
+const searchSAFlight =
+document.getElementById("searchSAFlight");
+
+
+if(searchSAFlight){
+
+    searchSAFlight.onclick = async function(){
+
+        const id =
+        document.getElementById("flightSearchId")
+        .value
+        .trim();
+
+
+        if(!id){
+
+            showToast("请输入展品ID");
+            return;
+
+        }
+
+
+        const box =
+        document.getElementById("saFlights");
+
+
+        box.innerHTML="查询中...";
+
+
+        try{
+
+            const res =
+            await fetch(
+                `${API}/api/flight/${id}`
+            );
+
+
+            const x =
+            await res.json();
+
+
+            if(!res.ok){
+
+                box.innerHTML="未找到该展品";
+                return;
+
+            }
+
+
+            box.innerHTML=`
+
+            <div class="card">
+
+            <img
+            src="${x.image || ''}"
+            class="ticket-image"
+            >
+
+            <h3>
+            ${x.airline || ""}
+            ${x.flight || ""}
+            </h3>
+
+            <p>
+            ID:${x.id}
+            </p>
+
+            <p>
+            投稿用户:${x.username || "未知"}
+            </p>
+
+            <p>
+            状态:${x.status || ""}
+            </p>
+
+            <button
+            class="danger-button"
+            onclick="deleteSAFlight(${x.id})">
+            🗑 移除展品
+            </button>
+
+            </div>
+
+            `;
+
+
+        }catch(e){
+
+            box.innerHTML="查询失败";
+
+        }
+
+    };
+
+}
+
+
 document.addEventListener("DOMContentLoaded", function(){
 
     const publishNotice =
