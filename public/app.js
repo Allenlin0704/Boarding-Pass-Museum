@@ -1,5 +1,6 @@
 let flights = [];
 let displayFlights = [];
+let favoriteIds = [];
 
 // =====================
 // 从 API 读取审核通过的展品
@@ -25,6 +26,37 @@ async function loadFlights() {
       Array.isArray(data)
         ? data
         : [];
+
+
+    const user =
+    JSON.parse(
+      localStorage.getItem("currentUser")
+    );
+
+
+    if(user){
+
+      const favRes =
+      await fetch(
+        `https://api.bpmuseum.org.cn/api/favorites?user_id=${user.id}`
+      );
+
+
+      const favData =
+      await favRes.json();
+
+
+      if(Array.isArray(favData)){
+
+        favoriteIds =
+        favData.map(
+          x=>x.flight_id
+        );
+
+      }
+
+    }
+
 
     applyMuseumFilter();
 
@@ -91,6 +123,45 @@ function applyMuseumFilter(){
       new Date(b.created_at || 0)
       -
       new Date(a.created_at || 0)
+    );
+
+  }
+
+
+  if(sort==="favorite"){
+
+    displayFlights.sort(
+      (a,b)=>
+      (b.favorite_count || 0)
+      -
+      (a.favorite_count || 0)
+    );
+
+  }
+
+
+  if(sort==="hot"){
+
+    displayFlights.sort(
+      (a,b)=>{
+
+        const scoreA =
+        (a.favorite_count || 0) * 10
+        +
+        new Date(a.created_at || 0).getTime()
+        /100000000;
+
+
+        const scoreB =
+        (b.favorite_count || 0) * 10
+        +
+        new Date(b.created_at || 0).getTime()
+        /100000000;
+
+
+        return scoreB-scoreA;
+
+      }
     );
 
   }
@@ -208,7 +279,9 @@ function renderMuseum() {
         <button
         class="favorite-btn"
         data-id="${flight.id}">
-        ❤️ 收藏
+        ${favoriteIds.includes(flight.id)
+        ? "❤️ 已收藏"
+        : "🤍 收藏"}
         </button>
 
       `;
@@ -291,11 +364,27 @@ return;
 }
 
 
+const flightId =
+Number(btn.dataset.id);
+
+
+const liked =
+favoriteIds.includes(flightId);
+
+
+const url =
+liked
+?
+"https://api.bpmuseum.org.cn/api/favorites/remove"
+:
+"https://api.bpmuseum.org.cn/api/favorites/add";
+
+
 try{
 
 const res =
 await fetch(
-"https://api.bpmuseum.org.cn/api/favorites/add",
+url,
 {
 method:"POST",
 headers:{
@@ -305,7 +394,7 @@ body:JSON.stringify({
 
 user_id:user.id,
 
-flight_id:Number(btn.dataset.id)
+flight_id:flightId
 
 })
 
@@ -319,11 +408,35 @@ await res.json();
 
 if(res.ok){
 
-alert("收藏成功 ❤️");
+if(liked){
+
+favoriteIds =
+favoriteIds.filter(
+id=>id!==flightId
+);
+
+alert("已取消收藏");
 
 }else{
 
-alert(data.error || "收藏失败");
+favoriteIds.push(
+flightId
+);
+
+alert("收藏成功 ❤️");
+
+}
+
+
+applyMuseumFilter();
+
+
+}else{
+
+alert(
+data.error ||
+"操作失败"
+);
 
 }
 
