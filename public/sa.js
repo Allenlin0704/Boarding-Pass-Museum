@@ -585,6 +585,8 @@ async function confirmDemote(){
 // SA 展品 ID 查询
 // ==========================
 
+document.addEventListener("DOMContentLoaded", function(){
+
 const searchSAFlight =
 document.getElementById("searchSAFlight");
 
@@ -680,6 +682,8 @@ if(searchSAFlight){
     };
 
 }
+
+});
 
 
 document.addEventListener("DOMContentLoaded", function(){
