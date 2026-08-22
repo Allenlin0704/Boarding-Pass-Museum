@@ -204,6 +204,13 @@ function renderMuseum() {
           ${flight.story || ""}
         </p>
 
+
+        <button
+        class="favorite-btn"
+        data-id="${flight.id}">
+        ❤️ 收藏
+        </button>
+
       `;
 
       museum.appendChild(card);
@@ -250,3 +257,82 @@ e=>{
 
 });
 
+
+
+// 收藏按钮
+
+document.addEventListener(
+"click",
+async e=>{
+
+
+const btn =
+e.target.closest(".favorite-btn");
+
+
+if(!btn)
+return;
+
+
+e.stopPropagation();
+
+
+const user =
+JSON.parse(
+localStorage.getItem("currentUser")
+);
+
+
+if(!user){
+
+alert("请先登录");
+return;
+
+}
+
+
+try{
+
+const res =
+await fetch(
+"https://api.bpmuseum.org.cn/api/favorites/add",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+
+user_id:user.id,
+
+flight_id:Number(btn.dataset.id)
+
+})
+
+}
+);
+
+
+const data =
+await res.json();
+
+
+if(res.ok){
+
+alert("收藏成功 ❤️");
+
+}else{
+
+alert(data.error || "收藏失败");
+
+}
+
+
+}catch(err){
+
+alert("网络错误");
+
+}
+
+
+});
