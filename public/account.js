@@ -612,6 +612,37 @@ e
 
 
 
+
+
+// ================================
+// 头像实时预览
+// ================================
+
+const avatarInput =
+document.getElementById(
+"profileAvatarInput"
+);
+
+const avatarPreview =
+document.getElementById(
+"profileAvatarPreview"
+);
+
+
+if(avatarInput && avatarPreview){
+
+avatarInput.oninput =
+function(){
+
+avatarPreview.src =
+this.value.trim()
+||
+"logo.png";
+
+};
+
+}
+
 const saveProfile =
 document.getElementById(
 "saveProfile"
