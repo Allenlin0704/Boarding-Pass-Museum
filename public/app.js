@@ -267,9 +267,21 @@ function renderMuseum() {
           📅 ${flight.date || ""}
         </p>
 
-        <p>
-          👤 上传者：${flight.username || "匿名用户"}
-        </p>
+        <div
+class="creator-box"
+onclick="event.stopPropagation();location.href='profile.html?id=${flight.user_id}'"
+>
+
+<img
+src="${flight.avatar || 'logo.png'}"
+class="creator-avatar"
+>
+
+<span>
+${flight.username || "匿名用户"}
+</span>
+
+</div>
 
         <p class="story">
           ${flight.story || ""}
