@@ -513,3 +513,251 @@ data.error ||
 }
 
 
+
+
+// =====================================
+// 航空收藏家档案
+// =====================================
+
+
+async function loadProfileSettings(){
+
+
+const user =
+JSON.parse(
+localStorage.getItem("currentUser")
+);
+
+
+if(!user)
+return;
+
+
+
+try{
+
+
+const res =
+await fetch(
+`https://api.bpmuseum.org.cn/api/account/profile?id=${user.id}`
+);
+
+
+
+const data =
+await res.json();
+
+
+
+if(!res.ok)
+return;
+
+
+
+document.getElementById(
+"profileAvatarInput"
+).value =
+data.avatar || "";
+
+
+
+document.getElementById(
+"profileBioInput"
+).value =
+data.bio || "";
+
+
+
+document.getElementById(
+"profileSocialInput"
+).value =
+data.social_media || "";
+
+
+
+document.getElementById(
+"profileEquipmentInput"
+).value =
+data.equipment || "";
+
+
+
+document.getElementById(
+"profileAirlinesInput"
+).value =
+data.favorite_airlines || "";
+
+
+
+document.getElementById(
+"profileAirportsInput"
+).value =
+data.favorite_airports || "";
+
+
+
+}catch(e){
+
+console.error(
+"加载档案失败",
+e
+);
+
+}
+
+
+}
+
+
+
+
+
+const saveProfile =
+document.getElementById(
+"saveProfile"
+);
+
+
+
+if(saveProfile){
+
+
+saveProfile.onclick =
+async function(){
+
+
+
+const user =
+JSON.parse(
+localStorage.getItem("currentUser")
+);
+
+
+
+if(!user){
+
+showToast(
+"请先登录"
+);
+
+return;
+
+}
+
+
+
+const body={
+
+user_id:user.id,
+
+avatar:
+document.getElementById(
+"profileAvatarInput"
+).value.trim(),
+
+
+bio:
+document.getElementById(
+"profileBioInput"
+).value.trim(),
+
+
+social_media:
+document.getElementById(
+"profileSocialInput"
+).value.trim(),
+
+
+equipment:
+document.getElementById(
+"profileEquipmentInput"
+).value.trim(),
+
+
+favorite_airlines:
+document.getElementById(
+"profileAirlinesInput"
+).value.trim(),
+
+
+favorite_airports:
+document.getElementById(
+"profileAirportsInput"
+).value.trim()
+
+};
+
+
+
+try{
+
+
+const res =
+await fetch(
+"https://api.bpmuseum.org.cn/api/account/profile",
+{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":
+"application/json"
+
+},
+
+body:
+JSON.stringify(body)
+
+}
+
+);
+
+
+
+const data =
+await res.json();
+
+
+
+if(data.success){
+
+showToast(
+"航空档案保存成功"
+);
+
+
+}else{
+
+showToast(
+data.error ||
+"保存失败"
+);
+
+}
+
+
+}catch(e){
+
+showToast(
+"网络错误"
+);
+
+}
+
+
+};
+
+
+}
+
+
+
+document.addEventListener(
+"DOMContentLoaded",
+()=>{
+
+loadProfileSettings();
+
+});
+
