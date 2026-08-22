@@ -1,4 +1,5 @@
 let flights = [];
+let displayFlights = [];
 
 // =====================
 // 从 API 读取审核通过的展品
@@ -25,7 +26,7 @@ async function loadFlights() {
         ? data
         : [];
 
-    renderMuseum();
+    applyMuseumFilter();
 
   } catch (error) {
 
@@ -36,11 +37,68 @@ async function loadFlights() {
 
     flights = [];
 
-    renderMuseum();
+    applyMuseumFilter();
 
   }
 
 }
+
+
+
+// =====================
+// 展厅搜索与排序
+// =====================
+
+function applyMuseumFilter(){
+
+  const input =
+  document.getElementById("museumSearch");
+
+
+  const keyword =
+  input
+  ?
+  input.value.trim().toLowerCase()
+  :
+  "";
+
+
+  displayFlights =
+  flights.filter(f=>{
+
+    const text =
+    `
+    ${f.airline || ""}
+    ${f.flight || ""}
+    ${f.airport || ""}
+    `
+    .toLowerCase();
+
+
+    return text.includes(keyword);
+
+  });
+
+
+  renderMuseum();
+
+}
+
+
+
+document.addEventListener(
+"DOMContentLoaded",
+()=>{
+
+  document
+  .getElementById("museumSearch")
+  ?.addEventListener(
+    "input",
+    applyMuseumFilter
+  );
+
+});
+
 
 
 // =====================
@@ -73,7 +131,7 @@ function renderMuseum() {
   }
 
 
-  flights.forEach(
+  displayFlights.forEach(
     (flight, index) => {
 
       let card =
