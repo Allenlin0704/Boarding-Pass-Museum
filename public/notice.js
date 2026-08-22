@@ -1,24 +1,33 @@
 function showToast(message){
 
     let toast =
-    document.getElementById("bpmToast");
+    document.getElementById(
+        "bpmToast"
+    );
 
 
     if(!toast){
 
         toast =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
         toast.id="bpmToast";
 
-        document.body.appendChild(toast);
+        document.body.appendChild(
+            toast
+        );
 
     }
 
 
-    toast.innerText = message;
+    toast.innerText =
+    message;
 
-    toast.className="bpm-toast-show";
+
+    toast.className =
+    "bpm-toast-show";
 
 
     setTimeout(()=>{
@@ -30,57 +39,30 @@ function showToast(message){
 }
 
 
-
 // =====================================
-// 公告 + 更新日志统一弹窗
+// 更新日志弹窗
 // =====================================
 
 async function loadNotice(){
 
     try{
 
-
-        const pinnedRes =
-        await fetch(
-            "https://api.bpmuseum.org.cn/api/updates"
-        );
-
-
-        const pinned =
-        await pinnedRes.json();
-
-
-
-        const noticeRes =
+        const res =
         await fetch(
             "https://api.bpmuseum.org.cn/api/announcements"
         );
 
 
-        const notices =
-        await noticeRes.json();
+        const data =
+        await res.json();
 
 
 
-        const pinnedItem =
-        Array.isArray(pinned) && pinned.length
-        ?
-        pinned[0]
-        :
-        null;
-
-
-
-        const updateItem =
-        Array.isArray(notices) && notices.length
-        ?
-        notices[0]
-        :
-        null;
-
-
-
-        if(!pinnedItem && !updateItem){
+        if(
+            !Array.isArray(data)
+            ||
+            data.length===0
+        ){
 
             return;
 
@@ -88,8 +70,15 @@ async function loadNotice(){
 
 
 
+        const item =
+        data[0];
+
+
+
         const overlay =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
 
         overlay.className =
@@ -102,55 +91,24 @@ async function loadNotice(){
         <div class="bpm-update-modal">
 
 
-        <h2>
-        📢 BoardingPassMuseum 公告
-        </h2>
+            <h2>
+            📢 BoardingPassMuseum 更新日志
+            </h2>
 
 
-
-        ${
-        pinnedItem
-        ?
-        `
-        <h3>
-        📌 长期事项
-        </h3>
-
-        <p>
-        ${pinnedItem.content || ""}
-        </p>
-
-        `
-        :
-        ""
-        }
+            <h3>
+            ${item.version || ""}
+            </h3>
 
 
-
-        ${
-        updateItem
-        ?
-        `
-        <hr>
-
-        <h3>
-        📝 更新日志
-        </h3>
-
-        <p>
-        ${updateItem.content || ""}
-        </p>
-
-        `
-        :
-        ""
-        }
+            <p>
+            ${item.content || ""}
+            </p>
 
 
-
-        <button id="closeBpmUpdate">
-        我知道了
-        </button>
+            <button id="closeBpmUpdate">
+            我知道了
+            </button>
 
 
         </div>
@@ -159,7 +117,9 @@ async function loadNotice(){
 
 
 
-        document.body.appendChild(overlay);
+        document.body.appendChild(
+            overlay
+        );
 
 
 
@@ -172,11 +132,10 @@ async function loadNotice(){
         };
 
 
-
     }catch(e){
 
         console.error(
-            "公告加载失败",
+            "更新日志加载失败",
             e
         );
 
