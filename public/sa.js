@@ -85,6 +85,271 @@ async function loadAppeals(){
 
 
 
+
+// ==========================
+// 社区管理
+// ==========================
+
+async function loadSACommunity(){
+
+    const box =
+        document.getElementById("saCommunityPosts");
+
+    if(!box) return;
+
+    box.innerHTML = "加载中...";
+
+    try{
+
+        const res = await fetch(
+            `${API}/api/sa/community/posts?sa_id=${user.id}`
+        );
+
+        const data = await res.json();
+
+        if(!res.ok || data.success !== true){
+
+            throw new Error(
+                data.error || "加载社区管理数据失败"
+            );
+
+        }
+
+        const posts = Array.isArray(data.posts)
+            ? data.posts
+            : [];
+
+        if(posts.length === 0){
+
+            box.innerHTML = `
+                <div class="card">
+                    <p>暂无社区动态</p>
+                </div>
+            `;
+
+            return;
+        }
+
+        box.innerHTML = posts.map(post => {
+
+            const hidden =
+                post.status === "hidden";
+
+            return `
+                <div class="card sa-community-card">
+
+                    <h3>
+                        ${escapeSACommunityHTML(post.title)}
+                    </h3>
+
+                    <p>
+                        作者：
+                        ${escapeSACommunityHTML(
+                            post.username || "未知用户"
+                        )}
+                    </p>
+
+                    <p>
+                        时间：
+                        ${escapeSACommunityHTML(
+                            post.created_at || ""
+                        )}
+                    </p>
+
+                    <p>
+                        状态：
+                        <strong>
+                            ${hidden ? "已下架" : "正常"}
+                        </strong>
+                    </p>
+
+                    <p>
+                        ❤️ ${Number(post.like_count || 0)}
+                        &nbsp;&nbsp;
+                        💬 ${Number(post.comment_count || 0)}
+                    </p>
+
+                    <div class="sa-community-content">
+                        ${escapeSACommunityHTML(
+                            post.content
+                        ).replace(/\n/g,"<br>")}
+                    </div>
+
+                    <button
+                        type="button"
+                        class="${hidden
+                            ? "sa-community-restore"
+                            : "sa-community-hide"}"
+                        onclick="changeSACommunityStatus(
+                            ${Number(post.id)},
+                            '${hidden ? "visible" : "hidden"}'
+                        )"
+                    >
+                        ${hidden ? "↩️ 恢复帖子" : "🚫 下架帖子"}
+                    </button>
+
+                </div>
+            `;
+
+        }).join("");
+
+    }catch(e){
+
+        console.error(
+            "SA community load error:",
+            e
+        );
+
+        box.innerHTML = `
+            <div class="card">
+                <p>加载失败：${escapeSACommunityHTML(
+                    e.message
+                )}</p>
+            </div>
+        `;
+
+    }
+
+}
+
+
+function escapeSACommunityHTML(value){
+
+    return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+
+}
+
+
+async function changeSACommunityStatus(
+    postId,
+    nextStatus
+){
+
+    const action =
+        nextStatus === "hidden"
+            ? "下架"
+            : "恢复";
+
+
+    let moderationReason = "";
+
+
+    if(nextStatus === "hidden"){
+
+        moderationReason =
+            prompt(
+                "请输入下架原因："
+            );
+
+
+        if(moderationReason === null){
+
+            return;
+
+        }
+
+
+        moderationReason =
+            moderationReason.trim();
+
+
+        if(!moderationReason){
+
+            alert(
+                "下架失败：必须填写下架原因。"
+            );
+
+            return;
+
+        }
+
+    }else{
+
+        const confirmed = confirm(
+            "确定要恢复这条社区动态吗？"
+        );
+
+        if(!confirmed) return;
+
+    }
+
+
+    try{
+
+        const res = await fetch(
+            `${API}/api/sa/community/posts/status`,
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":"application/json"
+                },
+
+                body:JSON.stringify({
+
+                    sa_id:user.id,
+
+                    post_id:postId,
+
+                    status:nextStatus,
+
+                    moderation_reason:
+                        moderationReason
+
+                })
+            }
+        );
+
+
+        const data =
+            await res.json();
+
+
+        if(
+            !res.ok ||
+            data.success !== true
+        ){
+
+            throw new Error(
+                data.error ||
+                `${action}失败`
+            );
+
+        }
+
+
+        alert(
+            action === "hidden"
+                ? "帖子已下架"
+                : "帖子已恢复"
+        );
+
+
+        await loadSACommunity();
+
+
+    }catch(e){
+
+        console.error(
+            "SA community status error:",
+            e
+        );
+
+
+        alert(
+            `${action}失败：${e.message}`
+        );
+
+    }
+
+}
+
+
 // ==========================
 // 展品管理
 // ==========================
@@ -585,8 +850,6 @@ async function confirmDemote(){
 // SA 展品 ID 查询
 // ==========================
 
-document.addEventListener("DOMContentLoaded", function(){
-
 const searchSAFlight =
 document.getElementById("searchSAFlight");
 
@@ -620,7 +883,7 @@ if(searchSAFlight){
 
             const res =
             await fetch(
-                `${API}/api/flight/${id}`
+                `${API}/api/flight/${encodeURIComponent(id)}`
             );
 
 
@@ -636,6 +899,54 @@ if(searchSAFlight){
             }
 
 
+            const status =
+                String(x.status || "");
+
+
+            let reviewButtons = "";
+
+
+            if(status === "pending"){
+
+                reviewButtons = `
+                    <button
+                    type="button"
+                    onclick="saApproveFlight(${Number(x.id)})">
+                    ✅ 批准展品
+                    </button>
+
+                    <button
+                    type="button"
+                    class="danger-button"
+                    onclick="saRejectFlight(${Number(x.id)})">
+                    ❌ 拒绝展品
+                    </button>
+                `;
+
+            }else if(status === "approved"){
+
+                reviewButtons = `
+                    <button
+                    type="button"
+                    class="danger-button"
+                    onclick="saRejectFlight(${Number(x.id)})">
+                    ❌ SA 覆盖为拒绝
+                    </button>
+                `;
+
+            }else if(status === "rejected"){
+
+                reviewButtons = `
+                    <button
+                    type="button"
+                    onclick="saApproveFlight(${Number(x.id)})">
+                    ✅ SA 覆盖为批准
+                    </button>
+                `;
+
+            }
+
+
             box.innerHTML=`
 
             <div class="card">
@@ -643,6 +954,7 @@ if(searchSAFlight){
             <img
             src="${x.image || ''}"
             class="ticket-image"
+            data-preview="${x.image || ''}"
             >
 
             <h3>
@@ -662,9 +974,25 @@ if(searchSAFlight){
             状态:${x.status || ""}
             </p>
 
+            ${
+                x.reviewer_id
+                ? `<p>审核管理员 ID:${x.reviewer_id}</p>`
+                : ""
+            }
+
+            ${
+                x.reject_reason
+                ? `<p>拒绝原因:${x.reject_reason}</p>`
+                : ""
+            }
+
+            <div class="sa-review-actions">
+                ${reviewButtons}
+            </div>
+
             <button
             class="danger-button"
-            onclick="deleteSAFlight(${x.id})">
+            onclick="deleteSAFlight(${Number(x.id)})">
             🗑 移除展品
             </button>
 
@@ -675,6 +1003,11 @@ if(searchSAFlight){
 
         }catch(e){
 
+            console.error(
+                "SA flight query error:",
+                e
+            );
+
             box.innerHTML="查询失败";
 
         }
@@ -682,9 +1015,6 @@ if(searchSAFlight){
     };
 
 }
-
-});
-
 
 document.addEventListener("DOMContentLoaded", function(){
 
@@ -950,3 +1280,167 @@ e=>{
     }
 
 });
+
+
+// =====================================
+// SA COMMUNITY INIT
+// =====================================
+
+if(
+    document.getElementById("saCommunityPosts")
+){
+    loadSACommunity();
+}
+
+
+
+// ==========================
+// SA 审核展品
+// ==========================
+
+async function saApproveFlight(flightId){
+
+    if(
+        !confirm(
+            "确定由 SA 批准该展品？"
+        )
+    ){
+        return;
+    }
+
+
+    try{
+
+        const res =
+        await fetch(
+            `${API}/api/admin/approve`,
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+
+                body:JSON.stringify({
+                    admin_id:user.id,
+                    flight_id:Number(flightId)
+                })
+            }
+        );
+
+
+        const data =
+        await res.json();
+
+
+        if(!res.ok || !data.success){
+
+            throw new Error(
+                data.error ||
+                "批准失败"
+            );
+
+        }
+
+
+        showToast("SA 已批准展品");
+
+        document.getElementById(
+            "searchSAFlight"
+        ).click();
+
+
+    }catch(e){
+
+        showToast(
+            e.message ||
+            "操作失败"
+        );
+
+    }
+
+}
+
+
+async function saRejectFlight(flightId){
+
+    const reason =
+        prompt(
+            "请输入拒绝原因："
+        );
+
+
+    if(reason === null){
+        return;
+    }
+
+
+    const cleanReason =
+        reason.trim();
+
+
+    if(!cleanReason){
+
+        showToast(
+            "拒绝展品必须填写原因"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+        await fetch(
+            `${API}/api/admin/reject`,
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                    "application/json"
+                },
+
+                body:JSON.stringify({
+                    admin_id:user.id,
+                    flight_id:Number(flightId),
+                    reason:cleanReason
+                })
+            }
+        );
+
+
+        const data =
+        await res.json();
+
+
+        if(!res.ok || !data.success){
+
+            throw new Error(
+                data.error ||
+                "拒绝失败"
+            );
+
+        }
+
+
+        showToast("SA 已拒绝展品");
+
+        document.getElementById(
+            "searchSAFlight"
+        ).click();
+
+
+    }catch(e){
+
+        showToast(
+            e.message ||
+            "操作失败"
+        );
+
+    }
+
+}

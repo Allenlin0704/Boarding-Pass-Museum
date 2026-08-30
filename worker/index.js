@@ -110,9 +110,18 @@ const user =
 await getUser(env,id);
 
 
+// =====================================
+// SA 安全规则
+// SA 永远只有 ID=1
+// 前端 role 不可信
+// 必须同时满足：
+// 1. 用户 ID = 1
+// 2. 数据库 role = superadministrator
+// =====================================
 
 if(
 !user ||
+Number(user.id)!==1 ||
 user.role!=="superadministrator"
 ){
 
@@ -567,6 +576,132 @@ env,
 email,
 code
 );
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+}
+
+
+
+// ================================
+// 获取用户档案
+// ================================
+
+if(
+url.pathname==="/api/account/profile"
+&&
+request.method==="GET"
+){
+
+const id =
+url.searchParams.get("id");
+
+
+const user =
+await env.DB.prepare(
+`
+SELECT
+id,
+username,
+role,
+avatar,
+bio,
+social_media,
+equipment,
+favorite_airlines,
+favorite_airports,
+created_at
+FROM users
+WHERE id=?
+`
+)
+.bind(id)
+.first();
+
+
+
+if(!user){
+
+return Response.json(
+{
+error:"User not found"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+return Response.json(
+user,
+{
+headers
+}
+);
+
+}
+
+
+
+// ================================
+// 更新用户档案
+// ================================
+
+if(
+url.pathname==="/api/account/profile"
+&&
+request.method==="POST"
+){
+
+const {
+user_id,
+avatar,
+bio,
+social_media,
+equipment,
+favorite_airlines,
+favorite_airports
+}
+=
+await request.json();
+
+
+
+await env.DB.prepare(
+`
+UPDATE users
+SET
+avatar=?,
+bio=?,
+social_media=?,
+equipment=?,
+favorite_airlines=?,
+favorite_airports=?
+WHERE id=?
+`
+)
+.bind(
+avatar || "",
+bio || "",
+social_media || "",
+equipment || "",
+favorite_airlines || "",
+favorite_airports || "",
+user_id
+)
+.run();
+
+
 
 return Response.json(
 {
@@ -1087,6 +1222,178 @@ headers
 
 // =====================================
 // SUBMIT
+// 新投稿 + 自动分配审核管理员
+// =====================================
+
+if(
+url.pathname==="/api/submit"
+&&
+request.method==="POST"
+){
+
+const {
+
+user_id,
+
+airline,
+
+flight,
+
+airport,
+
+date,
+
+story,
+
+image,
+
+issue_airport
+
+}
+=
+await request.json();
+
+
+// =====================================
+// 用户身份验证
+// 服务器不信任前端传入的 user_id
+// =====================================
+
+const submitUser =
+await getUser(
+env,
+user_id
+);
+
+if(!submitUser){
+
+return Response.json(
+{
+success:false,
+error:"用户不存在或登录已失效"
+},
+{
+status:401,
+headers
+}
+);
+
+}
+
+
+// =====================================
+// 查找当前所有普通管理员
+// SA 不参与普通投稿分配
+// =====================================
+
+const admins =
+await env.DB.prepare(
+`
+SELECT
+users.id,
+(
+    SELECT COUNT(*)
+    FROM flights
+    WHERE flights.status='pending'
+    AND flights.reviewer_id=users.id
+) AS pending_count
+FROM users
+WHERE users.role='administrator'
+ORDER BY pending_count ASC, users.id ASC
+`
+)
+.all();
+
+
+const adminList =
+admins.results || [];
+
+
+// =====================================
+// 如果存在普通管理员
+// 分配给当前待审核数量最少的管理员
+// =====================================
+
+let reviewer_id = null;
+
+if(adminList.length > 0){
+
+    reviewer_id =
+        Number(
+            adminList[0].id
+        );
+
+}
+
+
+// =====================================
+// 写入投稿
+// =====================================
+
+await env.DB.prepare(
+`
+INSERT INTO flights
+(
+user_id,
+airline,
+flight,
+route,
+date,
+aircraft,
+airport,
+issue_airport,
+image,
+story,
+status,
+reviewer_id
+)
+VALUES
+(?,?,?,?,?,?,?,?,?,?,?,?)
+`
+)
+.bind(
+
+user_id,
+
+airline || "",
+
+flight || "",
+
+"",
+
+date || "",
+
+"",
+
+airport || "",
+
+issue_airport || "",
+
+image || "",
+
+story || "",
+
+"pending",
+
+reviewer_id
+
+)
+.run();
+
+
+return Response.json(
+{
+success:true,
+message:"Submission received",
+reviewer_id
+},
+{
+headers
+}
+);
+
+}
+
 // =====================================
 
 
@@ -1193,9 +1500,82 @@ headers
 
 
 
+
+// =====================================
+// 我的投稿
+// 用户只能查看自己的投稿及审核状态
+// =====================================
+
+if(
+url.pathname==="/api/account/my-flights"
+&&
+request.method==="GET"
+){
+
+const user_id =
+url.searchParams.get("user_id");
+
+if(!user_id){
+
+return Response.json(
+{
+success:false,
+error:"请先登录"
+},
+{
+status:401,
+headers
+}
+);
+
+}
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+flights.*,
+users.username,
+users.avatar,
+COUNT(favorites.id) AS favorite_count
+FROM flights
+
+LEFT JOIN users
+ON flights.user_id = users.id
+
+LEFT JOIN favorites
+ON favorites.flight_id = flights.id
+
+WHERE flights.user_id=?
+
+GROUP BY flights.id
+
+ORDER BY flights.id DESC
+`
+)
+.bind(
+Number(user_id)
+)
+.all();
+
+return Response.json(
+{
+success:true,
+flights:result.results || []
+},
+{
+headers
+}
+);
+
+}
+
+
 // =====================================
 // PUBLIC GALLERY
 // =====================================
+
+
 
 
 if(
@@ -1209,11 +1589,21 @@ await env.DB.prepare(
 `
 SELECT
 flights.*,
-users.username
+users.username,
+users.avatar,
+COUNT(favorites.id) AS favorite_count
 FROM flights
+
 LEFT JOIN users
 ON flights.user_id = users.id
+
+LEFT JOIN favorites
+ON favorites.flight_id = flights.id
+
 WHERE flights.status='approved'
+
+GROUP BY flights.id
+
 ORDER BY flights.id DESC
 `
 )
@@ -1564,6 +1954,38 @@ await request.json();
 
 
 
+const exists =
+await env.DB.prepare(
+`
+SELECT id
+FROM favorites
+WHERE user_id=?
+AND flight_id=?
+`
+)
+.bind(
+user_id,
+flight_id
+)
+.first();
+
+
+if(exists){
+
+return Response.json(
+{
+success:false,
+error:"Already favorited"
+},
+{
+headers
+}
+);
+
+}
+
+
+
 await env.DB.prepare(
 `
 INSERT INTO favorites
@@ -1708,8 +2130,12 @@ await env.DB.prepare(
 SELECT *
 FROM flights
 WHERE status='pending'
+AND reviewer_id=?
 ORDER BY id DESC
 `
+)
+.bind(
+admin.id
 )
 .all();
 
@@ -1785,8 +2211,12 @@ await env.DB.prepare(
 SELECT *
 FROM flights
 WHERE status='approved'
+AND reviewer_id=?
 ORDER BY id DESC
 `
+)
+.bind(
+admin.id
 )
 .all();
 
@@ -1823,17 +2253,11 @@ request.method==="POST"
 ){
 
 const {
-
 admin_id,
-
 flight_id
-
 }
 =
 await request.json();
-
-
-
 
 
 const admin =
@@ -1843,11 +2267,11 @@ admin_id
 );
 
 
-
 if(!admin){
 
 return Response.json(
 {
+success:false,
 error:"No permission"
 },
 {
@@ -1859,31 +2283,84 @@ headers
 }
 
 
+// =====================================
+// 审核权限
+// SA 可以审核任何展品
+// 普通管理员只能审核分配给自己的 pending 展品
+// =====================================
 
+const flight =
+await env.DB.prepare(
+`
+SELECT
+id,
+status,
+reviewer_id
+FROM flights
+WHERE id=?
+`
+)
+.bind(
+Number(flight_id)
+)
+.first();
+
+
+if(!flight){
+
+return Response.json(
+{
+success:false,
+error:"展品不存在"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+if(admin.role==="administrator"){
+
+if(
+flight.status!=="pending"
+||
+Number(flight.reviewer_id)!==
+Number(admin.id)
+){
+
+return Response.json(
+{
+success:false,
+error:"你没有权限审核这件展品"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+}
 
 
 await env.DB.prepare(
 `
 UPDATE flights
-
 SET
-
 status='approved',
-
 reviewer_id=?
-
 WHERE id=?
-
 `
 )
 .bind(
 admin.id,
-flight_id
+Number(flight_id)
 )
 .run();
-
-
-
 
 
 return Response.json(
@@ -1898,16 +2375,11 @@ headers
 }
 
 
-
-
-
-
-
-
-
 // =====================================
 // REJECT
 // =====================================
+
+
 
 
 if(
@@ -1917,19 +2389,12 @@ request.method==="POST"
 ){
 
 const {
-
 admin_id,
-
 flight_id,
-
 reason
-
 }
 =
 await request.json();
-
-
-
 
 
 const admin =
@@ -1939,11 +2404,11 @@ admin_id
 );
 
 
-
 if(!admin){
 
 return Response.json(
 {
+success:false,
 error:"No permission"
 },
 {
@@ -1955,38 +2420,106 @@ headers
 }
 
 
+// =====================================
+// 审核权限
+// SA 可以拒绝任何展品
+// 普通管理员只能拒绝分配给自己的 pending 展品
+// =====================================
 
+const flight =
+await env.DB.prepare(
+`
+SELECT
+id,
+status,
+reviewer_id
+FROM flights
+WHERE id=?
+`
+)
+.bind(
+Number(flight_id)
+)
+.first();
+
+
+if(!flight){
+
+return Response.json(
+{
+success:false,
+error:"展品不存在"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+if(admin.role==="administrator"){
+
+if(
+flight.status!=="pending"
+||
+Number(flight.reviewer_id)!==
+Number(admin.id)
+){
+
+return Response.json(
+{
+success:false,
+error:"你没有权限审核这件展品"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+}
+
+
+const rejectReason =
+String(reason || "").trim();
+
+
+if(!rejectReason){
+
+return Response.json(
+{
+success:false,
+error:"拒绝展品必须填写原因"
+},
+{
+status:400,
+headers
+}
+);
+
+}
 
 
 await env.DB.prepare(
 `
 UPDATE flights
-
 SET
-
 status='rejected',
-
 reject_reason=?,
-
 reviewer_id=?
-
 WHERE id=?
-
 `
 )
 .bind(
-
-reason || "",
-
+rejectReason,
 admin.id,
-
-flight_id
-
+Number(flight_id)
 )
 .run();
-
-
-
 
 
 return Response.json(
@@ -2001,15 +2534,9 @@ headers
 }
 
 
-
-
-
-
-
-
-
 // =====================================
 // ADMIN EDIT
+
 // =====================================
 
 
@@ -3165,6 +3692,23 @@ headers
 }
 
 
+// ID=1 是唯一 SA，禁止改变其角色
+if(Number(user_id)===1){
+
+return Response.json(
+{
+success:false,
+error:"SA 账号不可修改"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
 
 await env.DB.prepare(
 `
@@ -3222,6 +3766,23 @@ if(!sa){
 return Response.json(
 {
 error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+// ID=1 是唯一 SA，禁止撤销其权限
+if(Number(user_id)===1){
+
+return Response.json(
+{
+success:false,
+error:"SA 账号不可降级"
 },
 {
 status:403,
@@ -3527,6 +4088,1096 @@ headers
 );
 
 }
+
+// =====================================
+// SA COMMUNITY MANAGEMENT
+// SA 社区管理
+// =====================================
+
+if(
+url.pathname==="/api/sa/community/posts"
+&&
+request.method==="GET"
+){
+
+try{
+
+const sa_id =
+Number(url.searchParams.get("sa_id"));
+
+const sa =
+await requireSA(
+env,
+sa_id
+);
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+community_posts.id,
+community_posts.user_id,
+community_posts.title,
+community_posts.content,
+community_posts.status,
+community_posts.created_at,
+
+users.username,
+users.email,
+users.avatar,
+
+(
+    SELECT COUNT(*)
+    FROM community_likes
+    WHERE community_likes.post_id=community_posts.id
+) AS like_count,
+
+(
+    SELECT COUNT(*)
+    FROM community_comments
+    WHERE community_comments.post_id=community_posts.id
+) AS comment_count
+
+FROM community_posts
+
+JOIN users
+ON users.id=community_posts.user_id
+
+ORDER BY community_posts.created_at DESC
+
+LIMIT 100
+`
+)
+.all();
+
+return Response.json(
+{
+success:true,
+posts:result.results || []
+},
+{
+headers
+}
+);
+
+}catch(error){
+
+console.error(error);
+
+return Response.json(
+{
+success:false,
+error:"加载社区管理数据失败"
+},
+{
+status:500,
+headers
+}
+);
+
+}
+
+}
+
+
+
+// =====================================
+// SA COMMUNITY STATUS
+// 下架 / 恢复社区帖子
+// =====================================
+
+if(
+url.pathname==="/api/sa/community/posts/status"
+&&
+request.method==="POST"
+){
+
+try{
+
+const {
+sa_id,
+post_id,
+status,
+moderation_reason
+}=await request.json();
+
+
+const sa =
+await requireSA(
+env,
+Number(sa_id)
+);
+
+
+if(!sa){
+
+return Response.json(
+{
+error:"No permission"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+const validStatus =
+status==="visible" ||
+status==="hidden";
+
+
+if(!validStatus){
+
+return Response.json(
+{
+success:false,
+error:"Invalid status"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+const post =
+await env.DB.prepare(
+`
+SELECT id
+FROM community_posts
+WHERE id=?
+`
+)
+.bind(
+Number(post_id)
+)
+.first();
+
+
+if(!post){
+
+return Response.json(
+{
+success:false,
+error:"帖子不存在"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+let reason = null;
+
+if(status === "hidden"){
+
+    reason =
+        String(moderation_reason || "").trim();
+
+    if(!reason){
+
+        return Response.json(
+            {
+                success:false,
+                error:"下架帖子必须填写原因"
+            },
+            {
+                status:400,
+                headers
+            }
+        );
+
+    }
+
+}
+
+
+await env.DB.prepare(
+`
+UPDATE community_posts
+SET
+status=?,
+moderation_reason=?
+WHERE id=?
+`
+)
+.bind(
+    status,
+    reason,
+    Number(post_id)
+)
+.run();
+
+
+return Response.json(
+{
+success:true,
+status
+},
+{
+headers
+}
+);
+
+}catch(error){
+
+console.error(error);
+
+return Response.json(
+{
+success:false,
+error:"更新帖子状态失败"
+},
+{
+status:500,
+headers
+}
+);
+
+}
+
+}
+
+
+// =====================================
+// 用户个人档案社区动态
+// 包括本人被 SA 下架的帖子
+// =====================================
+
+if(
+url.pathname==="/api/community/user-posts"
+&&
+request.method==="GET"
+){
+
+try{
+
+const userId =
+Number(
+    url.searchParams.get("id")
+);
+
+const viewerId =
+Number(
+    url.searchParams.get("viewer_id")
+);
+
+if(!userId){
+
+return Response.json(
+{
+success:false,
+error:"用户 ID 无效"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+/*
+ * 公开查看他人档案：
+ * 只能看到正常帖子。
+ *
+ * 查看自己的档案：
+ * 可以看到自己的正常帖子和被下架帖子，
+ * 这样作者才能看到 SA 给出的下架原因。
+ */
+
+const isOwner =
+viewerId &&
+viewerId === userId;
+
+const query = isOwner
+?
+`
+SELECT
+community_posts.id,
+community_posts.title,
+community_posts.content,
+community_posts.created_at,
+community_posts.status,
+community_posts.moderation_reason,
+users.id AS user_id,
+users.username,
+users.avatar,
+
+(
+    SELECT COUNT(*)
+    FROM community_likes
+    WHERE community_likes.post_id=community_posts.id
+) AS like_count,
+
+(
+    SELECT COUNT(*)
+    FROM community_comments
+    WHERE community_comments.post_id=community_posts.id
+) AS comment_count
+
+FROM community_posts
+JOIN users
+ON users.id=community_posts.user_id
+
+WHERE community_posts.user_id=?
+
+ORDER BY community_posts.created_at DESC
+LIMIT 100
+`
+:
+`
+SELECT
+community_posts.id,
+community_posts.title,
+community_posts.content,
+community_posts.created_at,
+community_posts.status,
+NULL AS moderation_reason,
+users.id AS user_id,
+users.username,
+users.avatar,
+
+(
+    SELECT COUNT(*)
+    FROM community_likes
+    WHERE community_likes.post_id=community_posts.id
+) AS like_count,
+
+(
+    SELECT COUNT(*)
+    FROM community_comments
+    WHERE community_comments.post_id=community_posts.id
+) AS comment_count
+
+FROM community_posts
+JOIN users
+ON users.id=community_posts.user_id
+
+WHERE
+community_posts.user_id=?
+AND
+community_posts.status='visible'
+
+ORDER BY community_posts.created_at DESC
+LIMIT 100
+`;
+
+const result =
+await env.DB
+.prepare(query)
+.bind(userId)
+.all();
+
+return Response.json(
+{
+success:true,
+posts:
+result.results || []
+},
+{
+headers
+}
+);
+
+}catch(error){
+
+console.error(
+"User community posts error:",
+error
+);
+
+return Response.json(
+{
+success:false,
+error:"加载用户社区动态失败"
+},
+{
+status:500,
+headers
+}
+);
+
+}
+
+}
+
+// =====================================
+// COMMUNITY V1
+// 帖子列表 + 发布帖子
+// =====================================
+
+if(
+url.pathname==="/api/community/posts"
+&&
+request.method==="GET"
+){
+
+try{
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+community_posts.id,
+community_posts.title,
+community_posts.content,
+community_posts.created_at,
+users.id AS user_id,
+users.username,
+users.avatar,
+
+(
+    SELECT COUNT(*)
+    FROM community_likes
+    WHERE community_likes.post_id=community_posts.id
+) AS like_count,
+
+(
+    SELECT COUNT(*)
+    FROM community_comments
+    WHERE community_comments.post_id=community_posts.id
+) AS comment_count
+
+FROM community_posts
+JOIN users
+ON users.id=community_posts.user_id
+WHERE community_posts.status='visible'
+ORDER BY community_posts.created_at DESC
+LIMIT 50
+`
+).all();
+
+
+return Response.json(
+{
+success:true,
+posts:result.results || []
+},
+{
+headers
+}
+);
+
+
+}catch(error){
+
+console.error(error);
+
+return Response.json(
+{
+success:false,
+error:"加载社区帖子失败"
+},
+{
+status:500,
+headers
+}
+);
+
+}
+
+}
+
+
+
+if(
+url.pathname==="/api/community/posts"
+&&
+request.method==="POST"
+){
+
+try{
+
+const body =
+await request.json();
+
+const user_id =
+Number(body.user_id);
+
+const title =
+String(body.title || "").trim();
+
+const content =
+String(body.content || "").trim();
+
+
+if(!user_id){
+
+return Response.json(
+{
+success:false,
+error:"请先登录"
+},
+{
+status:401,
+headers
+}
+);
+
+}
+
+
+if(!title || !content){
+
+return Response.json(
+{
+success:false,
+error:"标题和内容不能为空"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+if(title.length>100){
+
+return Response.json(
+{
+success:false,
+error:"标题不能超过100字"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+if(content.length>5000){
+
+return Response.json(
+{
+success:false,
+error:"内容不能超过5000字"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+const user =
+await env.DB.prepare(
+`
+SELECT id
+FROM users
+WHERE id=?
+`
+)
+.bind(user_id)
+.first();
+
+
+if(!user){
+
+return Response.json(
+{
+success:false,
+error:"用户不存在"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+const result =
+await env.DB.prepare(
+`
+INSERT INTO community_posts
+(
+user_id,
+title,
+content
+)
+VALUES (?, ?, ?)
+`
+)
+.bind(
+user_id,
+title,
+content
+)
+.run();
+
+
+return Response.json(
+{
+success:true,
+id:result.meta.last_row_id
+},
+{
+headers
+}
+);
+
+
+}catch(error){
+
+console.error(error);
+
+return Response.json(
+{
+success:false,
+error:"发布帖子失败"
+},
+{
+status:500,
+headers
+}
+);
+
+}
+
+}
+
+
+
+
+// =====================================
+// COMMUNITY POST DELETE
+// 删除自己的社区帖子
+// =====================================
+
+if(
+url.pathname.startsWith("/api/community/posts/")
+&&
+request.method==="DELETE"
+){
+
+try{
+
+const post_id =
+Number(
+url.pathname.split("/").pop()
+);
+
+const body =
+await request.json();
+
+const user_id =
+Number(body.user_id);
+
+
+if(!post_id || !user_id){
+
+return Response.json(
+{
+success:false,
+error:"参数不完整"
+},
+{
+status:400,
+headers
+}
+);
+
+}
+
+
+/*
+ * 必须由服务器验证帖子所有者。
+ * 不能只相信前端传来的身份。
+ */
+
+const post =
+await env.DB.prepare(
+`
+SELECT
+id,
+user_id
+FROM community_posts
+WHERE id=?
+`
+)
+.bind(post_id)
+.first();
+
+
+if(!post){
+
+return Response.json(
+{
+success:false,
+error:"帖子不存在"
+},
+{
+status:404,
+headers
+}
+);
+
+}
+
+
+if(
+Number(post.user_id)
+!==
+user_id
+){
+
+return Response.json(
+{
+success:false,
+error:"你没有权限删除这条帖子"
+},
+{
+status:403,
+headers
+}
+);
+
+}
+
+
+/*
+ * 先删除点赞和评论，
+ * 再删除帖子。
+ */
+
+await env.DB.prepare(
+`
+DELETE FROM community_likes
+WHERE post_id=?
+`
+)
+.bind(post_id)
+.run();
+
+
+await env.DB.prepare(
+`
+DELETE FROM community_comments
+WHERE post_id=?
+`
+)
+.bind(post_id)
+.run();
+
+
+await env.DB.prepare(
+`
+DELETE FROM community_posts
+WHERE id=?
+AND user_id=?
+`
+)
+.bind(
+post_id,
+user_id
+)
+.run();
+
+
+return Response.json(
+{
+success:true
+},
+{
+headers
+}
+);
+
+
+}catch(error){
+
+console.error(
+"Community post delete error:",
+error
+);
+
+
+return Response.json(
+{
+success:false,
+error:"删除帖子失败"
+},
+{
+status:500,
+headers
+}
+);
+
+}
+
+}
+
+
+
+// =====================================
+// COMMUNITY COMMENTS
+// =====================================
+
+if(
+url.pathname==="/api/community/comments"
+&&
+request.method==="GET"
+){
+
+const post_id =
+Number(url.searchParams.get("post_id"));
+
+if(!post_id){
+
+return Response.json(
+{error:"Invalid post_id"},
+{status:400,headers}
+);
+
+}
+
+const result =
+await env.DB.prepare(
+`
+SELECT
+community_comments.id,
+community_comments.content,
+community_comments.created_at,
+users.id AS user_id,
+users.username,
+users.avatar
+FROM community_comments
+JOIN users
+ON users.id=community_comments.user_id
+WHERE community_comments.post_id=?
+ORDER BY community_comments.created_at ASC
+`
+)
+.bind(post_id)
+.all();
+
+return Response.json(
+{
+success:true,
+comments:result.results || []
+},
+{headers}
+);
+
+}
+
+
+if(
+url.pathname==="/api/community/comments"
+&&
+request.method==="POST"
+){
+
+const body =
+await request.json();
+
+const user_id =
+Number(body.user_id);
+
+const post_id =
+Number(body.post_id);
+
+const content =
+String(body.content || "").trim();
+
+if(!user_id || !post_id || !content){
+
+return Response.json(
+{
+success:false,
+error:"参数不完整"
+},
+{status:400,headers}
+);
+
+}
+
+if(content.length>2000){
+
+return Response.json(
+{
+success:false,
+error:"评论不能超过2000字"
+},
+{status:400,headers}
+);
+
+}
+
+const user =
+await env.DB.prepare(
+`SELECT id FROM users WHERE id=?`
+)
+.bind(user_id)
+.first();
+
+if(!user){
+
+return Response.json(
+{error:"用户不存在"},
+{status:404,headers}
+);
+
+}
+
+const post =
+await env.DB.prepare(
+`SELECT id FROM community_posts WHERE id=?`
+)
+.bind(post_id)
+.first();
+
+if(!post){
+
+return Response.json(
+{error:"帖子不存在"},
+{status:404,headers}
+);
+
+}
+
+const result =
+await env.DB.prepare(
+`
+INSERT INTO community_comments
+(post_id,user_id,content)
+VALUES(?,?,?)
+`
+)
+.bind(
+post_id,
+user_id,
+content
+)
+.run();
+
+return Response.json(
+{
+success:true,
+id:result.meta.last_row_id
+},
+{headers}
+);
+
+}
+
+
+// =====================================
+// COMMUNITY LIKE
+// =====================================
+
+if(
+url.pathname==="/api/community/like"
+&&
+request.method==="POST"
+){
+
+const body =
+await request.json();
+
+const user_id =
+Number(body.user_id);
+
+const post_id =
+Number(body.post_id);
+
+if(!user_id || !post_id){
+
+return Response.json(
+{error:"参数不完整"},
+{status:400,headers}
+);
+
+}
+
+const existing =
+await env.DB.prepare(
+`
+SELECT id
+FROM community_likes
+WHERE post_id=? AND user_id=?
+`
+)
+.bind(post_id,user_id)
+.first();
+
+if(existing){
+
+await env.DB.prepare(
+`
+DELETE FROM community_likes
+WHERE post_id=? AND user_id=?
+`
+)
+.bind(post_id,user_id)
+.run();
+
+}else{
+
+await env.DB.prepare(
+`
+INSERT INTO community_likes
+(post_id,user_id)
+VALUES(?,?)
+`
+)
+.bind(post_id,user_id)
+.run();
+
+}
+
+const count =
+await env.DB.prepare(
+`
+SELECT COUNT(*) AS count
+FROM community_likes
+WHERE post_id=?
+`
+)
+.bind(post_id)
+.first();
+
+return Response.json(
+{
+success:true,
+liked:!existing,
+count:count?.count || 0
+},
+{headers}
+);
+
+}
+
 
 
 // =====================================

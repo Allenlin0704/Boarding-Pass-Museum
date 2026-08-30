@@ -5,17 +5,16 @@
 
 <meta charset="UTF-8">
 
-<title>
-个人档案 - BoardingPassMuseum
-</title>
+<title>个人档案 - BoardingPassMuseum</title>
 
 <link rel="stylesheet" href="style.css">
+
+<script src="theme.js"></script>
 
 </head>
 
 
 <body>
-
 
 <div id="navbar"></div>
 
@@ -23,81 +22,126 @@
 <main class="profile-page">
 
 
-<section class="profile-card">
+<!-- =========================
+     个人资料
+========================= -->
 
+<section class="profile-card">
 
 <img
 id="profileAvatar"
 src="logo.png"
 class="profile-avatar"
+alt="头像"
 >
-
 
 <h1 id="profileUsername">
 加载中...
 </h1>
 
+<div
+id="profileRole"
+class="profile-role"
+>
+</div>
 
-<p id="profileBio">
-</p>
+<p id="profileBio"></p>
 
 
 <div class="profile-info">
 
+<div class="profile-info-item">
 
-<h3>
-🌐 社交媒体
-</h3>
+<h3>🌐 社交媒体</h3>
 
-<p id="profileSocial">
-</p>
-
-
-
-<h3>
-📱 使用设备
-</h3>
-
-<p id="profileEquipment">
-</p>
-
-
-
-<h3>
-✈️ 喜欢的航空公司
-</h3>
-
-<p id="profileAirlines">
-</p>
-
-
-
-<h3>
-🛫 喜欢的机场
-</h3>
-
-<p id="profileAirports">
-</p>
-
+<p id="profileSocial"></p>
 
 </div>
 
 
+<div class="profile-info-item">
+
+<h3>📱 使用设备</h3>
+
+<p id="profileEquipment"></p>
+
+</div>
+
+
+<div class="profile-info-item">
+
+<h3>✈️ 喜欢的航空公司</h3>
+
+<p id="profileAirlines"></p>
+
+</div>
+
+
+<div class="profile-info-item">
+
+<h3>🛫 喜欢的机场</h3>
+
+<p id="profileAirports"></p>
+
+</div>
+
+</div>
+
 </section>
 
 
-<section>
+<!-- =========================
+     内容区域
+========================= -->
+
+<div class="profile-content-grid">
+
+
+<!-- 我的展品 -->
+
+<section class="profile-content-section">
 
 <h2>
 我的展品
 </h2>
 
-<div id="profileFlights" class="museum-grid">
+<div
+id="profileFlights"
+class="museum-grid"
+>
+</div>
+
+</section>
+
+
+<!-- 社区动态 -->
+
+<section class="profile-content-section">
+
+<div class="profile-section-heading">
+
+<h2>
+社区动态
+</h2>
 
 </div>
 
 
+<div
+id="profilePosts"
+class="profile-posts"
+>
+
+<p class="profile-empty">
+加载中...
+</p>
+
+</div>
+
 </section>
+
+
+</div>
 
 
 </main>
@@ -105,7 +149,6 @@ class="profile-avatar"
 
 <script src="auth.js"></script>
 <script src="profile.js"></script>
-
 
 </body>
 

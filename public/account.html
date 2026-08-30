@@ -11,6 +11,7 @@
 
 <link rel="stylesheet" href="style.css">
 
+    <script src="theme.js"></script>
 </head>
 
 
@@ -165,10 +166,18 @@ id="publicFavorites"
 
 
 <label>
-头像链接
+头像
 </label>
 
 <div class="avatar-editor">
+
+<div class="avatar-preview-wrap">
+<canvas
+id="avatarCanvas"
+width="300"
+height="300"
+></canvas>
+</div>
 
 <img
 id="profileAvatarPreview"
@@ -186,6 +195,10 @@ hidden
 >
 </label>
 
+<p class="avatar-hint">
+支持 JPG、PNG、WEBP，头像会自动裁切为正方形
+</p>
+
 </div>
 
 <input
@@ -193,12 +206,6 @@ id="profileAvatarInput"
 type="hidden"
 >
 
-
-<img
-id="profileAvatarPreview"
-src="logo.png"
-class="profile-avatar"
->
 
 
 <label>
@@ -235,9 +242,27 @@ placeholder="例如 iPhone 15 Pro, Sony A7C...">
 喜欢的航空公司
 </label>
 
+<div class="profile-selector" id="airlineSelector">
+
+    <div class="profile-selected" id="selectedAirlines"></div>
+
+    <input
+    id="profileAirlinesSearch"
+    class="profile-selector-input"
+    placeholder="搜索航空公司名称 / IATA / ICAO..."
+    autocomplete="off"
+    >
+
+    <div
+    id="airlineResults"
+    class="profile-selector-results">
+    </div>
+
+</div>
+
 <input
+type="hidden"
 id="profileAirlinesInput"
-placeholder="搜索或填写航司，例如 MU / CZ / SQ">
 >
 
 
@@ -245,9 +270,27 @@ placeholder="搜索或填写航司，例如 MU / CZ / SQ">
 喜欢的机场
 </label>
 
+<div class="profile-selector" id="airportSelector">
+
+    <div class="profile-selected" id="selectedAirports"></div>
+
+    <input
+    id="profileAirportsSearch"
+    class="profile-selector-input"
+    placeholder="搜索机场名称 / IATA / ICAO..."
+    autocomplete="off"
+    >
+
+    <div
+    id="airportResults"
+    class="profile-selector-results">
+    </div>
+
+</div>
+
 <input
+type="hidden"
 id="profileAirportsInput"
-placeholder="搜索或填写机场，例如 CAN / SIN">
 >
 
 

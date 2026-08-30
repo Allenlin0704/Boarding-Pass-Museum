@@ -795,38 +795,102 @@ loadProfileSettings();
 
 
 // ================================
-// AVATAR UPLOAD
+// AVATAR CANVAS UPLOAD
 // ================================
 
 const avatarFile =
 document.getElementById("avatarFile");
 
-if(avatarFile){
+const avatarCanvas =
+document.getElementById("avatarCanvas");
 
-avatarFile.onchange = async function(){
+const avatarCtx =
+avatarCanvas
+? avatarCanvas.getContext("2d")
+: null;
+
+
+if(avatarFile && avatarCanvas && avatarCtx){
+
+avatarFile.onchange = function(){
 
 const file=this.files[0];
 
 if(!file)
 return;
 
+if(!file.type.startsWith("image/")){
 
-const formData =
-new FormData();
+showToast("请选择图片文件");
+return;
+
+}
+
+const reader=new FileReader();
+
+reader.onload=function(e){
+
+const img=new Image();
+
+img.onload=function(){
+
+const size=300;
+
+const side=Math.min(
+img.naturalWidth,
+img.naturalHeight
+);
+
+const sx=
+(img.naturalWidth-side)/2;
+
+const sy=
+(img.naturalHeight-side)/2;
+
+avatarCtx.clearRect(
+0,
+0,
+size,
+size
+);
+
+avatarCtx.drawImage(
+img,
+sx,
+sy,
+side,
+side,
+0,
+0,
+size,
+size
+);
+
+avatarCanvas.style.display="block";
+
+avatarCanvas.toBlob(
+async function(blob){
+
+if(!blob){
+
+showToast("图片处理失败");
+return;
+
+}
+
+const formData=new FormData();
 
 formData.append(
 "image",
-file
+blob,
+"avatar.jpg"
 );
-
 
 try{
 
 showToast("正在上传头像");
 
-
-const res =
-await fetch(
+const res=await fetch(
 "https://api.bpmuseum.org.cn/api/upload-image",
 {
 method:"POST",
@@ -834,12 +898,17 @@ body:formData
 }
 );
 
+const data=await res.json();
 
-const data =
-await res.json();
+if(!res.ok || !data.url){
 
+showToast(
+data.error || "头像上传失败"
+);
 
-if(data.url){
+return;
+
+}
 
 avatarInput.value=data.url;
 
@@ -847,24 +916,633 @@ avatarPreview.src=data.url;
 
 showToast("头像上传成功");
 
-}else{
+}catch(err){
 
-showToast("上传失败");
+console.error(err);
+
+showToast("头像上传失败");
 
 }
+
+},
+"image/jpeg",
+0.9
+);
+
+};
+
+img.src=e.target.result;
+
+};
+
+reader.readAsDataURL(file);
+
+};
+
+}
+
+
+
+// =====================================
+// PROFILE 航司 / 机场选择器
+// =====================================
+
+(function(){
+
+const airlinesSearch =
+document.getElementById(
+"profileAirlinesSearch"
+);
+
+const airportsSearch =
+document.getElementById(
+"profileAirportsSearch"
+);
+
+const airlineResults =
+document.getElementById(
+"airlineResults"
+);
+
+const airportResults =
+document.getElementById(
+"airportResults"
+);
+
+const selectedAirlines =
+document.getElementById(
+"selectedAirlines"
+);
+
+const selectedAirports =
+document.getElementById(
+"selectedAirports"
+);
+
+const airlineHidden =
+document.getElementById(
+"profileAirlinesInput"
+);
+
+const airportHidden =
+document.getElementById(
+"profileAirportsInput"
+);
+
+
+if(
+!airlinesSearch ||
+!airportsSearch ||
+!airlineResults ||
+!airportResults
+){
+
+return;
+
+}
+
+
+let airlines = [];
+let airports = [];
+
+let selectedAirlineValues = [];
+let selectedAirportValues = [];
+
+
+// =====================================
+// 数据加载
+// =====================================
+
+async function loadSelectorData(){
+
+try{
+
+const [
+airlineRes,
+airportRes
+] = await Promise.all([
+
+fetch("data/airlines-global.json"),
+
+fetch("data/airports-global.json")
+
+]);
+
+
+airlines =
+await airlineRes.json();
+
+airports =
+await airportRes.json();
+
+
+console.log(
+"Profile 航司数据:",
+airlines.length
+);
+
+console.log(
+"Profile 机场数据:",
+airports.length
+);
 
 
 }catch(e){
 
-console.error(e);
-
-showToast("网络错误");
+console.error(
+"Profile 数据加载失败",
+e
+);
 
 }
 
+}
+
+
+// =====================================
+// 文本搜索
+// =====================================
+
+function matchItem(item, keyword){
+
+keyword =
+keyword
+.trim()
+.toLowerCase();
+
+if(!keyword)
+return true;
+
+const fields = [
+
+item.name_cn,
+item.name_en,
+item.iata,
+item.icao,
+item.country_cn,
+item.country,
+item.city_cn,
+item.city_en
+
+];
+
+return fields.some(
+x =>
+String(x || "")
+.toLowerCase()
+.includes(keyword)
+);
+
+}
+
+
+// =====================================
+// 航司显示名称
+// =====================================
+
+function airlineLabel(item){
+
+return `
+
+<div class="profile-result-main">
+
+<strong>
+${item.name_cn || item.name_en || "未知航空公司"}
+</strong>
+
+<span>
+${item.iata || "-"}
+${item.icao ? " · " + item.icao : ""}
+</span>
+
+</div>
+
+<div class="profile-result-sub">
+
+${item.country_cn || item.country || ""}
+
+</div>
+
+`;
+
+}
+
+
+// =====================================
+// 机场显示名称
+// =====================================
+
+function airportLabel(item){
+
+return `
+
+<div class="profile-result-main">
+
+<strong>
+${item.name_cn || item.name_en || "未知机场"}
+</strong>
+
+<span>
+${item.iata || "-"}
+${item.icao ? " · " + item.icao : ""}
+</span>
+
+</div>
+
+<div class="profile-result-sub">
+
+${
+item.city_cn ||
+item.city_en ||
+""
+}
+
+${
+item.country_cn
+?
+" · " + item.country_cn
+:
+""
+}
+
+</div>
+
+`;
+
+}
+
+
+// =====================================
+// 标签
+// =====================================
+
+function renderSelected(){
+
+selectedAirlines.innerHTML =
+selectedAirlineValues
+.map(value => {
+
+const item =
+airlines.find(
+x =>
+String(x.iata || "")
+.toUpperCase()
+=== value
+);
+
+if(!item)
+return "";
+
+return `
+
+<span class="profile-chip">
+
+${item.name_cn || item.name_en}
+
+<button
+type="button"
+data-remove-airline="${value}"
+>
+×
+</button>
+
+</span>
+
+`;
+
+})
+.join("");
+
+
+selectedAirports.innerHTML =
+selectedAirportValues
+.map(value => {
+
+const item =
+airports.find(
+x =>
+String(x.iata || "")
+.toUpperCase()
+=== value
+);
+
+if(!item)
+return "";
+
+return `
+
+<span class="profile-chip">
+
+${item.name_cn || item.name_en}
+
+<button
+type="button"
+data-remove-airport="${value}"
+>
+×
+</button>
+
+</span>
+
+`;
+
+})
+.join("");
+
+
+airlineHidden.value =
+selectedAirlineValues.join(",");
+
+airportHidden.value =
+selectedAirportValues.join(",");
+
+}
+
+
+// =====================================
+// 航司搜索
+// =====================================
+
+function searchAirlines(){
+
+const keyword =
+airlinesSearch.value;
+
+
+const list =
+airlines
+.filter(matchItem.bind(null))
+.filter(
+x =>
+x.active !== false
+)
+.slice(0,30);
+
+
+airlineResults.innerHTML =
+list
+.map(item => `
+
+<div
+class="profile-result"
+data-airline="${String(item.iata || "").toUpperCase()}"
+>
+
+${airlineLabel(item)}
+
+</div>
+
+`)
+.join("");
+
+
+if(!list.length){
+
+airlineResults.innerHTML =
+`<div class="profile-no-result">
+没有找到相关航空公司
+</div>`;
+
+}
+
+}
+
+
+// =====================================
+// 机场搜索
+// =====================================
+
+function searchAirports(){
+
+const keyword =
+airportsSearch.value;
+
+
+const list =
+airports
+.filter(matchItem.bind(null))
+.filter(
+x =>
+x.active !== false
+)
+.slice(0,30);
+
+
+airportResults.innerHTML =
+list
+.map(item => `
+
+<div
+class="profile-result"
+data-airport="${String(item.iata || "").toUpperCase()}"
+>
+
+${airportLabel(item)}
+
+</div>
+
+`)
+.join("");
+
+
+if(!list.length){
+
+airportResults.innerHTML =
+`<div class="profile-no-result">
+没有找到相关机场
+</div>`;
+
+}
+
+}
+
+
+// =====================================
+// 点击选择
+// =====================================
+
+airlineResults.onclick =
+function(e){
+
+const row =
+e.target.closest(
+"[data-airline]"
+);
+
+if(!row)
+return;
+
+const value =
+row.dataset.airline;
+
+if(!value)
+return;
+
+if(
+!selectedAirlineValues
+.includes(value)
+){
+
+selectedAirlineValues.push(
+value
+);
+
+}
+
+renderSelected();
+
+airlinesSearch.value="";
+
+airlineResults.innerHTML="";
 
 };
 
 
+airportResults.onclick =
+function(e){
+
+const row =
+e.target.closest(
+"[data-airport]"
+);
+
+if(!row)
+return;
+
+const value =
+row.dataset.airport;
+
+if(!value)
+return;
+
+if(
+!selectedAirportValues
+.includes(value)
+){
+
+selectedAirportValues.push(
+value
+);
+
 }
 
+renderSelected();
+
+airportsSearch.value="";
+
+airportResults.innerHTML="";
+
+};
+
+
+// =====================================
+// 删除标签
+// =====================================
+
+selectedAirlines.onclick =
+function(e){
+
+const btn =
+e.target.closest(
+"[data-remove-airline]"
+);
+
+if(!btn)
+return;
+
+selectedAirlineValues =
+selectedAirlineValues.filter(
+x =>
+x !== btn.dataset.removeAirline
+);
+
+renderSelected();
+
+};
+
+
+selectedAirports.onclick =
+function(e){
+
+const btn =
+e.target.closest(
+"[data-remove-airport]"
+);
+
+if(!btn)
+return;
+
+selectedAirportValues =
+selectedAirportValues.filter(
+x =>
+x !== btn.dataset.removeAirport
+);
+
+renderSelected();
+
+};
+
+
+// =====================================
+// 输入
+// =====================================
+
+airlinesSearch.oninput =
+searchAirlines;
+
+airportsSearch.oninput =
+searchAirports;
+
+
+// =====================================
+// 点击输入框显示结果
+// =====================================
+
+airlinesSearch.onfocus =
+searchAirlines;
+
+airportsSearch.onfocus =
+searchAirports;
+
+
+// =====================================
+// 初始化
+// =====================================
+
+loadSelectorData().then(()=>{
+
+const oldAirlines =
+airlineHidden.value
+.split(",")
+.map(x =>
+x.trim().toUpperCase()
+)
+.filter(Boolean);
+
+const oldAirports =
+airportHidden.value
+.split(",")
+.map(x =>
+x.trim().toUpperCase()
+)
+.filter(Boolean);
+
+
+selectedAirlineValues =
+[
+...new Set(oldAirlines)
+];
+
+
+selectedAirportValues =
+[
+...new Set(oldAirports)
+];
+
+
+renderSelected();
+
+});
+
+
+})();

@@ -5,7 +5,6 @@ function showToast(message){
         "bpmToast"
     );
 
-
     if(!toast){
 
         toast =
@@ -21,14 +20,11 @@ function showToast(message){
 
     }
 
-
     toast.innerText =
     message;
 
-
     toast.className =
     "bpm-toast-show";
-
 
     setTimeout(()=>{
 
@@ -41,6 +37,7 @@ function showToast(message){
 
 // =====================================
 // 更新日志弹窗
+// 只有发现新版本时才弹出
 // =====================================
 
 async function loadNotice(){
@@ -49,13 +46,24 @@ async function loadNotice(){
 
         const res =
         await fetch(
-            "https://api.bpmuseum.org.cn/api/announcements"
+            "https://api.bpmuseum.org.cn/api/announcements",
+            {
+                cache:"no-store"
+            }
         );
+
+
+        if(!res.ok){
+
+            throw new Error(
+                "公告接口请求失败"
+            );
+
+        }
 
 
         const data =
         await res.json();
-
 
 
         if(
@@ -69,11 +77,44 @@ async function loadNotice(){
         }
 
 
-
+        // 最新公告
         const item =
         data[0];
 
 
+        // 版本号作为唯一标识
+        const version =
+        String(
+            item.version || ""
+        ).trim();
+
+
+        if(!version){
+
+            return;
+
+        }
+
+
+        // 用户已经看过这个版本
+        const lastSeen =
+        localStorage.getItem(
+            "bpmLastSeenChangelog"
+        );
+
+
+        if(
+            lastSeen === version
+        ){
+
+            return;
+
+        }
+
+
+        // ==============================
+        // 创建弹窗
+        // ==============================
 
         const overlay =
         document.createElement(
@@ -85,36 +126,54 @@ async function loadNotice(){
         "bpm-update-overlay";
 
 
-
         overlay.innerHTML = `
 
         <div class="bpm-update-modal">
-
 
             <h2>
             📢 BoardingPassMuseum 更新日志
             </h2>
 
-
             <h3>
             ${item.version || ""}
             </h3>
 
+            ${
+                item.date
+                ?
+                `<p class="bpm-update-date">
+                    ${item.date}
+                </p>`
+                :
+                ""
+            }
 
-            <p>
-            ${item.content || ""}
-            </p>
-
+            <div class="bpm-update-content">
+                ${
+                    Array.isArray(item.content)
+                    ?
+                    `<ul>
+                        ${
+                            item.content
+                            .map(
+                                x =>
+                                `<li>${x}</li>`
+                            )
+                            .join("")
+                        }
+                    </ul>`
+                    :
+                    `<p>${item.content || ""}</p>`
+                }
+            </div>
 
             <button id="closeBpmUpdate">
             我知道了
             </button>
 
-
         </div>
 
         `;
-
 
 
         document.body.appendChild(
@@ -122,10 +181,20 @@ async function loadNotice(){
         );
 
 
-
+        const closeButton =
         document.getElementById(
             "closeBpmUpdate"
-        ).onclick=function(){
+        );
+
+
+        closeButton.onclick =
+        function(){
+
+            // 只有用户确认后才记录
+            localStorage.setItem(
+                "bpmLastSeenChangelog",
+                version
+            );
 
             overlay.remove();
 
@@ -142,7 +211,6 @@ async function loadNotice(){
     }
 
 }
-
 
 
 document.addEventListener(

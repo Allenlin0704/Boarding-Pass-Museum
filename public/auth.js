@@ -45,6 +45,11 @@ function updateNavbar(){
         </a>
 
 
+        <a href="community.html">
+        社区
+        </a>
+
+
         <a href="my.html">
         我的投稿
         </a>
@@ -94,6 +99,11 @@ function updateNavbar(){
 
         <a href="submit.html">
         投稿
+        </a>
+
+
+        <a href="community.html">
+        社区
         </a>
 
 
