@@ -122,7 +122,8 @@ console.error(e);
 
 
 showToast(
-"服务器连接失败"
+e?.message ||
+"登录请求未完成，请检查网络后重试"
 );
 
 
