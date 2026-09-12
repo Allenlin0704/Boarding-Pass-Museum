@@ -1,5 +1,10 @@
 (function () {
 
+    const pwaScript = document.createElement("script");
+    pwaScript.src = "pwa.js?v=1";
+    pwaScript.defer = true;
+    document.head.appendChild(pwaScript);
+
     const saved =
         localStorage.getItem("bpm-theme");
 

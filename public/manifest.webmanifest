@@ -1,0 +1,15 @@
+{
+  "name": "BoardingPassMuseum",
+  "short_name": "BPMuseum",
+  "description": "记录每一次旅程的登机牌博物馆",
+  "lang": "zh-CN",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#003c6b",
+  "theme_color": "#003c6b",
+  "icons": [
+    { "src": "/pwa-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/favicon.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any" }
+  ]
+}
