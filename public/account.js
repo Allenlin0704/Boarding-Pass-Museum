@@ -16,6 +16,28 @@ location.href="login.html";
 const userId =
 accountUser.id;
 
+const exportDataButton=document.getElementById("exportData");
+
+if(exportDataButton){
+exportDataButton.onclick=async()=>{
+  exportDataButton.disabled=true;
+  const original=exportDataButton.textContent;
+  exportDataButton.textContent="正在准备文件…";
+  try{
+    const res=await fetch(`${API}/api/account/export`,{credentials:"include"});
+    const data=await res.json();
+    if(!res.ok)throw Error(data.error||"导出失败");
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
+    const link=document.createElement("a");
+    link.href=URL.createObjectURL(blob);
+    link.download=`BoardingPassMuseum-我的数据-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(link.href);
+    showToast("数据文件已下载，请妥善保管");
+  }catch(error){showToast(error.message||"导出失败");}
+  finally{exportDataButton.disabled=false;exportDataButton.textContent=original;}
+};
+}
+
 
 
 document.getElementById(

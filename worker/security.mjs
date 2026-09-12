@@ -72,7 +72,7 @@ async function limited(env,key,max,seconds) {
 }
 export async function authenticate(request,env,url) {
   const user=await sessionUser(request,env);
-  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || ['/api/my-flights','/api/favorites'].includes(url.pathname);
+  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || ['/api/my-flights','/api/favorites','/api/account/export'].includes(url.pathname);
   const write=!['GET','HEAD','OPTIONS'].includes(request.method);
   if((protectedRead || (write&&!PUBLIC_WRITES.has(url.pathname)))&&!user) return {response:reply({error:'请重新登录',success:false},401)};
   if(url.pathname.startsWith('/api/sa/')&&!isSA(user)) return {response:reply({error:'No permission'},403)};
@@ -100,6 +100,37 @@ export async function authenticate(request,env,url) {
 export async function accountRoute(request,env,url,user,sendEmail) {
   const path=url.pathname;
   if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user'}):reply({error:'请重新登录'},401);
+  if(path==='/api/account/export'&&request.method==='GET') {
+    if(!user) return reply({error:'请重新登录'},401);
+    const id=Number(user.id);
+    const [profile,flights,favorites,appeals,posts,comments,likes,reports,actions,moderationAppeals,achievements,adjustments,notifications]=await Promise.all([
+      env.DB.prepare('SELECT id,username,email,role,created_at,avatar,bio,social_media,equipment,favorite_airlines,favorite_airports FROM users WHERE id=?').bind(id).first(),
+      env.DB.prepare('SELECT id,airline,flight,route,date,aircraft,airport,image,story,status,reject_reason,created_at FROM flights WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT flight_id,created_at FROM favorites WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT flight_id,reason,status,created_at FROM appeals WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT id,title,content,image,status,needs_review,deleted_at,created_at FROM community_posts WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT id,post_id,content,status,moderation_reason,needs_review,created_at FROM community_comments WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT post_id FROM community_likes WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT target_type,target_id,category,reason,status,resolution,created_at,resolved_at FROM community_reports WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT id,target_type,target_id,severity,reason,clause,created_at,revoked_at FROM moderation_actions WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT action_id,reason,status,decision,created_at,due_at FROM moderation_appeals WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT code,awarded_at FROM user_achievements WHERE user_id=? ORDER BY awarded_at').bind(id).all(),
+      env.DB.prepare('SELECT amount,reason,created_at FROM level_adjustments WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT content,created_at,read_at FROM notifications WHERE user_id=? ORDER BY id').bind(id).all()
+    ]);
+    return reply({
+      exported_at:new Date().toISOString(),
+      format:'BoardingPassMuseum personal data export v1',
+      profile,
+      submissions:flights.results,
+      favorites:favorites.results,
+      exhibit_appeals:appeals.results,
+      community:{posts:posts.results,comments:comments.results,liked_post_ids:likes.results.map(row=>row.post_id),reports:reports.results},
+      moderation:{actions:actions.results,appeals:moderationAppeals.results},
+      progress:{achievements:achievements.results,level_adjustments:adjustments.results},
+      notifications:notifications.results
+    });
+  }
   if(path==='/api/logout'&&request.method==='POST') {
     const token=request.headers.get('Cookie')?.match(/bpm_session=([a-f0-9]{64})/)?.[1];
     if(token) await env.DB.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await sha(token)).run();

@@ -10,6 +10,18 @@ test('authentication: unauthenticated and forged identities are refused',async()
   db.prepare("UPDATE auth_sessions SET expires_at=datetime('now','-1 day') WHERE user_id=3").run();
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11},3)).status,401);
 });
+test('personal data export requires a session and excludes credentials',async()=>{
+  const {call,worker,env,db}=fixture();
+  db.prepare("UPDATE users SET password='secret-hash',bio='Aviation fan' WHERE id=3").run();
+  db.prepare("INSERT INTO flights(id,user_id,status,story) VALUES(99,3,'approved','My flight')").run();
+  assert.equal((await worker.fetch(new Request('https://test.invalid/api/account/export'),env)).status,401);
+  const res=await call('/api/account/export',null,3);
+  assert.equal(res.status,200);
+  const exported=await res.json();
+  assert.equal(exported.profile.bio,'Aviation fan');
+  assert.ok(exported.submissions.some(flight=>flight.id===99));
+  assert.equal(JSON.stringify(exported).includes('secret-hash'),false);
+});
 test('login issues HttpOnly cookie; logout revokes it',async()=>{
   const {worker,env,db}=fixture();
   db.prepare('UPDATE users SET password=? WHERE id=3').run(await passwordHash('testing-password'));

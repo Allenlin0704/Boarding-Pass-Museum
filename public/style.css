@@ -2665,6 +2665,14 @@ transform:translateY(-2px);
 
 }
 
+.account-data-card p{
+
+line-height:1.7;
+
+color:var(--bpm-muted);
+
+}
+
 
 /* avatar area */
 

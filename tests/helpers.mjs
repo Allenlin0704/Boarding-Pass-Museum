@@ -4,8 +4,10 @@ import {createHash} from 'node:crypto';
 import worker from '../worker/index.js';
 export function fixture() {
   const db = new DatabaseSync(':memory:');
-  db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,role TEXT,username TEXT,email TEXT,password TEXT,avatar TEXT);
-    CREATE TABLE flights(id INTEGER PRIMARY KEY,user_id INTEGER,status TEXT,reviewer_id INTEGER,reject_reason TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,airline TEXT,airport TEXT,date TEXT);
+  db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,role TEXT,username TEXT,email TEXT,password TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,avatar TEXT,bio TEXT,social_media TEXT,equipment TEXT,favorite_airlines TEXT,favorite_airports TEXT);
+    CREATE TABLE flights(id INTEGER PRIMARY KEY,user_id INTEGER,status TEXT,reviewer_id INTEGER,reject_reason TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,airline TEXT,flight TEXT,route TEXT,date TEXT,aircraft TEXT,airport TEXT,image TEXT,story TEXT);
+    CREATE TABLE favorites(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE appeals(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER,reason TEXT,status TEXT DEFAULT 'pending',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     INSERT INTO users(id,role,username,email) VALUES(1,'superadministrator','SA','sa@example.test'),(2,'administrator','Admin','a@example.test'),(3,'user','User','u@example.test'),(4,'superadministrator','Invalid SA','i@example.test'),(5,'administrator','Other admin','b@example.test');
     INSERT INTO flights(id,user_id,status,reviewer_id,reject_reason) VALUES(10,1,'pending',2,NULL),(11,3,'hidden',1,'old reason'),(12,3,'pending',5,NULL),(13,3,'approved',2,NULL);
     CREATE TABLE admin_requests(id INTEGER PRIMARY KEY,user_id INTEGER,reason TEXT,social TEXT,status TEXT DEFAULT 'pending');`);
