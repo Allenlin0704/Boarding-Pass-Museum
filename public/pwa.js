@@ -17,9 +17,15 @@
   addHead('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' });
   addHead('meta', { name: 'apple-mobile-web-app-title', content: 'BPMuseum' });
 
+  const showInstallHelp = () => {
+    let dialog=document.getElementById('bpmInstallHelp');
+    if(!dialog){dialog=document.createElement('dialog');dialog.id='bpmInstallHelp';dialog.className='bpm-dialog';dialog.innerHTML='<h2>安装 BoardingPassMuseum</h2><p>请使用浏览器菜单中的“安装应用”或“添加到主屏幕”。如果按钮暂时不可用，请刷新页面后再试。</p><button type="button">知道了</button>';dialog.querySelector('button').onclick=()=>dialog.close();document.body.append(dialog);}dialog.showModal();
+  };
   const addInstallButton = () => {
     const nav = document.querySelector('.menubar nav');
-    if (!installPrompt || !nav || document.getElementById('bpmInstallApp')) return;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS) return;
+    if (!nav || document.getElementById('bpmInstallApp')) return;
     const button = document.createElement('button');
     button.id = 'bpmInstallApp';
     button.type = 'button';
@@ -28,11 +34,9 @@
     button.setAttribute('aria-label', '安装 BoardingPassMuseum 应用');
     button.addEventListener('click', async () => {
       const prompt = installPrompt;
-      installPrompt = null;
-      button.disabled = true;
-      await prompt.prompt();
-      await prompt.userChoice;
-      button.remove();
+      if (!prompt) return showInstallHelp();
+      installPrompt = null;button.disabled = true;
+      await prompt.prompt();await prompt.userChoice;button.remove();
     });
     nav.append(button);
   };

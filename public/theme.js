@@ -1,7 +1,7 @@
 (function () {
 
     const pwaScript = document.createElement("script");
-    pwaScript.src = "pwa.js?v=2";
+    pwaScript.src = "pwa.js?v=3";
     pwaScript.defer = true;
     document.head.appendChild(pwaScript);
 
