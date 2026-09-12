@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BoardingPassMuseum">
-  <rect width="512" height="512" rx="112" fill="#003c6b"/>
-  <path d="M112 128h234a34 34 0 0 1 0 68H180v120h144a34 34 0 0 1 0 68H180v56a34 34 0 0 1-68 0V162a34 34 0 0 1 0-34Z" fill="#cbf0ff"/>
-  <path d="m293 138 112-56-37 97-43 18-20 46-14-5 8-49-45-17Z" fill="#fff"/>
-  <path d="M337 123 155 290" stroke="#73b9ee" stroke-width="18" stroke-linecap="round"/>
-</svg>

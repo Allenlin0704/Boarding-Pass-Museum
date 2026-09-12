@@ -11,7 +11,6 @@
   };
 
   addHead('link', { rel: 'manifest', href: 'manifest.webmanifest' });
-  addHead('link', { rel: 'icon', type: 'image/svg+xml', href: 'pwa-icon.svg' });
   addHead('link', { rel: 'apple-touch-icon', href: 'favicon.png' });
   addHead('meta', { name: 'theme-color', content: '#003c6b' });
   addHead('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });

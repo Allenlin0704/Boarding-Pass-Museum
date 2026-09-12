@@ -1,7 +1,7 @@
-const CACHE = 'bpmuseum-shell-v1';
+const CACHE = 'bpmuseum-shell-v2';
 const SHELL = [
   '/', '/index.html', '/style.css', '/features.css', '/theme.js', '/pwa.js',
-  '/manifest.webmanifest', '/pwa-icon.svg', '/favicon.png', '/offline.html'
+  '/manifest.webmanifest', '/favicon.png', '/offline.html'
 ];
 
 self.addEventListener('install', event => {
