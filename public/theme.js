@@ -108,6 +108,17 @@
 
     }
 
+    function addFooter() {
+
+        if (document.querySelector(".bpm-footer")) return;
+
+        const footer = document.createElement("footer");
+        footer.className = "bpm-footer bpm-auto-footer";
+        footer.innerHTML = `<h3>BoardingPassMuseum</h3><p>记录每一次旅程的登机牌博物馆</p><p><a href="about.html">关于我们</a>　<a href="privacy.html">隐私说明</a>　<a href="rules.html">投稿及审核条例</a>　<a href="community-rules.html">社区条例</a></p><p>联系邮箱：<a href="mailto:allenlin_developer@outlook.com">allenlin_developer@outlook.com</a></p><div class="copyright">© 2026 BoardingPassMuseum. All Rights Reserved.</div>`;
+        document.body.appendChild(footer);
+
+    }
+
 
     if (
         document.readyState ===
@@ -116,12 +127,13 @@
 
         document.addEventListener(
             "DOMContentLoaded",
-            addToggle
+            () => { addToggle(); addFooter(); }
         );
 
     } else {
 
         addToggle();
+        addFooter();
 
     }
 
