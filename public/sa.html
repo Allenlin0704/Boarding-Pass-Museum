@@ -17,6 +17,19 @@
 
 <h2 id="welcome"></h2>
 
+<section class="sa-panel" id="saSecurityPanel">
+<h2>🔐 SA 二次验证</h2>
+<p>敏感操作需先使用 Passkey 或 6 位备用 PIN 验证；授权有效期为 15 分钟。</p>
+<p id="saSecurityStatus" role="status">正在检查安全状态…</p>
+<label>当前账户密码 <input id="saSecurityPassword" type="password" autocomplete="current-password"></label>
+<button type="button" id="registerPasskey">添加这台设备的 Passkey</button>
+<hr>
+<label>6 位备用 PIN <input id="saSecurityPin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"></label>
+<button type="button" id="saveSaPin">设置或更换 PIN</button>
+<button type="button" id="verifySaPin">使用 PIN 验证</button>
+<button type="button" id="verifyPasskey">使用 Passkey 验证</button>
+</section>
+
 <div id="appeals"></div>
 
 <section class="sa-panel">
@@ -169,6 +182,7 @@ onclick="markSelectedRed('updateContent')"
 </section>
 
 <script src="auth.js?v=20260912"></script>
+<script src="sa-security.js?v=1"></script>
 <script src="review-rules.js"></script>
 <script src="sa.js?v=20260912"></script>
 

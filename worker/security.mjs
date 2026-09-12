@@ -12,7 +12,7 @@ const turnstileAction=(path)=>{
   if(path==='/api/account/reset-password')return 'reset';
   if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts')return 'submission';
   if(path.startsWith('/api/my/'))return 'exhibit_status';
-  if(path.startsWith('/api/sa/'))return 'sa_console';
+  if(path.startsWith('/api/sa'))return 'sa_console';
   if(path.startsWith('/api/admin/'))return 'admin_review';
   return 'profile_edit';
 };
@@ -59,6 +59,10 @@ export async function sessionUser(request,env) {
   if(!token) return null;
   return env.DB.prepare(`SELECT users.* FROM auth_sessions JOIN users ON users.id=auth_sessions.user_id
     WHERE token_hash=? AND expires_at>datetime('now')`).bind(await sha(token)).first();
+}
+export async function sessionTokenHash(request) {
+  const token=request.headers.get('Cookie')?.match(/(?:^|;\s*)bpm_session=([a-f0-9]{64})(?:;|$)/)?.[1];
+  return token?sha(token):null;
 }
 async function limited(env,key,max,seconds) {
   const bucket=Math.floor(Date.now()/1000/seconds)*seconds;

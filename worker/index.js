@@ -1,6 +1,7 @@
 import { communityRoute } from "./community.mjs";
 import { progressRoute, progressFor } from "./progress.mjs";
 import { reviewRoute } from "./review.mjs";
+import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
 // BoardingPassMuseum API V5.0
@@ -2447,6 +2448,10 @@ export default {
       request=auth.request;
       const turnstile=await verifyTurnstile(request,env,url);
       if(turnstile)return responseHeaders(original,turnstile);
+      const saSecurity=await saSecurityRoute(request.clone(),env,url,auth.user);
+      if(saSecurity)return responseHeaders(original,saSecurity);
+      const saStepup=await requireSAStepup(request,env,auth.user,url);
+      if(saStepup)return responseHeaders(original,saStepup);
       if(request.method==='GET' && ['/api/flights','/api/admin/pending'].includes(url.pathname)) {
         const stale=await env.DB.prepare("SELECT users.* FROM users LEFT JOIN progress_cache ON progress_cache.user_id=users.id WHERE progress_cache.user_id IS NULL OR progress_cache.year!=CAST(strftime('%Y','now','+8 hours') AS INTEGER) LIMIT 5").all();
         for(const account of stale.results) await progressFor(env,account);
