@@ -24,7 +24,8 @@ export async function reviewRoute(request,env,url,user) {
     const reason=String(body.reason||'').trim();
     if(status==='rejected'&&(!/^【(投稿基本要求|隐私守护规范|审核流程)】.+/s.test(reason)||reason.length>2000)) return reply({error:'拒绝展品必须填写条例条款及原因'},400);
     // Conditional write and audit insert share one transaction; duplicate or stale actions do not count.
-    const updates=[env.DB.prepare(`UPDATE flights SET status=?,reject_reason=?,reviewer_id=? WHERE id=? AND status=? AND reviewer_id IS ?`).bind(status,status==='rejected'?reason:null,user.id,id,flight.status,flight.reviewer_id),
+    const updates=[env.DB.prepare(`UPDATE flights SET status=?,reject_reason=?,reviewer_id=? WHERE id=? AND status=? AND (?=1 OR reviewer_id IS ?)`)
+      .bind(status,status==='rejected'?reason:null,user.id,id,flight.status,Number(isSA(user)),user.id),
       env.DB.prepare(`INSERT INTO flight_reviews(flight_id,user_id,reviewer_id,previous_status,status,reason)
       SELECT ?,?,?,?,?,? WHERE changes()>0 AND ?!=?`).bind(id,flight.user_id,user.id,flight.status,status,reason,flight.status,status)];
     if(status==='approved') updates.push(env.DB.prepare(`INSERT OR IGNORE INTO flight_approvals(flight_id,user_id,approved_at,submitted_at,airline,airport,flight_date)
