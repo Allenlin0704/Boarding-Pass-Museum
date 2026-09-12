@@ -15,11 +15,15 @@ document.getElementById('moderationForm').onsubmit=async event=>{
   if(!confirm(`确定执行此操作？处理类型：${body.severity}，内容 #${body.target_id}`))return;
   event.submitter.disabled=true;try{await api('/api/sa/community/moderate',body);document.getElementById('moderationMessage').textContent='处理已保存';await refresh();}catch(error){document.getElementById('moderationMessage').textContent=error.message;}finally{event.submitter.disabled=false;}
 };
+const decisionDialog=document.getElementById('decisionDialog');
+const decisionForm=document.getElementById('decisionForm');
+let pendingDecision=null;
 document.addEventListener('click',async event=>{
   const button=event.target.closest('button');if(!button)return;
   if(button.dataset.fill){const form=document.getElementById('moderationForm');form.elements.target_id.value=button.dataset.fill;form.scrollIntoView({behavior:'smooth'});return;}
   const report=button.dataset.report,appeal=button.dataset.appeal;if(!report&&!appeal)return;
-  const reason=prompt('请输入处理依据或最终裁定：');if(!reason)return;
-  button.disabled=true;try{await api(report?'/api/sa/community/reports/resolve':'/api/sa/community/appeals/resolve',report?{report_id:Number(report),decision:button.dataset.decision,reason}:{appeal_id:Number(appeal),status:button.dataset.status,decision:reason});await refresh();}catch(error){alert(error.message);button.disabled=false;}
+  pendingDecision={button,report,appeal};decisionForm.reset();document.getElementById('decisionError').textContent='';document.getElementById('decisionTitle').textContent=report?'处理举报':'处理申诉';decisionDialog.showModal();
 });
+decisionForm.addEventListener('click',event=>{if(event.target.value==='cancel')decisionDialog.close();});
+decisionForm.addEventListener('submit',async event=>{event.preventDefault();const reason=new FormData(decisionForm).get('reason').trim();if(!reason||!pendingDecision)return;const {button,report,appeal}=pendingDecision;const submit=event.submitter;button.disabled=true;submit.disabled=true;try{await api(report?'/api/sa/community/reports/resolve':'/api/sa/community/appeals/resolve',report?{report_id:Number(report),decision:button.dataset.decision,reason}:{appeal_id:Number(appeal),status:button.dataset.status,decision:reason});decisionDialog.close();await refresh();}catch(error){document.getElementById('decisionError').textContent=error.message||'保存失败';button.disabled=false;}finally{submit.disabled=false;}});
 refresh();
