@@ -5,3 +5,8 @@ public/.wrangler/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+public/*.backup
+public/*.backup.*
+public/*.before-selector
+public/*.broken
+public/*.theme-backup
