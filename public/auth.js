@@ -138,6 +138,8 @@ function updateNavbar(){
                 管理员中心
                 </a>
 
+                <button type="button" id="checkUpdate">检查新版本</button>
+
 
             </div>
 
@@ -219,6 +221,25 @@ function updateNavbar(){
 
             };
 
+        }
+
+        const checkUpdate=document.getElementById("checkUpdate");
+        if(checkUpdate){
+            checkUpdate.onclick=async function(){
+                checkUpdate.disabled=true;
+                checkUpdate.textContent="正在检查…";
+                try{
+                    const registration=await navigator.serviceWorker?.getRegistration();
+                    await registration?.update();
+                    await fetch(location.href,{cache:"reload",credentials:"same-origin"});
+                    checkUpdate.textContent="正在加载最新版…";
+                    location.reload();
+                }catch{
+                    checkUpdate.disabled=false;
+                    checkUpdate.textContent="检查新版本";
+                    alert("暂时无法检查更新，请稍后重试。");
+                }
+            };
         }
 
 

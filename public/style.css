@@ -2299,6 +2299,21 @@ background:#f2f2f2;
 
 }
 
+.user-dropdown button{
+    display:block;
+    width:100%;
+    padding:10px 16px;
+    border:0;
+    border-top:1px solid var(--bpm-border,#d2d2d7);
+    background:transparent;
+    color:inherit;
+    text-align:left;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.user-dropdown button:hover{background:rgba(0,0,0,.06)}
+
 
 
 .detail-image{
@@ -4048,4 +4063,3 @@ html.light-theme .community-post-overlay {
     overflow-wrap:anywhere;
 
 }
-
