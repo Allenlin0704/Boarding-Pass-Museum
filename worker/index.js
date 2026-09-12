@@ -1,5 +1,6 @@
 import { communityRoute } from "./community.mjs";
 import { progressRoute, progressFor } from "./progress.mjs";
+import { wechatRoute } from "./wechat.mjs";
 import { reviewRoute } from "./review.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
@@ -2438,11 +2439,13 @@ export default {
           return responseHeaders(original,reply({error:"来源不受信任"},403));
         }
         const type=request.headers.get("Content-Type")||"";
-        if (!type.includes("application/json") && !(url.pathname==="/api/upload-image"&&type.includes("multipart/form-data"))) {
+        if (!type.includes("application/json") && !(url.pathname==="/api/upload-image"&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml'))) {
           return responseHeaders(original,reply({error:"请求格式不支持"},415));
         }
       }
       request = await boundedRequest(request);
+      const wechat=await wechatRoute(request.clone(),env,url);
+      if(wechat)return responseHeaders(original,wechat);
       const auth = await authenticate(request,env,url);
       if (auth.response) return responseHeaders(original,auth.response);
       request=auth.request;

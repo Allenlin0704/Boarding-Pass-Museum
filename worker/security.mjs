@@ -1,4 +1,4 @@
-const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password']);
+const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/wechat']);
 const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
@@ -17,6 +17,7 @@ const turnstileAction=(path)=>{
   return 'profile_edit';
 };
 export async function verifyTurnstile(request,env,url) {
+  if(url.pathname==='/wechat')return null;
   if(['GET','HEAD','OPTIONS'].includes(request.method)||url.pathname==='/api/logout')return null;
   // This binding only exists in the isolated in-memory test fixture.
   if(env.TURNSTILE_TEST_BYPASS===true)return null;
