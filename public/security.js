@@ -1,50 +1,14 @@
-// Attach the HttpOnly session cookie to this site's API requests.
+// Attach the HttpOnly session cookie and a single-use Turnstile token to API writes.
 (() => {
-  const nativeFetch=window.fetch.bind(window);
-  const apiOrigin='https://api.bpmuseum.org.cn';
-  const clearExpiredSession=()=>{
-    const wasLoggedIn=localStorage.getItem('currentUser');
-    localStorage.removeItem('currentUser');
-    if(!wasLoggedIn)return;
-    const show=()=>{
-      if(document.getElementById('sessionNotice'))return;
-      const notice=document.createElement('div');
-      notice.id='sessionNotice';notice.setAttribute('role','status');
-      notice.style.cssText='padding:14px;text-align:center;background:#cbf0ff;color:#003c6b';
-      notice.append('登录已失效或网站已完成安全升级，请重新登录后继续。 ');
-      const link=document.createElement('a');link.href='login.html';link.textContent='重新登录';notice.append(link);
-      document.body.prepend(notice);
-    };
-    if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});
-  };
-  window.fetch=(input,init={})=>{
-    const url=new URL(typeof input==='string'?input:input.url,location.href);
-    if(url.origin===apiOrigin || url.origin==='http://localhost:8789') {
-      if(['localhost','127.0.0.1'].includes(location.hostname)) {
-        url.protocol='http:';url.host='localhost:8789';input=typeof input==='string'?url.href:new Request(url,input);
-      }
-      return nativeFetch(input,{...init,credentials:'include'}).then(response=>{
-        if(response.status===401 && !url.pathname.includes('login')) {
-          clearExpiredSession();
-        }
-        return response;
-      });
-    }
-    return nativeFetch(input,init);
-  };
-  const syncSession=async()=>{
-    if(!localStorage.getItem('currentUser'))return;
-    try{
-      const origin=['localhost','127.0.0.1'].includes(location.hostname)?'http://localhost:8789':apiOrigin;
-      const response=await nativeFetch(`${origin}/api/session`,{credentials:'include'});
-      if(response.ok){
-        const account=await response.json();
-        localStorage.setItem('currentUser',JSON.stringify(account));
-      }else if(response.status===401){
-        clearExpiredSession();
-      }
-    }catch{/* Keep the local view while offline; the next API request will verify it. */}
-  };
+  const nativeFetch=window.fetch.bind(window),apiOrigin='https://api.bpmuseum.org.cn',sitekey='0x4AAAAAAExNoKaKJCtCyty7';
+  const actionFor=path=>path==='/api/login'?'login':path==='/api/send-code'?'signup_code':path==='/api/register'?'signup':path==='/api/account/reset/send-code'?'reset_code':path==='/api/account/reset-password'?'reset':(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts')?'submission':path.startsWith('/api/my/')?'exhibit_status':path.startsWith('/api/sa/')?'sa_console':path.startsWith('/api/admin/')?'admin_review':'profile_edit';
+  let turnstileLoader;
+  const loadTurnstile=()=>turnstileLoader||(turnstileLoader=new Promise((resolve,reject)=>{if(window.turnstile)return resolve(window.turnstile);const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.defer=true;script.onload=()=>window.turnstile?resolve(window.turnstile):reject(Error('人机验证加载失败'));script.onerror=()=>reject(Error('人机验证加载失败'));document.head.append(script);}));
+  const tokenFor=async action=>{const turnstile=await loadTurnstile();return new Promise((resolve,reject)=>{const dialog=document.createElement('dialog');dialog.className='bpm-turnstile-dialog';dialog.innerHTML='<form method="dialog"><p>正在验证操作安全性…</p><div></div><button type="button">取消</button></form>';const host=dialog.querySelector('div'),cancel=dialog.querySelector('button');let widget;const close=reason=>{try{turnstile.remove(widget);}catch{}dialog.remove();if(reason)reject(reason);};cancel.onclick=()=>close(Error('已取消人机验证'));document.body.append(dialog);dialog.showModal();try{widget=turnstile.render(host,{sitekey,action,callback:token=>{close();resolve(token);},'error-callback':()=>close(Error('人机验证失败')),'expired-callback':()=>close(Error('人机验证已过期'))});}catch(error){close(error);}});};
+  const addToken=async(input,init,token)=>{const headers=new Headers(init.headers||(input instanceof Request?input.headers:undefined)),type=headers.get('Content-Type')||'';let body=init.body;if(type.includes('application/json')){const data=JSON.parse(typeof body==='string'?body:'{}');data.turnstile_token=token;body=JSON.stringify(data);}else if(body instanceof FormData)body.append('turnstile_token',token);else throw Error('该操作不支持人机验证');return {...init,headers,body,credentials:'include'};};
+  const clearExpiredSession=()=>{const wasLoggedIn=localStorage.getItem('currentUser');localStorage.removeItem('currentUser');if(!wasLoggedIn)return;const show=()=>{if(document.getElementById('sessionNotice'))return;const notice=document.createElement('div');notice.id='sessionNotice';notice.setAttribute('role','status');notice.style.cssText='padding:14px;text-align:center;background:#cbf0ff;color:#003c6b';notice.append('登录已失效或网站已完成安全升级，请重新登录后继续。 ');const link=document.createElement('a');link.href='login.html';link.textContent='重新登录';notice.append(link);document.body.prepend(notice);};if(document.body)show();else document.addEventListener('DOMContentLoaded',show,{once:true});};
+  window.fetch=async(input,init={})=>{const url=new URL(typeof input==='string'?input:input.url,location.href);if(url.origin!==apiOrigin&&url.origin!=='http://localhost:8789')return nativeFetch(input,init);let requestInit={...init,credentials:'include'};if(!['GET','HEAD','OPTIONS'].includes((requestInit.method||(input instanceof Request?input.method:'GET')).toUpperCase())&&url.pathname!=='/api/logout'){const token=await tokenFor(actionFor(url.pathname));requestInit=await addToken(input,requestInit,token);}if(['localhost','127.0.0.1'].includes(location.hostname)){url.protocol='http:';url.host='localhost:8789';input=typeof input==='string'?url.href:new Request(url,input);}const response=await nativeFetch(input,requestInit);if(response.status===401&&!url.pathname.includes('login'))clearExpiredSession();return response;};
+  const syncSession=async()=>{if(!localStorage.getItem('currentUser'))return;try{const origin=['localhost','127.0.0.1'].includes(location.hostname)?'http://localhost:8789':apiOrigin;const response=await nativeFetch(`${origin}/api/session`,{credentials:'include'});if(response.ok)localStorage.setItem('currentUser',JSON.stringify(await response.json()));else if(response.status===401)clearExpiredSession();}catch{/* Keep the local view while offline. */}};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',syncSession,{once:true});else syncSession();
 })();
 window.bpmEscape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

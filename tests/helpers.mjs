@@ -14,7 +14,7 @@ export function fixture() {
     CREATE TABLE community_comments(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
   for(const file of ['0003_security.sql','0004_progress_community.sql','0005_moderation_appeals.sql','0006_password_reset_required.sql']) db.exec(readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8'));
   for(const id of [1,2,3,4,5]) db.prepare("INSERT INTO auth_sessions VALUES(?,?,datetime('now','+1 day'))").run(createHash('sha256').update(String(id).repeat(64)).digest('hex'),id);
-  const env = { DB: { async batch(statements) { db.exec('BEGIN'); try {const results=[];for(const stmt of statements) results.push(await stmt.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;} }, prepare(sql) {
+  const env = { TURNSTILE_TEST_BYPASS:true, DB: { async batch(statements) { db.exec('BEGIN'); try {const results=[];for(const stmt of statements) results.push(await stmt.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;} }, prepare(sql) {
     let args = [];
     return { bind(...values) { args=values; return this; }, async first() { return db.prepare(sql).get(...args) || null; }, async all() { return { results: db.prepare(sql).all(...args) }; }, async run() { const result=db.prepare(sql).run(...args); return { meta: {...result,last_row_id:Number(result.lastInsertRowid)} }; } };
   } } };

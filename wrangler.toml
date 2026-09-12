@@ -12,3 +12,6 @@ bucket_name = "boardingpassmuseum-images"
 
 [triggers]
 crons = ["0 * * * *"]
+
+[vars]
+TURNSTILE_HOSTNAMES = "bpmuseum.org.cn,www.bpmuseum.org.cn"

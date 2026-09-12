@@ -4,6 +4,44 @@ const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(byte
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
 export const isAdmin = user => user?.role==='administrator' || isSA(user);
 export const reply = (body,status=200) => Response.json(body,{status});
+const turnstileAction=(path)=>{
+  if(path==='/api/login')return 'login';
+  if(path==='/api/send-code')return 'signup_code';
+  if(path==='/api/register')return 'signup';
+  if(path==='/api/account/reset/send-code')return 'reset_code';
+  if(path==='/api/account/reset-password')return 'reset';
+  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts')return 'submission';
+  if(path.startsWith('/api/my/'))return 'exhibit_status';
+  if(path.startsWith('/api/sa/'))return 'sa_console';
+  if(path.startsWith('/api/admin/'))return 'admin_review';
+  return 'profile_edit';
+};
+export async function verifyTurnstile(request,env,url) {
+  if(['GET','HEAD','OPTIONS'].includes(request.method)||url.pathname==='/api/logout')return null;
+  // This binding only exists in the isolated in-memory test fixture.
+  if(env.TURNSTILE_TEST_BYPASS===true)return null;
+  const action=turnstileAction(url.pathname);
+  const type=request.headers.get('Content-Type')||'';
+  let token;
+  try {
+    if(type.includes('application/json')) token=(await request.clone().json()).turnstile_token;
+    else if(type.includes('multipart/form-data')) token=(await request.clone().formData()).get('turnstile_token');
+  } catch { return reply({error:'验证请求格式错误'},400); }
+  if(typeof token!=='string'||token.length<20||token.length>2048||!env.TURNSTILE_SECRET) return reply({error:'请完成人机验证后重试'},403);
+  const allowed=new Set(String(env.TURNSTILE_HOSTNAMES||'').split(',').map(v=>v.trim()).filter(Boolean));
+  if(!allowed.size)return reply({error:'验证服务配置错误'},503);
+  let checked;
+  try {
+    const res=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
+      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(10000),
+      body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:token,remoteip:request.headers.get('CF-Connecting-IP')||''})
+    });
+    if(!res.ok)throw Error('siteverify');
+    checked=await res.json();
+  } catch { return reply({error:'人机验证暂不可用，请稍后重试'},403); }
+  if(!checked?.success||checked.action!==action||!allowed.has(checked.hostname)) return reply({error:'人机验证未通过，请重试'},403);
+  return null;
+}
 export async function passwordHash(password,salt=randomHex(16)) {
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveBits']);
   const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:new TextEncoder().encode(salt),iterations:100000},key,256);
