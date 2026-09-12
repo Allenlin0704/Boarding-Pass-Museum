@@ -35,6 +35,9 @@ let selectedAirline = null;
 
 let selectedAirport = null;
 let selectedIssueAirport = null;
+let draftRestored = false;
+let draftTimer = null;
+const draftKey = currentUser?.id ? `bpmuseum-submit-draft:v1:${currentUser.id}` : null;
 
 
 
@@ -86,6 +89,84 @@ document.getElementById(
     "submitBtn"
 );
 
+const saveDraftBtn = document.getElementById("saveDraftBtn");
+const clearDraftBtn = document.getElementById("clearDraftBtn");
+const draftStatus = document.getElementById("draftStatus");
+
+function setDraftStatus(message){
+  if(draftStatus) draftStatus.textContent = message;
+}
+
+function selectedCode(item){
+  return item?.iata || item?.icao || "";
+}
+
+function draftValue(){
+  return {
+    saved_at: new Date().toISOString(),
+    airline_text: airlineInput?.value || "",
+    airport_text: airportInput?.value || "",
+    issue_airport_text: issueAirportInput?.value || "",
+    airline_code: selectedCode(selectedAirline),
+    airport_code: selectedCode(selectedAirport),
+    issue_airport_code: selectedCode(selectedIssueAirport),
+    flight: document.getElementById("flight")?.value || "",
+    date: document.getElementById("date")?.value || "",
+    story: document.getElementById("story")?.value || ""
+  };
+}
+
+function saveDraft(manual=false){
+  if(!draftKey || !draftRestored) return;
+  const draft = draftValue();
+  const hasContent = Object.entries(draft).some(([key, value]) => key !== "saved_at" && value);
+  if(!hasContent) return;
+  localStorage.setItem(draftKey, JSON.stringify(draft));
+  setDraftStatus(manual ? "草稿已保存在此设备" : "草稿已自动保存");
+}
+
+function queueDraftSave(){
+  if(!draftRestored) return;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => saveDraft(false), 700);
+}
+
+function clearDraft(){
+  if(draftKey) localStorage.removeItem(draftKey);
+  setDraftStatus("草稿已清除");
+}
+
+function restoreDraft(){
+  if(!draftKey){ draftRestored = true; return; }
+  try {
+    const draft = JSON.parse(localStorage.getItem(draftKey) || "null");
+    const age = draft?.saved_at ? Date.now() - new Date(draft.saved_at).getTime() : Infinity;
+    if(!draft || !Number.isFinite(age) || age > 30 * 24 * 60 * 60 * 1000){
+      if(draft) localStorage.removeItem(draftKey);
+      draftRestored = true;
+      return;
+    }
+    airlineInput.value = draft.airline_text || "";
+    airportInput.value = draft.airport_text || "";
+    issueAirportInput.value = draft.issue_airport_text || "";
+    document.getElementById("flight").value = draft.flight || "";
+    document.getElementById("date").value = draft.date || "";
+    document.getElementById("story").value = draft.story || "";
+    window.bpmSubmitDraft = draft;
+    setDraftStatus("已恢复未提交草稿；图片需重新选择。");
+  } catch { localStorage.removeItem(draftKey); }
+  draftRestored = true;
+}
+
+function hydrateDraftSelections(){
+  const draft = window.bpmSubmitDraft;
+  if(!draft) return;
+  const find = (list, code) => list.find(item => code && [item.iata, item.icao].includes(code));
+  selectedAirline = find(airlines, draft.airline_code) || selectedAirline;
+  selectedAirport = find(airports, draft.airport_code) || selectedAirport;
+  selectedIssueAirport = find(airports, draft.issue_airport_code) || selectedIssueAirport;
+}
+
 
 
 
@@ -107,11 +188,7 @@ fetch(
 
         airlines = data;
 
-
-        console.log(
-            "航司数据:",
-            airlines.length
-        );
+        hydrateDraftSelections();
 
 
     }
@@ -151,11 +228,7 @@ fetch(
 
         airports = data;
 
-
-        console.log(
-            "机场数据:",
-            airports.length
-        );
+        hydrateDraftSelections();
 
 
     }
@@ -335,6 +408,8 @@ keyword
 
 container.innerHTML = "";
 
+queueDraftSave();
+
 
 
 if(!text)
@@ -497,6 +572,8 @@ displayName(item);
 
 container.innerHTML = "";
 
+queueDraftSave();
+
 
 
 };
@@ -583,6 +660,19 @@ submitBtn.onclick = submitFlight;
 
 
 }
+
+saveDraftBtn?.addEventListener("click", () => saveDraft(true));
+clearDraftBtn?.addEventListener("click", () => {
+  clearDraft();
+  resetSubmitForm();
+});
+
+[airlineInput, airportInput, issueAirportInput, document.getElementById("flight"), document.getElementById("date"), document.getElementById("story")]
+  .filter(Boolean).forEach(field => field.addEventListener("input", queueDraftSave));
+
+window.addEventListener("pagehide", () => saveDraft(false));
+
+restoreDraft();
 
 
 
@@ -846,27 +936,6 @@ uploadResult.url;
 let flightData = {
 
 
-id:
-
-Date.now(),
-
-user_id:
-currentUser.id,
-
-
-author:
-
-currentUser.username,
-
-
-
-authorEmail:
-
-currentUser.email,
-
-
-
-
 airline:
 
 displayName(
@@ -975,13 +1044,6 @@ status:
 
 
 
-console.log(
-"发送JSON:",
-JSON.stringify(flightData)
-);
-
-
-
 await fetch(
 API_BASE + "/api/submit",
 {
@@ -1016,6 +1078,8 @@ if(!data.success) throw new Error(data.error || "投稿失败");
 showToast(
 "投稿成功！已进入管理员审核队列"
 );
+
+clearDraft();
 
 
 
@@ -1076,6 +1140,8 @@ selectedAirline = null;
 
 selectedAirport = null;
 
+selectedIssueAirport = null;
+
 
 
 
@@ -1090,6 +1156,10 @@ if(airportInput)
 
 airportInput.value="";
 
+if(issueAirportInput)
+
+issueAirportInput.value="";
+
 
 
 
@@ -1103,6 +1173,10 @@ airlineResults.innerHTML="";
 if(airportResults)
 
 airportResults.innerHTML="";
+
+if(issueAirportResults)
+
+issueAirportResults.innerHTML="";
 
 
 
