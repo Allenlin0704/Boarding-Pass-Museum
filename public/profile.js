@@ -229,6 +229,8 @@ async function loadUserFlights(id){
             ? data.flights
             : [];
 
+        renderFlightFootprint(list);
+
         if(list.length===0){
 
             box.innerHTML =
@@ -331,8 +333,51 @@ async function loadUserFlights(id){
             投稿加载失败
         </p>`;
 
+        const footprint = document.getElementById("flightFootprintContent");
+        if(footprint) footprint.textContent = "飞行足迹暂时无法加载";
+
     }
 
+}
+
+function renderFlightFootprint(flights){
+    const box = document.getElementById("flightFootprintContent");
+    if(!box) return;
+    if(!flights.length){
+        box.innerHTML = '<p class="profile-empty">通过审核的展品会在这里形成足迹。</p>';
+        return;
+    }
+
+    const countBy = field => {
+        const counts = new Map();
+        flights.forEach(flight => {
+            const value = String(flight[field] || "").trim();
+            if(value) counts.set(value, (counts.get(value) || 0) + 1);
+        });
+        return counts;
+    };
+    const top = counts => [...counts.entries()].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN"))[0];
+    const airlines = countBy("airline");
+    const airports = countBy("airport");
+    const years = new Map();
+    flights.forEach(flight => {
+        const year = String(flight.date || "").match(/^\d{4}/)?.[0];
+        if(year) years.set(year, (years.get(year) || 0) + 1);
+    });
+    const max = Math.max(...years.values(), 1);
+    const timeline = [...years.entries()].sort((a,b) => a[0].localeCompare(b[0])).map(([year, count]) => `
+        <li><span>${escapeHTML(year)}</span><i style="width:${Math.max(12, Math.round(count / max * 100))}%"></i><strong>${count}</strong></li>`).join("") || '<li><span>暂无日期信息</span></li>';
+    const describe = item => item ? `${escapeHTML(item[0])} · ${Number(item[1])} 张` : "暂无";
+
+    box.innerHTML = `
+      <div class="footprint-stats">
+        <div><strong>${flights.length}</strong><span>公开展品</span></div>
+        <div><strong>${airlines.size}</strong><span>航空公司</span></div>
+        <div><strong>${airports.size}</strong><span>机场</span></div>
+        <div><strong>${years.size}</strong><span>年份</span></div>
+      </div>
+      <div class="footprint-highlights"><p><span>常见航司</span>${describe(top(airlines))}</p><p><span>常见机场</span>${describe(top(airports))}</p></div>
+      <h3>按年份收藏</h3><ul class="footprint-timeline">${timeline}</ul>`;
 }
 
 /* =========================

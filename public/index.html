@@ -10,6 +10,7 @@
   <title>登机牌博物馆 | BoardingPassMuseum</title>
 
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="features.css">
   <script src="theme.js"></script>
 </head>
 
@@ -122,6 +123,20 @@ placeholder="搜索航班、航司、机场..."
 
 </select>
 
+<select id="museumAirline" aria-label="按航空公司筛选">
+<option value="">全部航空公司</option>
+</select>
+
+<select id="museumAirport" aria-label="按机场筛选">
+<option value="">全部机场</option>
+</select>
+
+<select id="museumYear" aria-label="按年份筛选">
+<option value="">全部年份</option>
+</select>
+
+<button type="button" id="museumReset">清除筛选</button>
+
 
 </div>
   最新展品
@@ -156,7 +171,7 @@ placeholder="搜索航班、航司、机场..."
 
 <script src="auth.js?v=20260912"></script>
 <script src="image-preview.js"></script>
-<script src="app.js?v=20260912"></script>
+<script src="app.js?v=20260912b"></script>
 <script src="notice.js?v=20260912"></script>
 
 <footer class="bpm-footer">

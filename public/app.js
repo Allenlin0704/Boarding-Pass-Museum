@@ -27,6 +27,8 @@ async function loadFlights() {
         ? data
         : [];
 
+    populateMuseumFilters();
+
 
     const user =
     JSON.parse(
@@ -92,7 +94,11 @@ function applyMuseumFilter(){
   ?
   input.value.trim().toLowerCase()
   :
-  "";
+    "";
+
+  const airline = document.getElementById("museumAirline")?.value || "";
+  const airport = document.getElementById("museumAirport")?.value || "";
+  const year = document.getElementById("museumYear")?.value || "";
 
 
   displayFlights =
@@ -107,7 +113,10 @@ function applyMuseumFilter(){
     .toLowerCase();
 
 
-    return text.includes(keyword);
+    return text.includes(keyword)
+      && (!airline || String(f.airline || "").trim() === airline)
+      && (!airport || String(f.airport || "").trim() === airport)
+      && (!year || String(f.date || "").startsWith(year));
 
   });
 
@@ -171,6 +180,24 @@ function applyMuseumFilter(){
 
 }
 
+function populateMuseumFilters(){
+  const options = [
+    ["museumAirline", "airline", "全部航空公司"],
+    ["museumAirport", "airport", "全部机场"],
+    ["museumYear", "year", "全部年份"]
+  ];
+
+  options.forEach(([id, field, fallback]) => {
+    const select = document.getElementById(id);
+    if(!select) return;
+    const current = select.value;
+    const values = [...new Set(flights.map(f => field === "year" ? String(f.date || "").slice(0,4) : String(f[field] || "").trim()).filter(Boolean))]
+      .sort((a,b) => field === "year" ? b.localeCompare(a) : a.localeCompare(b, "zh-CN"));
+    select.replaceChildren(new Option(fallback, ""), ...values.map(value => new Option(value, value)));
+    select.value = values.includes(current) ? current : "";
+  });
+}
+
 
 
 document.addEventListener(
@@ -191,6 +218,19 @@ document.addEventListener(
     "change",
     applyMuseumFilter
   );
+
+  ["museumAirline", "museumAirport", "museumYear"].forEach(id =>
+    document.getElementById(id)?.addEventListener("change", applyMuseumFilter)
+  );
+
+  document.getElementById("museumReset")?.addEventListener("click", () => {
+    ["museumSearch", "museumAirline", "museumAirport", "museumYear"].forEach(id => {
+      const field = document.getElementById(id);
+      if(field) field.value = "";
+    });
+    document.getElementById("museumSort").value = "latest";
+    applyMuseumFilter();
+  });
 
 });
 
