@@ -38,6 +38,25 @@
     nav.append(button);
   };
 
+  const addIOSInstallGuide = () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const nav = document.querySelector('.menubar nav');
+    if (!isIOS || standalone || !nav || document.getElementById('bpmIOSInstall')) return;
+    const button = document.createElement('button');
+    button.id = 'bpmIOSInstall';button.type = 'button';button.className = 'bpm-install-app';button.textContent = '添加到主屏幕';
+    button.addEventListener('click', () => {
+      let dialog = document.getElementById('bpmIOSInstallGuide');
+      if (!dialog) {
+        dialog = document.createElement('dialog');dialog.id = 'bpmIOSInstallGuide';dialog.className = 'bpm-dialog';
+        dialog.innerHTML = '<h2>添加到主屏幕</h2><p>在 Safari 底部或顶部点击“分享”按钮，选择“添加到主屏幕”，再点击“添加”。以后可像普通 App 一样从桌面打开 BoardingPassMuseum。</p><button type="button">知道了</button>';
+        dialog.querySelector('button').addEventListener('click', () => dialog.close());document.body.append(dialog);
+      }
+      dialog.showModal();
+    });
+    nav.append(button);
+  };
+
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
     installPrompt = event;
@@ -47,7 +66,8 @@
     installPrompt = null;
     document.getElementById('bpmInstallApp')?.remove();
   });
-  document.addEventListener('DOMContentLoaded', addInstallButton);
+  const installControls = () => { addInstallButton();addIOSInstallGuide(); };
+  if(document.readyState === 'loading')document.addEventListener('DOMContentLoaded', installControls,{once:true});else installControls();
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js'));
