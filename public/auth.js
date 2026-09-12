@@ -26,6 +26,40 @@ function updateNavbar(){
         return;
     }
 
+    const header = nav.closest(".menubar");
+
+    function setupMobileNavigation(){
+
+        if(!header) return;
+
+        let toggle = header.querySelector("#mobileNavToggle");
+
+        if(!toggle){
+            toggle=document.createElement("button");
+            toggle.id="mobileNavToggle";
+            toggle.type="button";
+            toggle.className="mobile-nav-toggle";
+            toggle.setAttribute("aria-label","展开导航");
+            toggle.setAttribute("aria-expanded","false");
+            toggle.textContent="☰";
+            header.appendChild(toggle);
+            toggle.onclick=()=>{
+                const open=header.classList.toggle("mobile-nav-open");
+                toggle.setAttribute("aria-expanded",String(open));
+                toggle.textContent=open?"×":"☰";
+            };
+        }
+
+        nav.querySelectorAll("a").forEach(link=>{
+            link.onclick=()=>{
+                header.classList.remove("mobile-nav-open");
+                toggle.setAttribute("aria-expanded","false");
+                toggle.textContent="☰";
+            };
+        });
+
+    }
+
 
 
     // 未登录状态
@@ -79,6 +113,8 @@ function updateNavbar(){
         </span>
 
         `;
+
+        setupMobileNavigation();
 
 
     }
@@ -153,6 +189,14 @@ function updateNavbar(){
 
 
         `;
+
+        const userMenu=nav.querySelector(".user-menu");
+
+        if(userMenu && header){
+            header.insertBefore(userMenu,nav);
+        }
+
+        setupMobileNavigation();
 
 
 
