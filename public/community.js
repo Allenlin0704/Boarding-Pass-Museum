@@ -2,6 +2,8 @@ const API = location.hostname === "localhost" || location.hostname === "127.0.0.
 
 const postsBox = document.getElementById("communityPosts");
 const newPostBtn = document.getElementById("newPostBtn");
+const communitySort = document.getElementById("communitySort");
+let communityPosts = [];
 
 
 function escapeHTML(text) {
@@ -55,9 +57,8 @@ async function loadPosts() {
             return;
         }
 
-        postsBox.innerHTML = data.posts
-            .map(post => renderPost(post))
-            .join("");
+        communityPosts = data.posts;
+        renderPosts();
 
     } catch (error) {
 
@@ -74,6 +75,21 @@ async function loadPosts() {
         `;
     }
 }
+
+function renderPosts(){
+    if(!postsBox) return;
+    const sort = communitySort?.value || "latest";
+    const posts = [...communityPosts].sort((a,b) => {
+        if(sort === "hot"){
+            const score = post => Number(post.like_count || 0) * 3 + Number(post.comment_count || 0) * 2;
+            return score(b) - score(a) || new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+    postsBox.innerHTML = posts.map(post => renderPost(post)).join("");
+}
+
+communitySort?.addEventListener("change", renderPosts);
 
 
 function renderPost(post) {
