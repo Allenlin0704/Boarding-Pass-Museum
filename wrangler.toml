@@ -9,3 +9,6 @@ database_id = "df57ffb4-b712-4635-8842-30ef50365841"
 [[r2_buckets]]
 binding = "IMAGES"
 bucket_name = "boardingpassmuseum-images"
+
+[triggers]
+crons = ["0 * * * *"]

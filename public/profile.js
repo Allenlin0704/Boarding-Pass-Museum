@@ -168,6 +168,7 @@ async function loadProfile(){
 
 
         await Promise.all([
+            loadProgress(profileId),
             loadUserFlights(profileId),
             loadUserPosts(profileId)
         ]);
@@ -663,3 +664,15 @@ event=>{
 ========================= */
 
 loadProfile();
+
+async function loadProgress(id){
+  const box=document.getElementById('profileProgress');
+  try {
+    const res=await fetch(`${API}/api/account/progress?id=${encodeURIComponent(id)}`);
+    if(!res.ok)throw Error();const data=await res.json();
+    box.innerHTML=`<h2>Lv${Number(data.level)}</h2><progress class="bpm-progress" max="100" value="${Number(data.progress)}" aria-label="等级进度"></progress>
+      <p>${data.next===null?'已达到当前角色最高等级':`下一级需 ${Number(data.next)} 张${data.review_count===null?'等级计数投稿':'经手审核稿件'}`}</p>
+      <div class="bpm-stats"><div><strong>${Number(data.level_count)}</strong>等级计数投稿</div><div><strong>${Number(data.total_submissions)}</strong>累计投稿</div>${data.review_count===null?'':`<div><strong>${Number(data.review_count)}</strong>审核数量</div>`}</div>
+      <h3>成就</h3><ul class="bpm-achievements">${data.achievements.map(a=>`<li title="${escapeHTML(a.awarded_at)}">${escapeHTML(a.name)}</li>`).join('')||'<li>尚未获得成就</li>'}</ul>${data.historical_note?`<p>${escapeHTML(data.historical_note)}</p>`:''}`;
+  }catch{box.textContent='等级信息暂时无法加载';}
+}

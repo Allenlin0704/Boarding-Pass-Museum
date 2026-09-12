@@ -135,14 +135,14 @@ async function loadNotice(){
             </h2>
 
             <h3>
-            ${item.version || ""}
+            ${bpmEscape(item.version || "")}
             </h3>
 
             ${
                 item.date
                 ?
                 `<p class="bpm-update-date">
-                    ${item.date}
+                    ${bpmEscape(item.date)}
                 </p>`
                 :
                 ""
@@ -157,13 +157,13 @@ async function loadNotice(){
                             item.content
                             .map(
                                 x =>
-                                `<li>${x}</li>`
+                                `<li>${bpmEscape(x)}</li>`
                             )
                             .join("")
                         }
                     </ul>`
                     :
-                    `<p>${item.content || ""}</p>`
+                    `<p>${bpmEscape(item.content || "")}</p>`
                 }
             </div>
 

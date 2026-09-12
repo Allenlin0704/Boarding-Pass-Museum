@@ -34,7 +34,7 @@ await fetch(
 
 
 const data =
-await res.json();
+bpmSafeRecord(await res.json());
 
 
 console.log("DETAIL DATA:",data);

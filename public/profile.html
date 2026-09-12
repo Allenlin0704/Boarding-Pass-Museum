@@ -2,12 +2,16 @@
 <html lang="zh-CN">
 
 <head>
+<script src="security.js?v=1"></script>
 
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 
 <title>个人档案 - BoardingPassMuseum</title>
 
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="features.css">
 
 <script src="theme.js"></script>
 
@@ -45,6 +49,7 @@ class="profile-role"
 >
 </div>
 
+<section aria-label="等级与成就" id="profileProgress"></section>
 <p id="profileBio"></p>
 
 
@@ -97,31 +102,14 @@ class="profile-role"
 <div class="profile-content-grid">
 
 
-<!-- 我的展品 -->
-
-<section class="profile-content-section">
-
-<h2>
-我的展品
-</h2>
-
-<div
-id="profileFlights"
-class="museum-grid"
->
-</div>
-
-</section>
-
-
-<!-- 社区动态 -->
+<!-- 社区帖子 -->
 
 <section class="profile-content-section">
 
 <div class="profile-section-heading">
 
 <h2>
-社区动态
+社区帖子
 </h2>
 
 </div>
@@ -141,14 +129,33 @@ class="profile-posts"
 </section>
 
 
+<!-- 我的投稿 -->
+
+<section class="profile-content-section">
+
+<h2>
+我的投稿
+</h2>
+
+<div
+id="profileFlights"
+class="museum-grid"
+>
+</div>
+
+</section>
+
+
+
+
 </div>
 
 
 </main>
 
 
-<script src="auth.js"></script>
-<script src="profile.js"></script>
+<script src="auth.js?v=20260912"></script>
+<script src="profile.js?v=20260912"></script>
 
 </body>
 

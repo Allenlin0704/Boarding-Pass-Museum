@@ -228,6 +228,7 @@ function renderMuseum() {
 
   displayFlights.forEach(
     (flight, index) => {
+      flight=bpmSafeRecord(flight);
 
       let card =
         document.createElement("div");

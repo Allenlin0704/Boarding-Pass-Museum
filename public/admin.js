@@ -283,7 +283,7 @@ try{
 
 const res =
 await fetch(
-`${API}/api/admin/pending?admin_id=${adminUser.id}`
+`${API}/api/admin/screening?admin_id=${adminUser.id}`
 );
 
 
@@ -329,7 +329,7 @@ async function loadPending(){
 
 const res =
 await fetch(
-`${API}/api/admin/pending?admin_id=${adminUser.id}`
+`${API}/api/admin/screening?admin_id=${adminUser.id}`
 );
 
 
@@ -383,7 +383,7 @@ item=>{
 box.innerHTML +=
 createCard(
 item,
-"pending"
+"screening"
 );
 
 }
@@ -477,6 +477,7 @@ function createCard(
 item,
 status
 ){
+item=bpmSafeRecord(item);
 
 
 return `
@@ -533,7 +534,7 @@ data-id="${item.id}">
 
 
 ${
-status==="pending"
+status==="screening"
 
 ?
 
@@ -667,9 +668,8 @@ async function rejectItem(id){
 
 
 const reason =
-prompt(
-"请输入拒绝原因"
-);
+await bpmAskRejectReason();
+if(!reason) return;
 
 
 
@@ -1001,3 +1001,103 @@ e=>{
 
 });
 
+
+
+// =====================================
+// USER APPLY ADMIN
+// =====================================
+
+function bindAdminApply(){
+
+    const btn =
+        document.getElementById("applyAdmin");
+
+    if(!btn){
+        return;
+    }
+
+    btn.onclick = async function(){
+
+        const reason =
+            prompt("请输入申请理由：");
+
+        if(reason===null){
+            return;
+        }
+
+        const social =
+            prompt("请输入社交账号（用于联系）：");
+
+        if(social===null){
+            return;
+        }
+
+        try{
+
+            const res =
+                await fetch(
+                    `${API}/api/account/admin-request`,
+                    {
+                        method:"POST",
+
+                        headers:{
+                            "Content-Type":
+                            "application/json"
+                        },
+
+                        body:JSON.stringify({
+
+                            user_id:
+                                adminUser.id,
+
+                            reason:
+                                reason.trim(),
+
+                            social:
+                                social.trim()
+
+                        })
+                    }
+                );
+
+            const data =
+                await res.json();
+
+            if(!res.ok){
+
+                throw new Error(
+                    data.error ||
+                    "申请失败"
+                );
+
+            }
+
+            showToast(
+                "管理员申请已提交"
+            );
+
+        }catch(e){
+
+            showToast(
+                e.message ||
+                "申请失败"
+            );
+
+        }
+
+    };
+
+}
+
+if(document.readyState === "loading"){
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        bindAdminApply
+    );
+
+}else{
+
+    bindAdminApply();
+
+}

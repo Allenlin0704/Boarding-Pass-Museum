@@ -1,8 +1,11 @@
+import { communityRoute } from "./community.mjs";
+import { progressRoute, progressFor } from "./progress.mjs";
+import { reviewRoute } from "./review.mjs";
+import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA } from "./security.mjs";
 // =====================================
 // BoardingPassMuseum API V5.0
 // User + Submission + Admin + SA System
 // =====================================
-
 
 
 function cors(){
@@ -22,38 +25,6 @@ return {
 }
 
 
-
-
-
-async function hashPassword(password){
-
-const data =
-new TextEncoder()
-.encode(password);
-
-
-const hash =
-await crypto.subtle.digest(
-"SHA-256",
-data
-);
-
-
-return Array.from(
-new Uint8Array(hash)
-)
-.map(
-b=>b.toString(16).padStart(2,"0")
-)
-.join("");
-
-}
-
-
-
-
-
-
 async function getUser(env,id){
 
 return await env.DB.prepare(
@@ -69,15 +40,10 @@ WHERE id=?
 }
 
 
-
-
-
-
 async function requireAdmin(env,id){
 
 const user =
 await getUser(env,id);
-
 
 
 if(
@@ -85,7 +51,7 @@ if(
 (
 user.role!=="administrator"
 &&
-user.role!=="superadministrator"
+(user.role!=="superadministrator" || Number(user.id)!==1)
 )
 ){
 
@@ -97,11 +63,6 @@ return null;
 return user;
 
 }
-
-
-
-
-
 
 
 async function requireSA(env,id){
@@ -229,15 +190,13 @@ Preserving memories of every journey.<br>
 }
 );
 
-return response.ok;
+if(!response.ok) throw new Error("Verification email delivery failed");
+return true;
 
 }
 
 
-
-
-
-export default {
+const legacy = {
 
 async fetch(request,env){
 
@@ -254,340 +213,15 @@ new URL(request.url);
 
 
 // 忘记密码发送验证码
-if(
-url.pathname==="/api/account/reset/send-code"
-&&
-request.method==="POST"
-){
-
-const { email } = await request.json();
-
-const code =
-Math.floor(
-100000+
-Math.random()*900000
-).toString();
-
-await env.DB.prepare(
-`
-INSERT INTO email_codes
-(
-email,
-code,
-expires_at
-)
-VALUES
-(?,?,?)
-`
-)
-.bind(
-email,
-code,
-new Date(
-Date.now()+10*60*1000
-).toISOString()
-)
-.run();
-
-await sendVerificationEmail(
-env,
-email,
-code
-);
-
-return Response.json(
-{
-success:true,
-message:"Verification code generated"
-},
-{
-headers
-}
-);
-
-}
-
 
 
 // 重置密码
 
-if(
-url.pathname==="/api/account/reset-password"
-&&
-request.method==="POST"
-){
-
-const {
-email,
-code,
-password
-}=await request.json();
-
-
-
-const verify =
-await env.DB.prepare(
-`
-SELECT *
-FROM email_codes
-WHERE email=?
-AND code=?
-ORDER BY id DESC
-LIMIT 1
-`
-)
-.bind(
-email,
-code
-)
-.first();
-
-
-
-if(!verify){
-
-return Response.json(
-{
-error:"验证码错误"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-
-const hash =
-await hashPassword(
-password
-);
-
-
-
-await env.DB.prepare(
-`
-UPDATE users
-SET password=?
-WHERE email=?
-`
-)
-.bind(
-hash,
-email
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
-
-
-
 
 // 修改邮箱发送验证码
 
-if(
-url.pathname==="/api/account/change-email/send-code"
-&&
-request.method==="POST"
-){
-
-const {
-email
-}=await request.json();
-
-
-const code =
-Math.floor(
-100000+
-Math.random()*900000
-).toString();
-
-
-
-await env.DB.prepare(
-`
-INSERT INTO email_codes
-(email,code,expires_at)
-VALUES(?,?,?)
-`
-)
-.bind(
-email,
-code,
-new Date(
-Date.now()+10*60*1000
-).toISOString()
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
-
-
 
 // 修改邮箱
-
-if(
-url.pathname==="/api/account/change-email"
-&&
-request.method==="POST"
-){
-
-const {
-user_id,
-password,
-new_email,
-code
-}=await request.json();
-
-
-
-const user =
-await env.DB.prepare(
-`
-SELECT *
-FROM users
-WHERE id=?
-`
-)
-.bind(
-user_id
-)
-.first();
-
-
-
-if(!user){
-
-return Response.json(
-{
-error:"User not found"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-
-const oldHash =
-await hashPassword(
-password
-);
-
-
-
-if(
-oldHash!==user.password
-){
-
-return Response.json(
-{
-error:"密码错误"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-
-const verify =
-await env.DB.prepare(
-`
-SELECT *
-FROM email_codes
-WHERE email=?
-AND code=?
-ORDER BY id DESC
-LIMIT 1
-`
-)
-.bind(
-new_email,
-code
-)
-.first();
-
-
-
-if(!verify){
-
-return Response.json(
-{
-error:"验证码错误"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-
-await env.DB.prepare(
-`
-UPDATE users
-SET email=?
-WHERE id=?
-`
-)
-.bind(
-new_email,
-user_id
-)
-.run();
-
-await sendVerificationEmail(
-env,
-email,
-code
-);
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
 
 
 // ================================
@@ -626,7 +260,6 @@ WHERE id=?
 .first();
 
 
-
 if(!user){
 
 return Response.json(
@@ -652,7 +285,6 @@ headers
 }
 
 
-
 // ================================
 // 更新用户档案
 // ================================
@@ -674,7 +306,6 @@ favorite_airports
 }
 =
 await request.json();
-
 
 
 await env.DB.prepare(
@@ -702,7 +333,6 @@ user_id
 .run();
 
 
-
 return Response.json(
 {
 success:true
@@ -719,103 +349,6 @@ headers
 // 修改用户名
 // ================================
 
-if(
-url.pathname==="/api/account/change-username"
-&&
-request.method==="POST"
-){
-
-const {
-user_id,
-password,
-new_username
-}=await request.json();
-
-
-
-const user =
-await env.DB.prepare(
-`
-SELECT *
-FROM users
-WHERE id=?
-`
-)
-.bind(
-user_id
-)
-.first();
-
-
-
-if(!user){
-
-return Response.json(
-{
-error:"User not found"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-
-const oldHash =
-await hashPassword(
-password
-);
-
-
-
-if(
-oldHash!==user.password
-){
-
-return Response.json(
-{
-error:"密码错误"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-
-await env.DB.prepare(
-`
-UPDATE users
-SET username=?
-WHERE id=?
-`
-)
-.bind(
-new_username,
-user_id
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
-
 
 if(
 request.method==="OPTIONS"
@@ -831,19 +364,10 @@ headers
 }
 
 
-
-
-
 console.log(
 request.method,
 url.pathname
 );
-
-
-
-
-
-
 
 
 // =====================================
@@ -868,89 +392,9 @@ headers
 }
 
 
-
-
-
-
-
-
 // =====================================
 // SEND CODE
 // =====================================
-
-
-if(
-url.pathname==="/api/send-code"
-&&
-request.method==="POST"
-){
-
-const {
-email
-}
-=
-await request.json();
-
-
-
-
-const code =
-Math.floor(
-100000+
-Math.random()*900000
-)
-.toString();
-
-
-
-
-
-await env.DB.prepare(
-`
-INSERT INTO email_codes
-(
-email,
-code,
-expires_at
-)
-VALUES
-(?,?,?)
-`
-)
-.bind(
-email,
-code,
-new Date(
-Date.now()+10*60*1000
-)
-.toISOString()
-)
-.run();
-
-await sendVerificationEmail(
-env,
-email,
-code
-);
-
-return Response.json(
-{
-success:true,
-message:"Verification code generated"
-},
-{
-headers
-}
-);
-
-}
-
-
-
-
-
-
-
 
 
 // =====================================
@@ -958,267 +402,15 @@ headers
 // =====================================
 
 
-if(
-url.pathname==="/api/register"
-&&
-request.method==="POST"
-){
-
-const {
-
-username,
-
-email,
-
-password,
-
-code
-
-}
-=
-await request.json();
-
-
-
-
-
-const verify =
-await env.DB.prepare(
-`
-SELECT *
-FROM email_codes
-WHERE email=?
-AND code=?
-ORDER BY id DESC
-LIMIT 1
-`
-)
-.bind(
-email,
-code
-)
-.first();
-
-
-
-
-
-if(!verify){
-
-return Response.json(
-{
-error:"Invalid code"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-
-
-
-const hash =
-await hashPassword(password);
-
-
-
-
-
-await env.DB.prepare(
-`
-INSERT INTO users
-(
-username,
-email,
-password,
-role
-)
-VALUES
-(?,?,?,?)
-`
-)
-.bind(
-username,
-email,
-hash,
-"user"
-)
-.run();
-
-
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
-
-
-
 // =====================================
 // IMAGE UPLOAD TO R2
 // =====================================
-
-if(
-url.pathname === "/api/upload-image"
-&&
-request.method === "POST"
-){
-
-const form =
-await request.formData();
-
-
-const file =
-form.get("image");
-
-
-if(!file){
-
-return Response.json(
-{
-error:"No image"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-const ext =
-file.type === "image/png"
-?
-"png"
-:
-"jpg";
-
-
-const key =
-`tickets/${Date.now()}.${ext}`;
-
-
-
-await env.IMAGES.put(
-key,
-file,
-{
-httpMetadata:{
-contentType:file.type
-}
-}
-);
-
-
-
-return Response.json(
-{
-success:true,
-
-url:
-`https://images.bpmuseum.org.cn/${key}`
-},
-{
-headers
-}
-);
-
-}
-
-
 
 
 // =====================================
 // LOGIN
 // =====================================
 
-
-if(
-url.pathname==="/api/login"
-&&
-request.method==="POST"
-){
-
-const {
-
-email,
-
-password
-
-}
-=
-await request.json();
-
-
-
-
-
-const hash =
-await hashPassword(password);
-
-
-
-
-
-const user =
-await env.DB.prepare(
-`
-SELECT id,username,email,role
-FROM users
-WHERE email=?
-AND password=?
-`
-)
-.bind(
-email,
-hash
-)
-.first();
-
-
-
-
-
-if(!user){
-
-return Response.json(
-{
-error:"Invalid login"
-},
-{
-status:401,
-headers
-}
-);
-
-}
-
-
-
-
-
-return Response.json(
-user,
-{
-headers
-}
-);
-
-}
 
 // =====================================
 // SUBMIT
@@ -1294,7 +486,7 @@ users.id,
 (
     SELECT COUNT(*)
     FROM flights
-    WHERE flights.status='pending'
+    WHERE flights.status='screening'
     AND flights.reviewer_id=users.id
 ) AS pending_count
 FROM users
@@ -1373,7 +565,7 @@ image || "",
 
 story || "",
 
-"pending",
+"screening",
 
 reviewer_id
 
@@ -1395,110 +587,6 @@ headers
 }
 
 // =====================================
-
-
-if(
-url.pathname==="/api/submit"
-&&
-request.method==="POST"
-){
-
-const {
-
-user_id,
-
-airline,
-
-flight,
-
-airport,
-
-date,
-
-story,
-
-image,
-
-issue_airport
-
-}
-=
-await request.json();
-
-
-
-
-
-await env.DB.prepare(
-`
-INSERT INTO flights
-(
-user_id,
-airline,
-flight,
-route,
-date,
-aircraft,
-airport,
-issue_airport,
-image,
-story,
-status
-)
-VALUES
-(?,?,?,?,?,?,?,?,?,?,?)
-`
-)
-.bind(
-
-user_id,
-
-airline || "",
-
-flight || "",
-
-"",
-
-date || "",
-
-"",
-
-airport || "",
-
-issue_airport || "",
-
-image || "",
-
-story || "",
-
-"pending"
-
-)
-.run();
-
-
-
-
-
-return Response.json(
-{
-success:true,
-message:"Submission received"
-},
-{
-headers
-}
-);
-
-}
-
-
-
-
-
-
-
-
 
 
 // =====================================
@@ -1546,7 +634,7 @@ ON flights.user_id = users.id
 LEFT JOIN favorites
 ON favorites.flight_id = flights.id
 
-WHERE flights.user_id=?
+WHERE flights.user_id=? AND flights.status='approved'
 
 GROUP BY flights.id
 
@@ -1576,8 +664,6 @@ headers
 // =====================================
 
 
-
-
 if(
 url.pathname==="/api/flights"
 &&
@@ -1604,13 +690,10 @@ WHERE flights.status='approved'
 
 GROUP BY flights.id
 
-ORDER BY flights.id DESC
+ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.user_id AND year=CAST(strftime('%Y','now','+8 hours') AS INTEGER)),0) DESC,flights.id DESC
 `
 )
 .all();
-
-
-
 
 
 return Response.json(
@@ -1621,8 +704,6 @@ headers
 );
 
 }
-
-
 
 
 // =====================================
@@ -1651,13 +732,12 @@ FROM flights
 LEFT JOIN users
 ON flights.user_id = users.id
 LEFT JOIN appeals
-ON flights.id = appeals.flight_id
-WHERE flights.id=?
+ON appeals.id = (SELECT MAX(a.id) FROM appeals a WHERE a.flight_id=flights.id)
+WHERE flights.id=? AND flights.status='approved'
 `
 )
 .bind(id)
 .first();
-
 
 
 if(!result){
@@ -1675,7 +755,6 @@ headers
 }
 
 
-
 return Response.json(
 result,
 {
@@ -1686,8 +765,27 @@ headers
 }
 
 // =====================================
-// USER WITHDRAW
+// USER RESTORE / WITHDRAW
 // =====================================
+
+if (url.pathname === "/api/my/restore" && request.method === "POST") {
+  const { flight_id, user_id } = await request.json();
+  if (!Number.isSafeInteger(Number(flight_id)) || Number(flight_id) <= 0 ||
+      !Number.isSafeInteger(Number(user_id)) || Number(user_id) <= 0) {
+    return Response.json({ success: false, error: "无效的展品或用户 ID" }, { status: 400, headers });
+  }
+  const result = await env.DB.prepare(`
+    UPDATE flights SET status='screening', reject_reason=NULL,
+      reviewer_id=(SELECT users.id FROM users WHERE users.role='administrator'
+        ORDER BY (SELECT COUNT(*) FROM flights AS queue
+          WHERE queue.status='screening' AND queue.reviewer_id=users.id), users.id LIMIT 1)
+    WHERE id=? AND user_id=? AND status='hidden'
+  `).bind(Number(flight_id), Number(user_id)).run();
+  if (!result.meta.changes) {
+    return Response.json({ success: false, error: "展品不存在、不属于你或未下架" }, { status: 409, headers });
+  }
+  return Response.json({ success: true }, { headers });
+}
 
 if(
 url.pathname==="/api/my/withdraw"
@@ -1716,7 +814,6 @@ flight_id,
 user_id
 )
 .run();
-
 
 
 return Response.json(
@@ -1748,9 +845,6 @@ url.searchParams.get(
 );
 
 
-
-
-
 const result =
 await env.DB.prepare(
 `
@@ -1760,7 +854,7 @@ appeals.status AS appeal_status,
 appeals.id AS appeal_id
 FROM flights
 LEFT JOIN appeals
-ON flights.id = appeals.flight_id
+ON appeals.id = (SELECT MAX(a.id) FROM appeals a WHERE a.flight_id=flights.id)
 WHERE flights.user_id=?
 ORDER BY flights.id DESC
 `
@@ -1769,9 +863,6 @@ ORDER BY flights.id DESC
 user_id
 )
 .all();
-
-
-
 
 
 return Response.json(
@@ -1784,87 +875,9 @@ headers
 }
 
 
-
 // =====================================
 // CREATE APPEAL
 // =====================================
-
-if(
-url.pathname==="/api/appeal"
-&&
-request.method==="POST"
-){
-
-const data =
-await request.json();
-
-
-const {
-user_id,
-flight_id,
-reason
-}
-=
-data;
-
-
-
-if(
-!user_id ||
-!flight_id ||
-!reason
-){
-
-return Response.json(
-{
-error:"Missing fields"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-
-await env.DB.prepare(
-`
-INSERT INTO appeals
-(
-user_id,
-flight_id,
-reason
-)
-
-VALUES
-(?,?,?)
-`
-)
-.bind(
-user_id,
-flight_id,
-reason
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-
-}
-
-
-
 
 
 // =====================================
@@ -1882,9 +895,6 @@ const user_id =
 url.searchParams.get(
 "user_id"
 );
-
-
-
 
 
 const result =
@@ -1909,9 +919,6 @@ user_id
 .all();
 
 
-
-
-
 return Response.json(
 result.results,
 {
@@ -1920,13 +927,6 @@ headers
 );
 
 }
-
-
-
-
-
-
-
 
 
 // =====================================
@@ -1949,9 +949,6 @@ flight_id
 }
 =
 await request.json();
-
-
-
 
 
 const exists =
@@ -1985,7 +982,6 @@ headers
 }
 
 
-
 await env.DB.prepare(
 `
 INSERT INTO favorites
@@ -2004,9 +1000,6 @@ flight_id
 .run();
 
 
-
-
-
 return Response.json(
 {
 success:true
@@ -2017,13 +1010,6 @@ headers
 );
 
 }
-
-
-
-
-
-
-
 
 
 // =====================================
@@ -2048,9 +1034,6 @@ flight_id
 await request.json();
 
 
-
-
-
 await env.DB.prepare(
 `
 DELETE FROM favorites
@@ -2063,9 +1046,6 @@ user_id,
 flight_id
 )
 .run();
-
-
-
 
 
 return Response.json(
@@ -2096,14 +1076,11 @@ url.searchParams.get(
 );
 
 
-
-
 const admin =
 await requireAdmin(
 env,
 admin_id
 );
-
 
 
 if(!admin){
@@ -2121,17 +1098,31 @@ headers
 }
 
 
+let result;
 
+if(admin.role==="superadministrator"){
 
-
-const result =
+result =
 await env.DB.prepare(
 `
 SELECT *
 FROM flights
-WHERE status='pending'
+WHERE status='screening'
+ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.user_id AND year=CAST(strftime('%Y','now','+8 hours') AS INTEGER)),0) DESC,id DESC
+`
+)
+.all();
+
+}else{
+
+result =
+await env.DB.prepare(
+`
+SELECT *
+FROM flights
+WHERE status='screening'
 AND reviewer_id=?
-ORDER BY id DESC
+ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.user_id AND year=CAST(strftime('%Y','now','+8 hours') AS INTEGER)),0) DESC,id DESC
 `
 )
 .bind(
@@ -2139,8 +1130,7 @@ admin.id
 )
 .all();
 
-
-
+}
 
 
 return Response.json(
@@ -2151,13 +1141,6 @@ headers
 );
 
 }
-
-
-
-
-
-
-
 
 
 // =====================================
@@ -2177,14 +1160,11 @@ url.searchParams.get(
 );
 
 
-
-
 const admin =
 await requireAdmin(
 env,
 admin_id
 );
-
 
 
 if(!admin){
@@ -2202,9 +1182,6 @@ headers
 }
 
 
-
-
-
 const result =
 await env.DB.prepare(
 `
@@ -2212,16 +1189,13 @@ SELECT *
 FROM flights
 WHERE status='approved'
 AND reviewer_id=?
-ORDER BY id DESC
+ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.user_id AND year=CAST(strftime('%Y','now','+8 hours') AS INTEGER)),0) DESC,id DESC
 `
 )
 .bind(
 admin.id
 )
 .all();
-
-
-
 
 
 return Response.json(
@@ -2234,304 +1208,14 @@ headers
 }
 
 
-
-
-
-
-
-
-
 // =====================================
 // APPROVE
 // =====================================
 
 
-if(
-url.pathname==="/api/admin/approve"
-&&
-request.method==="POST"
-){
-
-const {
-admin_id,
-flight_id
-}
-=
-await request.json();
-
-
-const admin =
-await requireAdmin(
-env,
-admin_id
-);
-
-
-if(!admin){
-
-return Response.json(
-{
-success:false,
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-// =====================================
-// 审核权限
-// SA 可以审核任何展品
-// 普通管理员只能审核分配给自己的 pending 展品
-// =====================================
-
-const flight =
-await env.DB.prepare(
-`
-SELECT
-id,
-status,
-reviewer_id
-FROM flights
-WHERE id=?
-`
-)
-.bind(
-Number(flight_id)
-)
-.first();
-
-
-if(!flight){
-
-return Response.json(
-{
-success:false,
-error:"展品不存在"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-if(admin.role==="administrator"){
-
-if(
-flight.status!=="pending"
-||
-Number(flight.reviewer_id)!==
-Number(admin.id)
-){
-
-return Response.json(
-{
-success:false,
-error:"你没有权限审核这件展品"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-}
-
-
-await env.DB.prepare(
-`
-UPDATE flights
-SET
-status='approved',
-reviewer_id=?
-WHERE id=?
-`
-)
-.bind(
-admin.id,
-Number(flight_id)
-)
-.run();
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
-
 // =====================================
 // REJECT
 // =====================================
-
-
-
-
-if(
-url.pathname==="/api/admin/reject"
-&&
-request.method==="POST"
-){
-
-const {
-admin_id,
-flight_id,
-reason
-}
-=
-await request.json();
-
-
-const admin =
-await requireAdmin(
-env,
-admin_id
-);
-
-
-if(!admin){
-
-return Response.json(
-{
-success:false,
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-// =====================================
-// 审核权限
-// SA 可以拒绝任何展品
-// 普通管理员只能拒绝分配给自己的 pending 展品
-// =====================================
-
-const flight =
-await env.DB.prepare(
-`
-SELECT
-id,
-status,
-reviewer_id
-FROM flights
-WHERE id=?
-`
-)
-.bind(
-Number(flight_id)
-)
-.first();
-
-
-if(!flight){
-
-return Response.json(
-{
-success:false,
-error:"展品不存在"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-if(admin.role==="administrator"){
-
-if(
-flight.status!=="pending"
-||
-Number(flight.reviewer_id)!==
-Number(admin.id)
-){
-
-return Response.json(
-{
-success:false,
-error:"你没有权限审核这件展品"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-}
-
-
-const rejectReason =
-String(reason || "").trim();
-
-
-if(!rejectReason){
-
-return Response.json(
-{
-success:false,
-error:"拒绝展品必须填写原因"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-await env.DB.prepare(
-`
-UPDATE flights
-SET
-status='rejected',
-reject_reason=?,
-reviewer_id=?
-WHERE id=?
-`
-)
-.bind(
-rejectReason,
-admin.id,
-Number(flight_id)
-)
-.run();
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
 
 
 // =====================================
@@ -2548,9 +1232,6 @@ request.method==="POST"
 
 const data =
 await request.json();
-
-
-
 
 
 const {
@@ -2576,15 +1257,11 @@ image
 data;
 
 
-
-
-
 const admin =
 await requireAdmin(
 env,
 admin_id
 );
-
 
 
 if(!admin){
@@ -2600,9 +1277,6 @@ headers
 );
 
 }
-
-
-
 
 
 await env.DB.prepare(
@@ -2647,9 +1321,6 @@ flight_id
 .run();
 
 
-
-
-
 return Response.json(
 {
 success:true
@@ -2678,14 +1349,11 @@ url.searchParams.get(
 );
 
 
-
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -2701,9 +1369,6 @@ headers
 );
 
 }
-
-
-
 
 
 const result =
@@ -2718,9 +1383,6 @@ ORDER BY id DESC
 .all();
 
 
-
-
-
 return Response.json(
 result.results,
 {
@@ -2731,150 +1393,14 @@ headers
 }
 
 
-
-
-
 // =====================================
 // SA APPROVE APPEAL
 // =====================================
-
-if(
-url.pathname==="/api/sa/appeal/approve"
-&&
-request.method==="POST"
-){
-
-const data =
-await request.json();
-
-
-const sa =
-await requireSA(
-env,
-data.sa_id
-);
-
-
-if(!sa){
-
-return Response.json(
-{
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-
-await env.DB.prepare(
-`
-UPDATE flights
-SET status='pending'
-WHERE id=?
-`
-)
-.bind(
-data.flight_id
-)
-.run();
-
-
-
-await env.DB.prepare(
-`
-UPDATE appeals
-SET status='approved'
-WHERE id=?
-`
-)
-.bind(
-data.appeal_id
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
-
 
 
 // =====================================
 // SA REJECT APPEAL
 // =====================================
-
-if(
-url.pathname==="/api/sa/appeal/reject"
-&&
-request.method==="POST"
-){
-
-const data =
-await request.json();
-
-
-const sa =
-await requireSA(
-env,
-data.sa_id
-);
-
-
-if(!sa){
-
-return Response.json(
-{
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-
-await env.DB.prepare(
-`
-UPDATE appeals
-SET status='rejected'
-WHERE id=?
-`
-)
-.bind(
-data.appeal_id
-)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
 
 
 // =====================================
@@ -2899,15 +1425,11 @@ flight_id
 await request.json();
 
 
-
-
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -2925,16 +1447,13 @@ headers
 }
 
 
-
-
-
 await env.DB.prepare(
 `
 UPDATE flights
 
 SET
 
-status='pending',
+status='screening',
 
 reviewer_id=NULL
 
@@ -2946,9 +1465,6 @@ WHERE id=?
 flight_id
 )
 .run();
-
-
-
 
 
 return Response.json(
@@ -2964,11 +1480,14 @@ headers
 }
 
 
+// =====================================
+// SA APPROVE FLIGHT
+// =====================================
 
 
-
-
-
+// =====================================
+// SA REJECT FLIGHT
+// =====================================
 
 
 // =====================================
@@ -2993,15 +1512,11 @@ flight_id
 await request.json();
 
 
-
-
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -3019,16 +1534,13 @@ headers
 }
 
 
-
-
-
 await env.DB.prepare(
 `
 UPDATE flights
 
 SET
 
-status='pending',
+status='screening',
 
 reject_reason=NULL
 
@@ -3042,9 +1554,6 @@ flight_id
 .run();
 
 
-
-
-
 return Response.json(
 {
 success:true
@@ -3055,14 +1564,6 @@ headers
 );
 
 }
-
-
-
-
-
-
-
-
 
 
 // =====================================
@@ -3087,13 +1588,11 @@ flight_id
 await request.json();
 
 
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -3111,7 +1610,6 @@ headers
 }
 
 
-
 await env.DB.prepare(
 `
 DELETE FROM flights
@@ -3122,7 +1620,6 @@ WHERE id=?
 flight_id
 )
 .run();
-
 
 
 return Response.json(
@@ -3136,11 +1633,6 @@ headers
 );
 
 }
-
-
-
-
-
 
 
 // =====================================
@@ -3182,7 +1674,6 @@ headers
 }
 
 
-
 const result =
 await env.DB.prepare(
 `
@@ -3196,7 +1687,6 @@ ORDER BY flights.id DESC
 `
 )
 .all();
-
 
 
 return Response.json(
@@ -3225,14 +1715,11 @@ url.searchParams.get(
 );
 
 
-
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -3250,9 +1737,6 @@ headers
 }
 
 
-
-
-
 const result =
 await env.DB.prepare(
 `
@@ -3264,9 +1748,6 @@ ORDER BY id DESC
 .all();
 
 
-
-
-
 return Response.json(
 result.results,
 {
@@ -3275,13 +1756,6 @@ headers
 );
 
 }
-
-
-
-
-
-
-
 
 
 if(
@@ -3303,15 +1777,11 @@ content
 await request.json();
 
 
-
-
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -3327,9 +1797,6 @@ headers
 );
 
 }
-
-
-
 
 
 await env.DB.prepare(
@@ -3350,9 +1817,6 @@ content
 .run();
 
 
-
-
-
 return Response.json(
 {
 success:true
@@ -3363,8 +1827,6 @@ headers
 );
 
 }
-
-
 
 
 // =====================================
@@ -3585,7 +2047,6 @@ headers
 }
 
 
-
 // =====================================
 // SA USER MANAGEMENT
 // =====================================
@@ -3625,7 +2086,6 @@ headers
 }
 
 
-
 const users =
 await env.DB.prepare(
 `
@@ -3642,7 +2102,6 @@ ORDER BY id ASC
 .all();
 
 
-
 return Response.json(
 users.results,
 {
@@ -3651,7 +2110,6 @@ headers
 );
 
 }
-
 
 
 // 提升管理员
@@ -3668,13 +2126,11 @@ user_id
 }=await request.json();
 
 
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -3709,7 +2165,6 @@ headers
 }
 
 
-
 await env.DB.prepare(
 `
 UPDATE users
@@ -3724,7 +2179,6 @@ user_id
 .run();
 
 
-
 return Response.json(
 {
 success:true
@@ -3735,7 +2189,6 @@ headers
 );
 
 }
-
 
 
 // 撤销管理员
@@ -3752,13 +2205,11 @@ user_id
 }=await request.json();
 
 
-
 const sa =
 await requireSA(
 env,
 sa_id
 );
-
 
 
 if(!sa){
@@ -3793,7 +2244,6 @@ headers
 }
 
 
-
 await env.DB.prepare(
 `
 UPDATE users
@@ -3806,7 +2256,6 @@ AND role='administrator'
 user_id
 )
 .run();
-
 
 
 return Response.json(
@@ -3824,51 +2273,6 @@ headers
 // =====================================
 // USER APPLY ADMIN
 // =====================================
-
-if(
-url.pathname==="/api/account/admin-request"
-&&
-request.method==="POST"
-){
-
-const {
-user_id,
-reason,
-social
-}=await request.json();
-
-
-await env.DB.prepare(
-`
-INSERT INTO admin_requests
-(
-user_id,
-reason,
-social
-)
-VALUES
-(?,?,?)
-`
-)
-.bind(
-user_id,
-reason,
-social
-)
-.run();
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
 
 
 // =====================================
@@ -3906,7 +2310,6 @@ headers
 );
 
 }
-
 
 
 const result =
@@ -3951,248 +2354,20 @@ headers
 }
 
 
-
 // =====================================
 // SA APPROVE ADMIN
 // =====================================
-
-if(
-url.pathname==="/api/sa/admin-request/approve"
-&&
-request.method==="POST"
-){
-
-const {
-sa_id,
-request_id,
-user_id
-}=await request.json();
-
-
-const sa =
-await requireSA(
-env,
-sa_id
-);
-
-
-if(!sa){
-
-return Response.json(
-{
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-await env.DB.prepare(
-`
-UPDATE users
-SET role='administrator'
-WHERE id=?
-`
-)
-.bind(user_id)
-.run();
-
-
-
-await env.DB.prepare(
-`
-UPDATE admin_requests
-SET status='approved'
-WHERE id=?
-`
-)
-.bind(request_id)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
 
 
 // =====================================
 // SA REJECT ADMIN
 // =====================================
 
-if(
-url.pathname==="/api/sa/admin-request/reject"
-&&
-request.method==="POST"
-){
-
-const {
-sa_id,
-request_id
-}=await request.json();
-
-
-const sa =
-await requireSA(
-env,
-sa_id
-);
-
-
-if(!sa){
-
-return Response.json(
-{
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-await env.DB.prepare(
-`
-UPDATE admin_requests
-SET status='rejected'
-WHERE id=?
-`
-)
-.bind(request_id)
-.run();
-
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
 
 // =====================================
 // SA COMMUNITY MANAGEMENT
 // SA 社区管理
 // =====================================
-
-if(
-url.pathname==="/api/sa/community/posts"
-&&
-request.method==="GET"
-){
-
-try{
-
-const sa_id =
-Number(url.searchParams.get("sa_id"));
-
-const sa =
-await requireSA(
-env,
-sa_id
-);
-
-if(!sa){
-
-return Response.json(
-{
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-const result =
-await env.DB.prepare(
-`
-SELECT
-community_posts.id,
-community_posts.user_id,
-community_posts.title,
-community_posts.content,
-community_posts.status,
-community_posts.created_at,
-
-users.username,
-users.email,
-users.avatar,
-
-(
-    SELECT COUNT(*)
-    FROM community_likes
-    WHERE community_likes.post_id=community_posts.id
-) AS like_count,
-
-(
-    SELECT COUNT(*)
-    FROM community_comments
-    WHERE community_comments.post_id=community_posts.id
-) AS comment_count
-
-FROM community_posts
-
-JOIN users
-ON users.id=community_posts.user_id
-
-ORDER BY community_posts.created_at DESC
-
-LIMIT 100
-`
-)
-.all();
-
-return Response.json(
-{
-success:true,
-posts:result.results || []
-},
-{
-headers
-}
-);
-
-}catch(error){
-
-console.error(error);
-
-return Response.json(
-{
-success:false,
-error:"加载社区管理数据失败"
-},
-{
-status:500,
-headers
-}
-);
-
-}
-
-}
-
 
 
 // =====================================
@@ -4200,573 +2375,17 @@ headers
 // 下架 / 恢复社区帖子
 // =====================================
 
-if(
-url.pathname==="/api/sa/community/posts/status"
-&&
-request.method==="POST"
-){
-
-try{
-
-const {
-sa_id,
-post_id,
-status,
-moderation_reason
-}=await request.json();
-
-
-const sa =
-await requireSA(
-env,
-Number(sa_id)
-);
-
-
-if(!sa){
-
-return Response.json(
-{
-error:"No permission"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-const validStatus =
-status==="visible" ||
-status==="hidden";
-
-
-if(!validStatus){
-
-return Response.json(
-{
-success:false,
-error:"Invalid status"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-const post =
-await env.DB.prepare(
-`
-SELECT id
-FROM community_posts
-WHERE id=?
-`
-)
-.bind(
-Number(post_id)
-)
-.first();
-
-
-if(!post){
-
-return Response.json(
-{
-success:false,
-error:"帖子不存在"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-let reason = null;
-
-if(status === "hidden"){
-
-    reason =
-        String(moderation_reason || "").trim();
-
-    if(!reason){
-
-        return Response.json(
-            {
-                success:false,
-                error:"下架帖子必须填写原因"
-            },
-            {
-                status:400,
-                headers
-            }
-        );
-
-    }
-
-}
-
-
-await env.DB.prepare(
-`
-UPDATE community_posts
-SET
-status=?,
-moderation_reason=?
-WHERE id=?
-`
-)
-.bind(
-    status,
-    reason,
-    Number(post_id)
-)
-.run();
-
-
-return Response.json(
-{
-success:true,
-status
-},
-{
-headers
-}
-);
-
-}catch(error){
-
-console.error(error);
-
-return Response.json(
-{
-success:false,
-error:"更新帖子状态失败"
-},
-{
-status:500,
-headers
-}
-);
-
-}
-
-}
-
 
 // =====================================
 // 用户个人档案社区动态
 // 包括本人被 SA 下架的帖子
 // =====================================
 
-if(
-url.pathname==="/api/community/user-posts"
-&&
-request.method==="GET"
-){
-
-try{
-
-const userId =
-Number(
-    url.searchParams.get("id")
-);
-
-const viewerId =
-Number(
-    url.searchParams.get("viewer_id")
-);
-
-if(!userId){
-
-return Response.json(
-{
-success:false,
-error:"用户 ID 无效"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-/*
- * 公开查看他人档案：
- * 只能看到正常帖子。
- *
- * 查看自己的档案：
- * 可以看到自己的正常帖子和被下架帖子，
- * 这样作者才能看到 SA 给出的下架原因。
- */
-
-const isOwner =
-viewerId &&
-viewerId === userId;
-
-const query = isOwner
-?
-`
-SELECT
-community_posts.id,
-community_posts.title,
-community_posts.content,
-community_posts.created_at,
-community_posts.status,
-community_posts.moderation_reason,
-users.id AS user_id,
-users.username,
-users.avatar,
-
-(
-    SELECT COUNT(*)
-    FROM community_likes
-    WHERE community_likes.post_id=community_posts.id
-) AS like_count,
-
-(
-    SELECT COUNT(*)
-    FROM community_comments
-    WHERE community_comments.post_id=community_posts.id
-) AS comment_count
-
-FROM community_posts
-JOIN users
-ON users.id=community_posts.user_id
-
-WHERE community_posts.user_id=?
-
-ORDER BY community_posts.created_at DESC
-LIMIT 100
-`
-:
-`
-SELECT
-community_posts.id,
-community_posts.title,
-community_posts.content,
-community_posts.created_at,
-community_posts.status,
-NULL AS moderation_reason,
-users.id AS user_id,
-users.username,
-users.avatar,
-
-(
-    SELECT COUNT(*)
-    FROM community_likes
-    WHERE community_likes.post_id=community_posts.id
-) AS like_count,
-
-(
-    SELECT COUNT(*)
-    FROM community_comments
-    WHERE community_comments.post_id=community_posts.id
-) AS comment_count
-
-FROM community_posts
-JOIN users
-ON users.id=community_posts.user_id
-
-WHERE
-community_posts.user_id=?
-AND
-community_posts.status='visible'
-
-ORDER BY community_posts.created_at DESC
-LIMIT 100
-`;
-
-const result =
-await env.DB
-.prepare(query)
-.bind(userId)
-.all();
-
-return Response.json(
-{
-success:true,
-posts:
-result.results || []
-},
-{
-headers
-}
-);
-
-}catch(error){
-
-console.error(
-"User community posts error:",
-error
-);
-
-return Response.json(
-{
-success:false,
-error:"加载用户社区动态失败"
-},
-{
-status:500,
-headers
-}
-);
-
-}
-
-}
 
 // =====================================
 // COMMUNITY V1
 // 帖子列表 + 发布帖子
 // =====================================
-
-if(
-url.pathname==="/api/community/posts"
-&&
-request.method==="GET"
-){
-
-try{
-
-const result =
-await env.DB.prepare(
-`
-SELECT
-community_posts.id,
-community_posts.title,
-community_posts.content,
-community_posts.created_at,
-users.id AS user_id,
-users.username,
-users.avatar,
-
-(
-    SELECT COUNT(*)
-    FROM community_likes
-    WHERE community_likes.post_id=community_posts.id
-) AS like_count,
-
-(
-    SELECT COUNT(*)
-    FROM community_comments
-    WHERE community_comments.post_id=community_posts.id
-) AS comment_count
-
-FROM community_posts
-JOIN users
-ON users.id=community_posts.user_id
-WHERE community_posts.status='visible'
-ORDER BY community_posts.created_at DESC
-LIMIT 50
-`
-).all();
-
-
-return Response.json(
-{
-success:true,
-posts:result.results || []
-},
-{
-headers
-}
-);
-
-
-}catch(error){
-
-console.error(error);
-
-return Response.json(
-{
-success:false,
-error:"加载社区帖子失败"
-},
-{
-status:500,
-headers
-}
-);
-
-}
-
-}
-
-
-
-if(
-url.pathname==="/api/community/posts"
-&&
-request.method==="POST"
-){
-
-try{
-
-const body =
-await request.json();
-
-const user_id =
-Number(body.user_id);
-
-const title =
-String(body.title || "").trim();
-
-const content =
-String(body.content || "").trim();
-
-
-if(!user_id){
-
-return Response.json(
-{
-success:false,
-error:"请先登录"
-},
-{
-status:401,
-headers
-}
-);
-
-}
-
-
-if(!title || !content){
-
-return Response.json(
-{
-success:false,
-error:"标题和内容不能为空"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-if(title.length>100){
-
-return Response.json(
-{
-success:false,
-error:"标题不能超过100字"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-if(content.length>5000){
-
-return Response.json(
-{
-success:false,
-error:"内容不能超过5000字"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-const user =
-await env.DB.prepare(
-`
-SELECT id
-FROM users
-WHERE id=?
-`
-)
-.bind(user_id)
-.first();
-
-
-if(!user){
-
-return Response.json(
-{
-success:false,
-error:"用户不存在"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-const result =
-await env.DB.prepare(
-`
-INSERT INTO community_posts
-(
-user_id,
-title,
-content
-)
-VALUES (?, ?, ?)
-`
-)
-.bind(
-user_id,
-title,
-content
-)
-.run();
-
-
-return Response.json(
-{
-success:true,
-id:result.meta.last_row_id
-},
-{
-headers
-}
-);
-
-
-}catch(error){
-
-console.error(error);
-
-return Response.json(
-{
-success:false,
-error:"发布帖子失败"
-},
-{
-status:500,
-headers
-}
-);
-
-}
-
-}
-
-
 
 
 // =====================================
@@ -4774,410 +2393,15 @@ headers
 // 删除自己的社区帖子
 // =====================================
 
-if(
-url.pathname.startsWith("/api/community/posts/")
-&&
-request.method==="DELETE"
-){
-
-try{
-
-const post_id =
-Number(
-url.pathname.split("/").pop()
-);
-
-const body =
-await request.json();
-
-const user_id =
-Number(body.user_id);
-
-
-if(!post_id || !user_id){
-
-return Response.json(
-{
-success:false,
-error:"参数不完整"
-},
-{
-status:400,
-headers
-}
-);
-
-}
-
-
-/*
- * 必须由服务器验证帖子所有者。
- * 不能只相信前端传来的身份。
- */
-
-const post =
-await env.DB.prepare(
-`
-SELECT
-id,
-user_id
-FROM community_posts
-WHERE id=?
-`
-)
-.bind(post_id)
-.first();
-
-
-if(!post){
-
-return Response.json(
-{
-success:false,
-error:"帖子不存在"
-},
-{
-status:404,
-headers
-}
-);
-
-}
-
-
-if(
-Number(post.user_id)
-!==
-user_id
-){
-
-return Response.json(
-{
-success:false,
-error:"你没有权限删除这条帖子"
-},
-{
-status:403,
-headers
-}
-);
-
-}
-
-
-/*
- * 先删除点赞和评论，
- * 再删除帖子。
- */
-
-await env.DB.prepare(
-`
-DELETE FROM community_likes
-WHERE post_id=?
-`
-)
-.bind(post_id)
-.run();
-
-
-await env.DB.prepare(
-`
-DELETE FROM community_comments
-WHERE post_id=?
-`
-)
-.bind(post_id)
-.run();
-
-
-await env.DB.prepare(
-`
-DELETE FROM community_posts
-WHERE id=?
-AND user_id=?
-`
-)
-.bind(
-post_id,
-user_id
-)
-.run();
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-
-}catch(error){
-
-console.error(
-"Community post delete error:",
-error
-);
-
-
-return Response.json(
-{
-success:false,
-error:"删除帖子失败"
-},
-{
-status:500,
-headers
-}
-);
-
-}
-
-}
-
-
 
 // =====================================
 // COMMUNITY COMMENTS
 // =====================================
 
-if(
-url.pathname==="/api/community/comments"
-&&
-request.method==="GET"
-){
-
-const post_id =
-Number(url.searchParams.get("post_id"));
-
-if(!post_id){
-
-return Response.json(
-{error:"Invalid post_id"},
-{status:400,headers}
-);
-
-}
-
-const result =
-await env.DB.prepare(
-`
-SELECT
-community_comments.id,
-community_comments.content,
-community_comments.created_at,
-users.id AS user_id,
-users.username,
-users.avatar
-FROM community_comments
-JOIN users
-ON users.id=community_comments.user_id
-WHERE community_comments.post_id=?
-ORDER BY community_comments.created_at ASC
-`
-)
-.bind(post_id)
-.all();
-
-return Response.json(
-{
-success:true,
-comments:result.results || []
-},
-{headers}
-);
-
-}
-
-
-if(
-url.pathname==="/api/community/comments"
-&&
-request.method==="POST"
-){
-
-const body =
-await request.json();
-
-const user_id =
-Number(body.user_id);
-
-const post_id =
-Number(body.post_id);
-
-const content =
-String(body.content || "").trim();
-
-if(!user_id || !post_id || !content){
-
-return Response.json(
-{
-success:false,
-error:"参数不完整"
-},
-{status:400,headers}
-);
-
-}
-
-if(content.length>2000){
-
-return Response.json(
-{
-success:false,
-error:"评论不能超过2000字"
-},
-{status:400,headers}
-);
-
-}
-
-const user =
-await env.DB.prepare(
-`SELECT id FROM users WHERE id=?`
-)
-.bind(user_id)
-.first();
-
-if(!user){
-
-return Response.json(
-{error:"用户不存在"},
-{status:404,headers}
-);
-
-}
-
-const post =
-await env.DB.prepare(
-`SELECT id FROM community_posts WHERE id=?`
-)
-.bind(post_id)
-.first();
-
-if(!post){
-
-return Response.json(
-{error:"帖子不存在"},
-{status:404,headers}
-);
-
-}
-
-const result =
-await env.DB.prepare(
-`
-INSERT INTO community_comments
-(post_id,user_id,content)
-VALUES(?,?,?)
-`
-)
-.bind(
-post_id,
-user_id,
-content
-)
-.run();
-
-return Response.json(
-{
-success:true,
-id:result.meta.last_row_id
-},
-{headers}
-);
-
-}
-
 
 // =====================================
 // COMMUNITY LIKE
 // =====================================
-
-if(
-url.pathname==="/api/community/like"
-&&
-request.method==="POST"
-){
-
-const body =
-await request.json();
-
-const user_id =
-Number(body.user_id);
-
-const post_id =
-Number(body.post_id);
-
-if(!user_id || !post_id){
-
-return Response.json(
-{error:"参数不完整"},
-{status:400,headers}
-);
-
-}
-
-const existing =
-await env.DB.prepare(
-`
-SELECT id
-FROM community_likes
-WHERE post_id=? AND user_id=?
-`
-)
-.bind(post_id,user_id)
-.first();
-
-if(existing){
-
-await env.DB.prepare(
-`
-DELETE FROM community_likes
-WHERE post_id=? AND user_id=?
-`
-)
-.bind(post_id,user_id)
-.run();
-
-}else{
-
-await env.DB.prepare(
-`
-INSERT INTO community_likes
-(post_id,user_id)
-VALUES(?,?)
-`
-)
-.bind(post_id,user_id)
-.run();
-
-}
-
-const count =
-await env.DB.prepare(
-`
-SELECT COUNT(*) AS count
-FROM community_likes
-WHERE post_id=?
-`
-)
-.bind(post_id)
-.first();
-
-return Response.json(
-{
-success:true,
-liked:!existing,
-count:count?.count || 0
-},
-{headers}
-);
-
-}
-
 
 
 // =====================================
@@ -5200,3 +2424,72 @@ headers
 
 };
 
+export default {
+  async fetch(request, env) {
+    const original = request;
+    try {
+      const url = new URL(request.url);
+      if(url.pathname==="/api/admin/screening") url.pathname="/api/admin/pending";
+      if (request.method === "OPTIONS") return responseHeaders(original, new Response(null,{status:204}));
+      if (!["GET", "HEAD"].includes(request.method)) {
+        const origin=request.headers.get("Origin");
+        if (origin && !["https://bpmuseum.org.cn","https://www.bpmuseum.org.cn","http://localhost:3000","http://127.0.0.1:3000"].includes(origin)) {
+          return responseHeaders(original,reply({error:"来源不受信任"},403));
+        }
+        const type=request.headers.get("Content-Type")||"";
+        if (!type.includes("application/json") && !(url.pathname==="/api/upload-image"&&type.includes("multipart/form-data"))) {
+          return responseHeaders(original,reply({error:"请求格式不支持"},415));
+        }
+      }
+      request = await boundedRequest(request);
+      const auth = await authenticate(request,env,url);
+      if (auth.response) return responseHeaders(original,auth.response);
+      request=auth.request;
+      if(request.method==='GET' && ['/api/flights','/api/admin/pending'].includes(url.pathname)) {
+        const stale=await env.DB.prepare("SELECT users.* FROM users LEFT JOIN progress_cache ON progress_cache.user_id=users.id WHERE progress_cache.user_id IS NULL OR progress_cache.year!=CAST(strftime('%Y','now','+8 hours') AS INTEGER) LIMIT 5").all();
+        for(const account of stale.results) await progressFor(env,account);
+      }
+      if(url.pathname==="/api/upload-image"&&request.method==="POST") return responseHeaders(original,await uploadImage(request,env));
+      const account = await accountRoute(request.clone(),env,url,auth.user,sendVerificationEmail);
+      if(account) return responseHeaders(original,account);
+      const progress = await progressRoute(request,env,url);
+      if(progress) return responseHeaders(original,progress);
+      const community = await communityRoute(request.clone(),env,url,auth.user);
+      if(community) return responseHeaders(original,community);
+      const reviewed = await reviewRoute(request.clone(),env,url,auth.user);
+      if(reviewed) {
+        if(reviewed.ok && /\/(approve|reject)$/.test(url.pathname)) {
+          const body=await request.clone().json();
+          const flight=body.flight_id?await env.DB.prepare('SELECT user_id FROM flights WHERE id=?').bind(Number(body.flight_id)).first():null;
+          for(const id of new Set([auth.user.id,flight?.user_id].filter(Boolean))) {
+            const account=await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(id).first();
+            if(account) await progressFor(env,account);
+          }
+        }
+        return responseHeaders(original,reviewed);
+      }
+
+      if(url.pathname==='/api/submit' && request.method==='POST') await progressFor(env,auth.user);
+      const response = await legacy.fetch(request,env);
+      return responseHeaders(original,response);
+    } catch (error) {
+      if(error instanceof RangeError) return responseHeaders(original,reply({error:"请求过大"},413));
+      if(error instanceof SyntaxError) return responseHeaders(original,reply({error:"请求格式错误"},400));
+      console.error("API request failed", error.name);
+      return responseHeaders(original,reply({success:false,error:"服务暂时不可用，请稍后再试"},500));
+    }
+  },
+  async scheduled(controller,env) {
+    let cursor=0;
+    while(true) {
+      const batch=await env.DB.prepare('SELECT * FROM users WHERE id>? ORDER BY id LIMIT 50').bind(cursor).all();
+      if(!batch.results.length) break;
+      for(const user of batch.results) await progressFor(env,user);
+      cursor=batch.results.at(-1).id;
+    }
+    await env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at<=datetime('now')").run();
+    await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at<=datetime('now')").run();
+    await env.DB.prepare('DELETE FROM auth_limits WHERE bucket<?').bind(Math.floor(Date.now()/1000)-86400).run();
+  }
+
+};

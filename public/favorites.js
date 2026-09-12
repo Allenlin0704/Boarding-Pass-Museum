@@ -131,6 +131,7 @@ return;
 
 
 likedFlights.forEach(flight => {
+flight=bpmSafeRecord(flight);
 
 
 

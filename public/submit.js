@@ -956,7 +956,7 @@ image,
 
 status:
 
-"pending"
+"screening"
 
 
 
@@ -1003,10 +1003,7 @@ res=>res.json()
 .then(
 data=>{
 
-console.log(
-"投稿结果:",
-data
-);
+if(!data.success) throw new Error(data.error || "投稿失败");
 
 }
 );
@@ -1048,7 +1045,7 @@ error
 
 
 showToast(
-"投稿失败，请稍后重试"
+error.message || "投稿失败，请稍后重试"
 );
 
 

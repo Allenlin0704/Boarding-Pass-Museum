@@ -111,13 +111,14 @@ function updateNavbar(){
 
 
             <button id="userMenuBtn">
-            ${currentUser.username} ▼
+            ${bpmEscape(currentUser.username)} ▼
             </button>
 
 
             <div id="userDropdown" class="user-dropdown">
 
 
+                <a href="notifications.html">通知与申诉</a>
                 <a href="account.html">
                 账户设置
                 </a>
@@ -198,10 +199,16 @@ function updateNavbar(){
 
         if(logout){
 
-            logout.onclick=function(e){
+            logout.onclick=async function(e){
 
                 e.preventDefault();
 
+
+                try {
+                    await fetch("https://api.bpmuseum.org.cn/api/logout", {
+                        method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"
+                    });
+                } catch { return; }
 
                 localStorage.removeItem(
                     "currentUser"

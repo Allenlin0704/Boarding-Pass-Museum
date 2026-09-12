@@ -1,0 +1,11 @@
+CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,username TEXT NOT NULL,email TEXT NOT NULL UNIQUE,password TEXT NOT NULL,role TEXT DEFAULT 'user',created_at TEXT DEFAULT CURRENT_TIMESTAMP,avatar TEXT,bio TEXT,social_media TEXT,equipment TEXT,favorite_airlines TEXT,favorite_airports TEXT);
+CREATE TABLE flights(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NULL,airline TEXT,flight TEXT,route TEXT,date TEXT,aircraft TEXT,airport TEXT,image TEXT,story TEXT,status TEXT DEFAULT 'pending',reject_reason TEXT,reviewer_id INTEGER,created_at TEXT DEFAULT CURRENT_TIMESTAMP,issue_airport TEXT);
+CREATE TABLE email_codes(id INTEGER PRIMARY KEY,email TEXT,code TEXT,expires_at TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE favorites(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER);
+CREATE TABLE appeals(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER,reason TEXT,status TEXT DEFAULT 'pending',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE updates(id INTEGER PRIMARY KEY,title TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE announcements(id INTEGER PRIMARY KEY,title TEXT,version TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE admin_requests(id INTEGER PRIMARY KEY,user_id INTEGER,reason TEXT,social TEXT,status TEXT DEFAULT 'pending',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE community_posts(id INTEGER PRIMARY KEY,user_id INTEGER,title TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,status TEXT DEFAULT 'visible',moderation_reason TEXT);
+CREATE TABLE community_comments(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE community_likes(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER);

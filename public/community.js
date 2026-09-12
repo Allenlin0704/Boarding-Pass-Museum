@@ -98,7 +98,10 @@ function renderPost(post) {
                 ${escapeHTML(post.content)}
             </div>
 
+            ${post.image ? `<img class="community-post-image" src="${escapeHTML(post.image)}" alt="帖子图片" loading="lazy">` : ''}
             <div class="community-actions">
+              <button type="button" data-report-type="post" data-report-id="${Number(post.id)}">举报</button>
+              ${currentUser && ['administrator','superadministrator'].includes(currentUser.role) ? `<button type="button" data-hide-type="post" data-hide-id="${Number(post.id)}">🚫 下架帖子</button>` : ''}
 
                 <button
                     type="button"
@@ -251,6 +254,7 @@ async function loadComments(postId) {
         list.innerHTML = data.comments
             .map(comment => `
                 <div class="community-comment">
+                    <button type="button" data-report-type="comment" data-report-id="${Number(comment.id)}">举报</button>
 
                     <strong>
                         ${escapeHTML(
@@ -588,7 +592,7 @@ if (newPostBtn) {
 
     newPostBtn.addEventListener(
         "click",
-        openPostModal
+        () => { location.href="community-submit.html"; }
     );
 }
 

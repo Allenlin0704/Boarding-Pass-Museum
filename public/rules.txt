@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>投稿及审核条例 · BoardingPassMuseum</title><script src="security.js?v=1"></script><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="features.css"><script src="theme.js"></script></head><body><main class="bpm-form-page"><a href="index.html">← 返回展厅</a><h1>投稿及审核条例</h1><div class="bpm-rule-text">BoardingPassMuseum
+BoardingPassMuseum
 
 投稿及审核条例
 
@@ -90,4 +90,4 @@ PNR预定编码（外航适用）
 
 附则
 
-本条例最终解释权、修订权、生效日期、更新通知方式归本站所有。如有更新，将会同步在网页首页更新日志弹窗以及官方用户群。</div></main></body></html>
+本条例最终解释权、修订权、生效日期、更新通知方式归本站所有。如有更新，将会同步在网页首页更新日志弹窗以及官方用户群。

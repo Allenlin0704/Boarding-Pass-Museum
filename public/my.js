@@ -19,7 +19,7 @@ if (!currentUser) {
 }
 
 if (welcome) {
-  welcome.innerHTML = `
+  welcome.textContent = `
     你好，${currentUser.username}
   `;
 }
@@ -39,8 +39,7 @@ async function loadMySubmissions() {
 
     const flights = await res.json();
 
-    console.log("API返回投稿:", flights);
-console.log("数量:", flights.length);
+    if (!res.ok) throw new Error("投稿加载失败");
 
     renderSubmissions(flights);
 
@@ -64,6 +63,10 @@ console.log("数量:", flights.length);
 // =================================
 
 function getStatus(flight) {
+  if (flight.status === "hidden") {
+    return { text: "已下架", className: "status-hidden", icon: "−" };
+  }
+
 
   if (flight.status === "approved") {
 
@@ -118,30 +121,9 @@ function renderSubmissions(flights) {
   submissions.innerHTML = "";
 
   flights.forEach(flight => {
+    flight = bpmSafeRecord(flight);
 
     const status = getStatus(flight);
-
-    const imageHTML = flight.image
-      ? `
-        <div class="submission-image-wrap">
-          <img
-            src="${flight.image}"
-            class="ticket-image"
-            alt="登机牌"
-            loading="lazy"
-            data-preview="${flight.image}"
-          >
-          <div class="image-zoom-hint">
-            点击查看大图
-          </div>
-        </div>
-      `
-      : `
-        <div class="submission-image-empty">
-          暂无图片
-        </div>
-      `;
-
 
     const rejectReason =
       flight.status === "rejected" &&
@@ -294,21 +276,15 @@ function renderSubmissions(flights) {
           </button>
 
 
-          <button
-            type="button"
-            class="withdraw-btn"
-            onclick="withdrawFlight(${flight.id})"
-          >
-            下架
-          </button>
-
-          <button
-type="button"
-class="withdraw-btn"
-onclick="withdrawFlight(${flight.id})"
->
-下架
-</button>
+          ${flight.status === "hidden" ? `
+            <button type="button" class="restore-btn" onclick="restoreFlight(${flight.id})">
+              ↩️ 恢复展品
+            </button>
+          ` : `
+            <button type="button" class="withdraw-btn" onclick="withdrawFlight(${flight.id})">
+              🗑️ 下架展品
+            </button>
+          `}
 
           ${appeal}
 
@@ -566,66 +542,6 @@ document.addEventListener(
       }
     };
 
-    return;
-
-
-    try {
-
-      const res = await fetch(
-        `${API}/api/appeal`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body: JSON.stringify({
-            user_id:
-              currentUser.id,
-
-            flight_id,
-
-            reason
-          })
-        }
-      );
-
-
-      const data =
-        await res.json();
-
-
-      if (data.success) {
-
-        showToast(
-          "申诉提交成功"
-        );
-
-      } else {
-
-        showToast(
-          data.error ||
-          "提交失败"
-        );
-
-      }
-
-
-    } catch (error) {
-
-      console.error(error);
-
-      showToast(
-        "网络错误，请稍后再试"
-      );
-
-    } finally {
-
-      appealButton.disabled = false;
-
-    }
 
   }
 );
@@ -637,81 +553,28 @@ document.addEventListener(
 
 loadMySubmissions();
 
-async function withdrawFlight(id){
-
-if(!confirm("确定下架这个展品吗？")){
-return;
+async function changeFlightStatus(id, action) {
+  const restoring = action === "restore";
+  if (!confirm(restoring ? "恢复后将重新审核，确定恢复这个展品吗？" : "确定下架这个展品吗？")) return;
+  try {
+    const res = await fetch(`${API}/api/my/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ flight_id: id, user_id: currentUser.id })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "操作失败");
+    showToast(restoring ? "展品已恢复，等待重新审核" : "下架成功");
+    await loadMySubmissions();
+  } catch (error) {
+    showToast(error.message || "网络错误，请稍后再试");
+  }
 }
 
-
-const res =
-await fetch(
-`${API}/api/my/withdraw`,
-{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-flight_id:id,
-user_id:currentUser.id
-})
-}
-);
-
-
-const data =
-await res.json();
-
-
-if(data.success){
-
-showToast("已下架");
-
-loadMySubmissions();
-
-}else{
-
-showToast("下架失败");
-
+async function withdrawFlight(id) {
+  return changeFlightStatus(id, "withdraw");
 }
 
+async function restoreFlight(id) {
+  return changeFlightStatus(id, "restore");
 }
-
-async function withdrawFlight(id){
-
-if(!confirm("确定下架这个展品吗？")){
-return;
-}
-
-const res =
-await fetch(
-`${API}/api/my/withdraw`,
-{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-flight_id:id,
-user_id:currentUser.id
-})
-}
-);
-
-const data =
-await res.json();
-
-if(data.success){
-
-showToast("下架成功");
-loadMySubmissions();
-
-}else{
-
-showToast("下架失败");
-
-}
-
-}
-

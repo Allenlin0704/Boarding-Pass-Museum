@@ -14,7 +14,7 @@ if(!user || user.role !== "superadministrator"){
 const welcome = document.getElementById("welcome");
 
 if(welcome){
-    welcome.innerHTML=`欢迎 ${user.username}`;
+    welcome.textContent=`欢迎 ${user.username}`;
 }
 
 
@@ -53,6 +53,7 @@ async function loadAppeals(){
 
 
         data.forEach(x=>{
+            x=bpmSafeRecord(x);
 
             box.innerHTML+=`
 
@@ -237,10 +238,13 @@ async function changeSACommunityStatus(
 
 
     let moderationReason = "";
+    let clause = "";
 
 
     if(nextStatus === "hidden"){
 
+        clause = prompt("请输入违反的具体条款（例如：社区条例三、2（4））：") || "";
+        if(!clause.trim()) return;
         moderationReason =
             prompt(
                 "请输入下架原因："
@@ -297,6 +301,8 @@ async function changeSACommunityStatus(
                     post_id:postId,
 
                     status:nextStatus,
+                    clause,
+                    severity:"temporary",
 
                     moderation_reason:
                         moderationReason
@@ -388,6 +394,7 @@ async function loadSAFlights(){
 
 
         data.forEach(x=>{
+            x=bpmSafeRecord(x);
 
             box.innerHTML += `
 
@@ -537,6 +544,7 @@ async function loadAdminRequests(){
 
 
         data.forEach(x=>{
+            x=bpmSafeRecord(x);
 
 
             box.innerHTML+=`
@@ -616,6 +624,7 @@ async function loadUsers(){
 
 
         data.forEach(x=>{
+            x=bpmSafeRecord(x);
 
 
             box.innerHTML+=`
@@ -888,7 +897,7 @@ if(searchSAFlight){
 
 
             const x =
-            await res.json();
+            bpmSafeRecord(await res.json());
 
 
             if(!res.ok){
@@ -906,7 +915,7 @@ if(searchSAFlight){
             let reviewButtons = "";
 
 
-            if(status === "pending"){
+            if(status === "screening"){
 
                 reviewButtons = `
                     <button
@@ -1366,9 +1375,7 @@ async function saApproveFlight(flightId){
 async function saRejectFlight(flightId){
 
     const reason =
-        prompt(
-            "请输入拒绝原因："
-        );
+        await bpmAskRejectReason();
 
 
     if(reason === null){
