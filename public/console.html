@@ -16,14 +16,14 @@
     <aside class="bpm-console-sidebar" aria-label="管理功能">
       <p class="bpm-console-kicker">管理中心</p>
       <h1 id="consoleWelcome">正在验证权限…</h1>
-      <button class="bpm-console-nav active" data-page="admin.html">审核工作台</button>
-      <button class="bpm-console-nav" data-page="admin.html#approved">审核记录</button>
-      <button class="bpm-console-nav sa-only" data-page="sa.html" hidden>SA 控制台</button>
+      <button class="bpm-console-nav active" data-page="admin.html?embed=1">审核工作台</button>
+      <button class="bpm-console-nav" data-page="admin.html?embed=1#approved">审核记录</button>
+      <button class="bpm-console-nav sa-only" data-page="sa.html?embed=1" hidden>SA 控制台</button>
       <button class="bpm-console-nav sa-only" data-page="moderation.html" hidden>社区治理与申诉</button>
       <a class="bpm-console-exit" href="index.html">退出管理中心</a>
     </aside>
     <section class="bpm-console-content">
-      <iframe id="consoleFrame" title="BoardingPassMuseum 管理工作区" src="admin.html"></iframe>
+      <iframe id="consoleFrame" title="BoardingPassMuseum 管理工作区" src="admin.html?embed=1"></iframe>
     </section>
   </main>
   <script src="console.js?v=20260913"></script>

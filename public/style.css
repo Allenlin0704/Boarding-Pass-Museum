@@ -2697,6 +2697,7 @@ color:#fff;
 .bpm-console-exit{margin-top:auto;color:var(--bpm-muted);}
 .bpm-console-content{min-width:0;background:var(--bpm-bg);}
 #consoleFrame{display:block;width:100%;height:calc(100vh - 68px);border:0;background:var(--bpm-bg);}
+.bpm-console-embed .menubar{display:none;}
 @media(max-width:700px){.bpm-console-shell{display:block}.bpm-console-sidebar{position:sticky;top:0;z-index:2;display:flex;flex-direction:row;overflow-x:auto;padding:12px;gap:7px;border-right:0;border-bottom:1px solid var(--bpm-border)}.bpm-console-kicker,.bpm-console-sidebar h1,.bpm-console-exit{display:none}.bpm-console-nav{width:auto;flex:0 0 auto;white-space:nowrap;padding:10px 12px}#consoleFrame{height:calc(100vh - 123px)}}
 
 
