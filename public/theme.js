@@ -7,6 +7,7 @@
             "community.title":"Community","community.tagline":"A place for aviation enthusiasts.","community.publish":"Create a post","community.sort":"Sort","community.latest":"Latest","community.hot":"Popular","community.notice":"Please use the posting feature responsibly. Administrators may hide content that violates the rules.",
             "footer.tagline":"A digital collection of journeys preserved on boarding passes.","footer.about":"About","footer.privacy":"Privacy","footer.rules":"Submission rules","footer.communityRules":"Community rules",
             "submit.back":"Back to community","submit.title":"Create a community post","submit.intro":"Share boarding-pass collections, aviation travel and airport stories.","submit.postTitle":"Title","submit.content":"Post","submit.image":"Image (optional)","submit.publish":"Read the rules and publish"
+            ,"login.title":"Log in","login.email":"Email","login.password":"Password","login.forgot":"Forgot password?","login.button":"Log in","register.title":"Create an account","register.intro":"Join BoardingPassMuseum and preserve your flight memories.","register.username":"Username","register.email":"Email","register.code":"Email code","register.sendCode":"Send code","register.password":"Password","register.confirm":"Confirm password","register.button":"Create account"
         },
         zh:{}
     };
