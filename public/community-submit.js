@@ -1,6 +1,7 @@
 const api='https://api.bpmuseum.org.cn';
 const form=document.getElementById('communitySubmitForm'),dialog=document.getElementById('communityRules'),message=document.getElementById('postMessage');
 let rulesLoaded=false;
+(async()=>{try{const res=await fetch(`${api}/api/session`);if(!res.ok)location.replace('login.html?next=community-submit.html');}catch{message.textContent='无法确认登录状态，请检查网络后重试。';}})();
 fetch('community-rules.txt').then(r=>{if(!r.ok)throw Error();return r.text();}).then(text=>{document.getElementById('communityRulesText').textContent=text;rulesLoaded=true;}).catch(()=>{document.getElementById('communityRulesText').textContent='条例加载失败，请刷新后重试。';});
 form.addEventListener('submit',async event=>{
   event.preventDefault();message.textContent='';

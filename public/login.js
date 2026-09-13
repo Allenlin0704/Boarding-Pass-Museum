@@ -93,8 +93,9 @@ showToast(
 
 
 
-window.location.href =
-"index.html";
+const requestedNext=new URLSearchParams(location.search).get("next")||"";
+const next=/^[a-zA-Z0-9_-]+\.html(?:[?#][^\s]*)?$/.test(requestedNext)?requestedNext:"index.html";
+window.location.href = next;
 
 
 
