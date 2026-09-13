@@ -2673,6 +2673,20 @@ color:var(--bpm-muted);
 
 }
 
+.account-danger-card{
+border:1px solid color-mix(in srgb,#c94b4b 55%,transparent);
+}
+
+.account-danger-card p{
+line-height:1.7;
+color:var(--bpm-muted);
+}
+
+.account-card .account-danger-button{
+background:#a93232;
+color:#fff;
+}
+
 
 /* avatar area */
 

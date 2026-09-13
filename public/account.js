@@ -38,6 +38,57 @@ exportDataButton.onclick=async()=>{
 };
 }
 
+const deletionStatus=document.getElementById("deletionRequestStatus");
+const requestDeletionButton=document.getElementById("requestDeletion");
+const cancelDeletionButton=document.getElementById("cancelDeletion");
+const deletionReason=document.getElementById("deletionReason");
+const deletionPassword=document.getElementById("deletionPassword");
+const deletionLabels={pending:"已提交，等待 SA 审核",approved:"审核通过，等待站方最终确认",rejected:"申请未获通过",cancelled:"你已取消这项申请"};
+async function loadDeletionRequest(){
+  if(!deletionStatus)return;
+  try{
+    const response=await fetch(`${API}/api/account/deletion-request`);
+    const data=await response.json();
+    if(!response.ok)throw Error(data.error||"无法读取注销申请状态");
+    const current=data.request;
+    deletionStatus.textContent=current?`当前状态：${deletionLabels[current.status]||current.status}${current.decision_note?`。处理说明：${current.decision_note}`:""}`:"你尚未提交注销申请。";
+    const active=current&&["pending","approved"].includes(current.status);
+    requestDeletionButton.hidden=!!active;
+    cancelDeletionButton.hidden=!active;
+    deletionReason.disabled=!!active;
+    deletionPassword.disabled=!!active;
+  }catch(error){deletionStatus.textContent=error.message||"无法读取注销申请状态";}
+}
+if(requestDeletionButton){
+  requestDeletionButton.onclick=async()=>{
+    const password=deletionPassword.value;
+    if(!password){showToast("请输入当前密码确认");return;}
+    if(!confirm("提交后将进入 SA 审核流程；数据不会立刻删除。是否继续？"))return;
+    requestDeletionButton.disabled=true;
+    try{
+      const response=await fetch(`${API}/api/account/deletion-request`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:userId,password,reason:deletionReason.value.trim()})});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||"提交失败");
+      deletionPassword.value="";showToast("注销申请已提交");await loadDeletionRequest();
+    }catch(error){showToast(error.message||"提交失败");}
+    finally{requestDeletionButton.disabled=false;}
+  };
+}
+if(cancelDeletionButton){
+  cancelDeletionButton.onclick=async()=>{
+    if(!confirm("确定取消注销申请吗？"))return;
+    cancelDeletionButton.disabled=true;
+    try{
+      const response=await fetch(`${API}/api/account/deletion-request/cancel`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:userId})});
+      const data=await response.json();
+      if(!response.ok)throw Error(data.error||"取消失败");
+      showToast("注销申请已取消");await loadDeletionRequest();
+    }catch(error){showToast(error.message||"取消失败");}
+    finally{cancelDeletionButton.disabled=false;}
+  };
+}
+loadDeletionRequest();
+
 
 
 document.getElementById(

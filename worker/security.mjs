@@ -73,7 +73,7 @@ async function limited(env,key,max,seconds) {
 }
 export async function authenticate(request,env,url) {
   const user=await sessionUser(request,env);
-  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || ['/api/my-flights','/api/favorites','/api/account/export'].includes(url.pathname);
+  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || ['/api/my-flights','/api/favorites','/api/account/export','/api/account/deletion-request'].includes(url.pathname);
   const write=!['GET','HEAD','OPTIONS'].includes(request.method);
   if((protectedRead || (write&&!PUBLIC_WRITES.has(url.pathname)))&&!user) return {response:reply({error:'请重新登录',success:false},401)};
   if(url.pathname.startsWith('/api/sa/')&&!isSA(user)) return {response:reply({error:'No permission'},403)};
@@ -101,10 +101,52 @@ export async function authenticate(request,env,url) {
 export async function accountRoute(request,env,url,user,sendEmail) {
   const path=url.pathname;
   if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user'}):reply({error:'请重新登录'},401);
+  if(path==='/api/account/deletion-request'&&request.method==='GET') {
+    if(!user) return reply({error:'请重新登录'},401);
+    const requestRow=await env.DB.prepare('SELECT id,reason,status,requested_at,resolved_at,decision_note FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
+    return reply({request:requestRow||null});
+  }
+  if(path==='/api/account/deletion-request'&&request.method==='POST') {
+    if(!user) return reply({error:'请重新登录'},401);
+    if(isSA(user)) return reply({error:'超级管理员账户不能通过网页注销'},403);
+    const body=await request.json();
+    if(!await passwordMatches(body.password,user.password)) return reply({error:'当前密码错误'},403);
+    const reason=String(body.reason||'').trim();
+    if(reason.length>500) return reply({error:'申请说明不能超过 500 个字符'},400);
+    const existing=await env.DB.prepare('SELECT status FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
+    if(existing&&['pending','approved'].includes(existing.status)) return reply({error:'你已有一条正在处理的注销申请'},409);
+    if(existing) await env.DB.prepare("UPDATE account_deletion_requests SET reason=?,status='pending',requested_at=CURRENT_TIMESTAMP,resolved_at=NULL,reviewer_id=NULL,decision_note=NULL WHERE user_id=?").bind(reason,user.id).run();
+    else await env.DB.prepare("INSERT INTO account_deletion_requests(user_id,reason,status) VALUES(?,?,'pending')").bind(user.id,reason).run();
+    return reply({success:true});
+  }
+  if(path==='/api/account/deletion-request/cancel'&&request.method==='POST') {
+    if(!user) return reply({error:'请重新登录'},401);
+    const changed=await env.DB.prepare("UPDATE account_deletion_requests SET status='cancelled',resolved_at=CURRENT_TIMESTAMP,decision_note='用户已取消申请' WHERE user_id=? AND status IN ('pending','approved')").bind(user.id).run();
+    if(!changed.meta.changes) return reply({error:'没有可取消的注销申请'},400);
+    return reply({success:true});
+  }
+  if(path==='/api/sa/account-deletion-requests'&&request.method==='GET') {
+    if(!isSA(user)) return reply({error:'No permission'},403);
+    const rows=await env.DB.prepare(`SELECT r.id,r.user_id,r.reason,r.status,r.requested_at,r.resolved_at,r.decision_note,u.username,u.email,u.role,
+      (SELECT COUNT(*) FROM flights f WHERE f.user_id=r.user_id) AS submission_count,
+      (SELECT COUNT(*) FROM community_posts p WHERE p.user_id=r.user_id) AS post_count
+      FROM account_deletion_requests r JOIN users u ON u.id=r.user_id ORDER BY CASE r.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,r.requested_at ASC`).all();
+    return reply(rows.results);
+  }
+  if(path==='/api/sa/account-deletion-requests/resolve'&&request.method==='POST') {
+    if(!isSA(user)) return reply({error:'No permission'},403);
+    const body=await request.json(),id=Number(body.request_id),decision=String(body.decision||'');
+    if(!Number.isInteger(id)||id<1||!['approved','rejected'].includes(decision)) return reply({error:'请求参数错误'},400);
+    const note=String(body.decision_note||'').trim();
+    if(note.length>500) return reply({error:'处理说明不能超过 500 个字符'},400);
+    const changed=await env.DB.prepare("UPDATE account_deletion_requests SET status=?,resolved_at=CURRENT_TIMESTAMP,reviewer_id=?,decision_note=? WHERE id=? AND status='pending'").bind(decision,user.id,note,id).run();
+    if(!changed.meta.changes) return reply({error:'申请不存在或已处理'},404);
+    return reply({success:true});
+  }
   if(path==='/api/account/export'&&request.method==='GET') {
     if(!user) return reply({error:'请重新登录'},401);
     const id=Number(user.id);
-    const [profile,flights,favorites,appeals,posts,comments,likes,reports,actions,moderationAppeals,achievements,adjustments,notifications]=await Promise.all([
+    const [profile,flights,favorites,appeals,posts,comments,likes,reports,actions,moderationAppeals,achievements,adjustments,notifications,deletionRequest]=await Promise.all([
       env.DB.prepare('SELECT id,username,email,role,created_at,avatar,bio,social_media,equipment,favorite_airlines,favorite_airports FROM users WHERE id=?').bind(id).first(),
       env.DB.prepare('SELECT id,airline,flight,route,date,aircraft,airport,image,story,status,reject_reason,created_at FROM flights WHERE user_id=? ORDER BY id').bind(id).all(),
       env.DB.prepare('SELECT flight_id,created_at FROM favorites WHERE user_id=? ORDER BY id').bind(id).all(),
@@ -117,7 +159,8 @@ export async function accountRoute(request,env,url,user,sendEmail) {
       env.DB.prepare('SELECT action_id,reason,status,decision,created_at,due_at FROM moderation_appeals WHERE user_id=? ORDER BY id').bind(id).all(),
       env.DB.prepare('SELECT code,awarded_at FROM user_achievements WHERE user_id=? ORDER BY awarded_at').bind(id).all(),
       env.DB.prepare('SELECT amount,reason,created_at FROM level_adjustments WHERE user_id=? ORDER BY id').bind(id).all(),
-      env.DB.prepare('SELECT content,created_at,read_at FROM notifications WHERE user_id=? ORDER BY id').bind(id).all()
+      env.DB.prepare('SELECT content,created_at,read_at FROM notifications WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT reason,status,requested_at,resolved_at,decision_note FROM account_deletion_requests WHERE user_id=?').bind(id).first()
     ]);
     return reply({
       exported_at:new Date().toISOString(),
@@ -129,7 +172,8 @@ export async function accountRoute(request,env,url,user,sendEmail) {
       community:{posts:posts.results,comments:comments.results,liked_post_ids:likes.results.map(row=>row.post_id),reports:reports.results},
       moderation:{actions:actions.results,appeals:moderationAppeals.results},
       progress:{achievements:achievements.results,level_adjustments:adjustments.results},
-      notifications:notifications.results
+      notifications:notifications.results,
+      account_deletion_request:deletionRequest||null
     });
   }
   if(path==='/api/logout'&&request.method==='POST') {

@@ -666,6 +666,37 @@ async function loadUsers(){
 
 }
 
+// ==========================
+// 账户注销申请（SA 审核）
+// ==========================
+
+async function loadAccountDeletionRequests(){
+    const box=document.getElementById("accountDeletionRequests");
+    if(!box)return;
+    try{
+        const res=await fetch(`${API}/api/sa/account-deletion-requests?sa_id=${user.id}`);
+        const data=await res.json();
+        if(!res.ok)throw Error(data.error||"加载失败");
+        if(!data.length){box.textContent="暂无注销申请";return;}
+        box.innerHTML=data.map(record=>{
+            const x=bpmSafeRecord(record),pending=x.status==="pending";
+            return `<div class="card"><h3>${x.username}（#${x.user_id}）</h3><p>状态：${x.status}</p><p>投稿：${x.submission_count} 张；社区帖子：${x.post_count} 条</p><p>申请说明：${x.reason||"未填写"}</p><p>提交时间：${x.requested_at||"—"}</p>${x.decision_note?`<p>处理说明：${x.decision_note}</p>`:""}${pending?`<button onclick="resolveAccountDeletion(${x.id},'approved')">批准审核</button><button onclick="resolveAccountDeletion(${x.id},'rejected')">拒绝申请</button>`:""}</div>`;
+        }).join("");
+    }catch(error){box.textContent=`加载失败：${error.message}`;}
+}
+
+async function resolveAccountDeletion(id,decision){
+    const label=decision==="approved"?"批准":"拒绝";
+    const decision_note=prompt(`可填写${label}说明（将展示给用户，可留空）：`);
+    if(decision_note===null)return;
+    try{
+        const res=await fetch(`${API}/api/sa/account-deletion-requests/resolve`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,request_id:id,decision,decision_note})});
+        const data=await res.json();
+        if(!res.ok)throw Error(data.error||"处理失败");
+        showToast(`注销申请已${label}`);loadAccountDeletionRequests();
+    }catch(error){showToast(error.message||"处理失败");}
+}
+
 
 
 
@@ -732,6 +763,8 @@ loadAppeals();
 loadAdminRequests();
 
 loadUsers();
+
+loadAccountDeletionRequests();
 
 
 // ==========================

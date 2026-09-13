@@ -75,6 +75,25 @@
 
 </section>
 
+<section class="account-card account-danger-card">
+
+<h2>注销账户</h2>
+
+<p>注销申请不会立刻删除任何资料。提交前请先下载数据副本；SA 审核通过后，站方会在执行删除前进行最终确认。已提交的申请可在执行前取消。</p>
+
+<p id="deletionRequestStatus" role="status">正在检查注销申请状态…</p>
+
+<label for="deletionReason">申请说明（可选）</label>
+<textarea id="deletionReason" maxlength="500" placeholder="例如：不再使用此账户"></textarea>
+
+<label for="deletionPassword">当前密码</label>
+<input id="deletionPassword" type="password" autocomplete="current-password" placeholder="提交申请时需要确认">
+
+<button id="requestDeletion" class="account-danger-button" type="button">提交注销申请</button>
+<button id="cancelDeletion" type="button" hidden>取消注销申请</button>
+
+</section>
+
 
 
 
@@ -387,7 +406,7 @@ data-password="confirmPassword"
 
 <script src="password-toggle.js"></script>
 
-<script src="account.js"></script>
+<script src="account.js?v=20260913"></script>
 
 
 </body>

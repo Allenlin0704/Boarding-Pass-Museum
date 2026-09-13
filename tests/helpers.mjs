@@ -14,7 +14,7 @@ export function fixture() {
   db.exec(`CREATE TABLE community_posts(id INTEGER PRIMARY KEY,user_id INTEGER,title TEXT,content TEXT,status TEXT DEFAULT 'visible',created_at TEXT DEFAULT CURRENT_TIMESTAMP,moderation_reason TEXT);
     CREATE TABLE community_likes(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER);
     CREATE TABLE community_comments(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
-  for(const file of ['0003_security.sql','0004_progress_community.sql','0005_moderation_appeals.sql','0006_password_reset_required.sql','0007_sa_security.sql']) db.exec(readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8'));
+  for(const file of ['0003_security.sql','0004_progress_community.sql','0005_moderation_appeals.sql','0006_password_reset_required.sql','0007_sa_security.sql','0008_account_deletion_requests.sql']) db.exec(readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8'));
   for(const id of [1,2,3,4,5]) db.prepare("INSERT INTO auth_sessions VALUES(?,?,datetime('now','+1 day'))").run(createHash('sha256').update(String(id).repeat(64)).digest('hex'),id);
   const env = { TURNSTILE_TEST_BYPASS:true, SA_SECURITY_TEST_BYPASS:true, DB: { async batch(statements) { db.exec('BEGIN'); try {const results=[];for(const stmt of statements) results.push(await stmt.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;} }, prepare(sql) {
     let args = [];
