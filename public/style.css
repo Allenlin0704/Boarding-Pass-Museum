@@ -3362,30 +3362,6 @@ textarea::placeholder {
     color: var(--bpm-muted);
 }
 
-.community-post-modal {
-    background: var(--bpm-card);
-    color: var(--bpm-text);
-    border-color: var(--bpm-border);
-}
-
-.community-post-modal input,
-.community-post-modal textarea {
-    background: var(--bpm-input);
-    color: var(--bpm-text);
-    border-color: var(--bpm-border);
-}
-
-.community-post-modal-actions button {
-    background: var(--bpm-input);
-    color: var(--bpm-text);
-    border-color: var(--bpm-border);
-}
-
-.community-post-modal-actions button:last-child {
-    background: var(--bpm-text);
-    color: var(--bpm-bg);
-}
-
 /* Footer */
 
 .bpm-footer {
@@ -3406,18 +3382,6 @@ textarea::placeholder {
 
 html:not(.light-theme) .bpm-footer a {
     color: #69b7ff;
-}
-
-/* 弹窗遮罩 */
-
-.community-post-overlay {
-    background: rgba(0, 0, 0, .55);
-}
-
-/* 浅色模式 */
-
-html.light-theme .community-post-overlay {
-    background: rgba(0, 0, 0, .35);
 }
 
 /* Theme 按钮 */
