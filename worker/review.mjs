@@ -2,7 +2,7 @@ import { isSA, isAdmin, reply } from './security.mjs';
 export async function reviewRoute(request,env,url,user) {
   const path=url.pathname;
   if(request.method==='GET'&&/^\/api\/flight\/\d+$/.test(path)) {
-    const flight=await env.DB.prepare('SELECT flights.*,users.username FROM flights LEFT JOIN users ON users.id=flights.user_id WHERE flights.id=?').bind(Number(path.split('/').pop())).first();
+    const flight=await env.DB.prepare("SELECT flights.*,CASE WHEN users.deleted_at IS NOT NULL THEN '账号已注销' ELSE users.username END AS username FROM flights LEFT JOIN users ON users.id=flights.user_id WHERE flights.id=?").bind(Number(path.split('/').pop())).first();
     if(!flight || (flight.status!=='approved' && !isSA(user) && Number(user?.id)!==Number(flight.user_id) && !(isAdmin(user)&&Number(flight.reviewer_id)===Number(user.id)))) return reply({error:'展品不存在'},404);
     return reply(flight);
   }
