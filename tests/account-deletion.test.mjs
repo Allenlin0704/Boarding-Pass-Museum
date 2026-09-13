@@ -23,6 +23,7 @@ test('scheduled deletion anonymizes account data but preserves exhibits',async()
   await worker.scheduled({},env);
   const deleted=db.prepare('SELECT * FROM users WHERE id=3').get();
   assert.equal(deleted.username,'账号已注销');assert.ok(deleted.deleted_at);assert.equal(deleted.bio,null);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM auth_sessions WHERE user_id=3').get().n,0);
   assert.ok(db.prepare('SELECT * FROM flights WHERE user_id=3').get());
   assert.ok(db.prepare('SELECT finalized_at FROM account_deletion_requests WHERE user_id=3').get().finalized_at);
   const publicFlight=await worker.fetch(new Request('https://test.invalid/api/flight/13'),env);

@@ -2500,14 +2500,15 @@ export default {
     await env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare('DELETE FROM auth_limits WHERE bucket<?').bind(Math.floor(Date.now()/1000)-86400).run();
-    const due=await env.DB.prepare("UPDATE account_deletion_requests SET finalized_at=CURRENT_TIMESTAMP WHERE status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now') RETURNING user_id").all();
+    const due=await env.DB.prepare("SELECT id,user_id FROM account_deletion_requests WHERE status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now')").all();
     for(const request of due.results) {
       const id=Number(request.user_id);
       if(id===1) continue;
       await env.DB.batch([
         env.DB.prepare("UPDATE users SET username='账号已注销',email=?,password='deleted-account',role='user',avatar=NULL,bio=NULL,social_media=NULL,equipment=NULL,favorite_airlines=NULL,favorite_airports=NULL,deleted_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL").bind(`deleted-${id}@bpmuseum.invalid`,id),
         env.DB.prepare('DELETE FROM auth_sessions WHERE user_id=?').bind(id),
-        env.DB.prepare('DELETE FROM auth_codes WHERE user_id=?').bind(id)
+        env.DB.prepare('DELETE FROM auth_codes WHERE user_id=?').bind(id),
+        env.DB.prepare("UPDATE account_deletion_requests SET finalized_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now') AND EXISTS(SELECT 1 FROM users WHERE id=? AND deleted_at IS NOT NULL)").bind(Number(request.id),id)
       ]);
     }
   }
