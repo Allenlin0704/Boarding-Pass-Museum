@@ -2665,7 +2665,7 @@ transform:translateY(-2px);
 
 }
 
-.oauth-actions{margin-top:18px}.oauth-actions button{width:100%}.oauth-actions button+button{margin-top:10px}.oauth-divider{display:flex;align-items:center;gap:12px;color:var(--bpm-muted);font-size:14px}.oauth-divider::before,.oauth-divider::after{content:"";height:1px;flex:1;background:currentColor;opacity:.3}.oauth-actions [data-provider="apple"]{background:#111;color:#fff}.oauth-actions [data-provider="microsoft"]{background:#f3f3f3;color:#171717;border:1px solid #aaa}.oauth-actions button:disabled{opacity:.65;cursor:default;transform:none}
+.oauth-actions{margin-top:18px}.oauth-actions button{width:100%}.oauth-actions button+button{margin-top:10px}.oauth-divider{display:flex;align-items:center;gap:12px;color:var(--bpm-muted);font-size:14px}.oauth-divider::before,.oauth-divider::after{content:"";height:1px;flex:1;background:currentColor;opacity:.3}.oauth-actions [data-provider="apple"],.oauth-actions [data-provider="github"]{background:#111;color:#fff}.oauth-actions [data-provider="microsoft"]{background:#f3f3f3;color:#171717;border:1px solid #aaa}.oauth-actions button:disabled{opacity:.65;cursor:default;transform:none}
 
 .account-data-card p{
 

@@ -12,10 +12,11 @@ const digest=async value=>new Uint8Array(await crypto.subtle.digest('SHA-256',en
 const hash=async value=>Array.from(await digest(value),b=>b.toString(16).padStart(2,'0')).join('');
 const configured=(env,provider)=>provider==='microsoft'
   ?Boolean(env.MICROSOFT_CLIENT_ID&&env.MICROSOFT_CLIENT_SECRET)
+  :provider==='github'?Boolean(env.GITHUB_CLIENT_ID&&env.GITHUB_CLIENT_SECRET)
   :Boolean(env.APPLE_CLIENT_ID&&env.APPLE_TEAM_ID&&env.APPLE_KEY_ID&&env.APPLE_PRIVATE_KEY);
 const callback=provider=>`${API}/api/oauth/${provider}/callback`;
 const formPost=(url,body)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams(body),signal:AbortSignal.timeout(12000)});
-const safeName=(name,email,provider)=>String(name||email?.split('@')[0]||`${provider==='apple'?'Apple':'Microsoft'} 用户`).trim().slice(0,40)||'新用户';
+const safeName=(name,email,provider)=>String(name||email?.split('@')[0]||`${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 用户`).trim().slice(0,40)||'新用户';
 const resultRedirect=(error='')=>new Response(null,{status:302,headers:{Location:`${SITE}/oauth-complete.html${error?`?error=${encodeURIComponent(error)}`:''}`}});
 const sessionResponse=async(env,user)=>{
   const token=randomHex(32);
@@ -51,6 +52,17 @@ async function verifyAppleToken(token,env,expectedNonce){
 }
 
 async function providerIdentity(provider,code,saved,env){
+  if(provider==='github'){
+    const response=await formPost('https://github.com/login/oauth/access_token',{client_id:env.GITHUB_CLIENT_ID,client_secret:env.GITHUB_CLIENT_SECRET,code,redirect_uri:callback(provider),code_verifier:saved.code_verifier});
+    const tokens=await response.json();
+    if(!response.ok||!tokens.access_token)throw Error('GitHub 登录授权失败');
+    const headers={Authorization:`Bearer ${tokens.access_token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'BoardingPassMuseum'};
+    const [profileResponse,emailResponse]=await Promise.all([fetch('https://api.github.com/user',{headers,signal:AbortSignal.timeout(12000)}),fetch('https://api.github.com/user/emails',{headers,signal:AbortSignal.timeout(12000)})]);
+    const profile=await profileResponse.json(),emails=await emailResponse.json();
+    if(!profileResponse.ok||!emailResponse.ok||!profile.id||!Array.isArray(emails))throw Error('无法读取 GitHub 账户资料');
+    const email=emails.find(item=>item.primary&&item.verified)?.email||emails.find(item=>item.verified)?.email||'';
+    return {subject:String(profile.id),email:String(email).trim().toLowerCase(),name:profile.name||profile.login};
+  }
   if(provider==='microsoft'){
     const response=await formPost('https://login.microsoftonline.com/common/oauth2/v2.0/token',{client_id:env.MICROSOFT_CLIENT_ID,client_secret:env.MICROSOFT_CLIENT_SECRET,code,redirect_uri:callback(provider),grant_type:'authorization_code',code_verifier:saved.code_verifier});
     const tokens=await response.json();
@@ -81,7 +93,7 @@ async function finish(provider,body,env){
       if(!account)return resultRedirect('账户已失效，请重新登录');
       if(linked&&Number(linked.id)!==Number(account.id))return resultRedirect('这个第三方账户已绑定其他用户');
       const own=await env.DB.prepare('SELECT subject FROM oauth_identities WHERE user_id=? AND provider=?').bind(account.id,provider).first();
-      if(own&&own.subject!==identity.subject)return resultRedirect(`请先解绑原有的 ${provider==='apple'?'Apple':'Microsoft'} 账户`);
+      if(own&&own.subject!==identity.subject)return resultRedirect(`请先解绑原有的 ${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 账户`);
       await env.DB.prepare("INSERT INTO oauth_identities(user_id,provider,subject,email_at_link,last_used_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(provider,subject) DO UPDATE SET last_used_at=CURRENT_TIMESTAMP,email_at_link=excluded.email_at_link").bind(account.id,provider,identity.subject,identity.email||null).run();
       return sessionResponse(env,account);
     }
@@ -102,11 +114,11 @@ async function finish(provider,body,env){
 export async function oauthRoute(request,env,url,user){
   if(!url.pathname.startsWith('/api/oauth/'))return null;
   if(url.pathname==='/api/oauth/providers'&&request.method==='GET'){
-    const providers={apple:configured(env,'apple'),microsoft:configured(env,'microsoft')};
+    const providers={apple:configured(env,'apple'),microsoft:configured(env,'microsoft'),github:configured(env,'github')};
     if(user){const rows=await env.DB.prepare('SELECT provider FROM oauth_identities WHERE user_id=?').bind(user.id).all();providers.linked=rows.results.map(row=>row.provider);}
     return reply(providers);
   }
-  const match=url.pathname.match(/^\/api\/oauth\/(apple|microsoft)\/(start|callback)$/);
+  const match=url.pathname.match(/^\/api\/oauth\/(apple|microsoft|github)\/(start|callback)$/);
   if(!match)return reply({error:'请求不存在'},404);
   const [,provider,action]=match;
   if(action==='callback'){
@@ -122,7 +134,10 @@ export async function oauthRoute(request,env,url,user){
   await env.DB.prepare("DELETE FROM oauth_authorizations WHERE expires_at<=datetime('now')").run();
   await env.DB.prepare("INSERT INTO oauth_authorizations(state_hash,provider,code_verifier,nonce,user_id,expires_at) VALUES(?,?,?,?,?,datetime('now','+5 minutes'))").bind(await hash(state),provider,verifier,nonce,linking?user.id:null).run();
   let authorize;
-  if(provider==='microsoft'){
+  if(provider==='github'){
+    authorize=new URL('https://github.com/login/oauth/authorize');
+    Object.entries({client_id:env.GITHUB_CLIENT_ID,redirect_uri:callback(provider),scope:'read:user user:email',state,code_challenge:b64url(await digest(verifier)),code_challenge_method:'S256',prompt:'select_account'}).forEach(([key,value])=>authorize.searchParams.set(key,value));
+  }else if(provider==='microsoft'){
     authorize=new URL('https://login.microsoftonline.com/common/oauth2/v2.0/authorize');
     Object.entries({client_id:env.MICROSOFT_CLIENT_ID,response_type:'code',redirect_uri:callback(provider),response_mode:'query',scope:'openid profile email',state,nonce,code_challenge:b64url(await digest(verifier)),code_challenge_method:'S256',prompt:'select_account'}).forEach(([key,value])=>authorize.searchParams.set(key,value));
   }else{
