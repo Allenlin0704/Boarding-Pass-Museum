@@ -1,6 +1,7 @@
 import { communityRoute } from "./community.mjs";
 import { progressRoute, progressFor } from "./progress.mjs";
 import { wechatRoute } from "./wechat.mjs";
+import { userPasskeyRoute } from "./user-passkey.mjs";
 import { reviewRoute } from "./review.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
@@ -2451,6 +2452,8 @@ export default {
       request=auth.request;
       const turnstile=await verifyTurnstile(request,env,url);
       if(turnstile)return responseHeaders(original,turnstile);
+      const userPasskey=await userPasskeyRoute(request.clone(),env,url,auth.user);
+      if(userPasskey)return responseHeaders(original,userPasskey);
       const saSecurity=await saSecurityRoute(request.clone(),env,url,auth.user);
       if(saSecurity)return responseHeaders(original,saSecurity);
       const saStepup=await requireSAStepup(request,env,auth.user,url);

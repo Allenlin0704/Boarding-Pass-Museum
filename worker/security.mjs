@@ -1,6 +1,6 @@
-const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/wechat']);
+const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/wechat']);
 const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
-const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
 export const isAdmin = user => user?.role==='administrator' || isSA(user);
 export const reply = (body,status=200) => Response.json(body,{status});
