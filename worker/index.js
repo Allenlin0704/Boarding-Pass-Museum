@@ -2,6 +2,7 @@ import { communityRoute } from "./community.mjs";
 import { progressRoute, progressFor } from "./progress.mjs";
 import { wechatRoute } from "./wechat.mjs";
 import { userPasskeyRoute } from "./user-passkey.mjs";
+import { oauthRoute } from "./oauth.mjs";
 import { reviewRoute } from "./review.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
@@ -2436,11 +2437,11 @@ export default {
       if (request.method === "OPTIONS") return responseHeaders(original, new Response(null,{status:204}));
       if (!["GET", "HEAD"].includes(request.method)) {
         const origin=request.headers.get("Origin");
-        if (origin && !["https://bpmuseum.org.cn","https://www.bpmuseum.org.cn","http://localhost:3000","http://127.0.0.1:3000"].includes(origin)) {
+        if (origin && !["https://bpmuseum.org.cn","https://www.bpmuseum.org.cn","http://localhost:3000","http://127.0.0.1:3000"].includes(origin) && url.pathname!=='/api/oauth/apple/callback') {
           return responseHeaders(original,reply({error:"来源不受信任"},403));
         }
         const type=request.headers.get("Content-Type")||"";
-        if (!type.includes("application/json") && !(url.pathname==="/api/upload-image"&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml'))) {
+        if (!type.includes("application/json") && !(url.pathname==="/api/upload-image"&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml')) && !(url.pathname==='/api/oauth/apple/callback'&&type.includes('application/x-www-form-urlencoded'))) {
           return responseHeaders(original,reply({error:"请求格式不支持"},415));
         }
       }
@@ -2452,6 +2453,8 @@ export default {
       request=auth.request;
       const turnstile=await verifyTurnstile(request,env,url);
       if(turnstile)return responseHeaders(original,turnstile);
+      const oauth=await oauthRoute(request.clone(),env,url,auth.user);
+      if(oauth)return responseHeaders(original,oauth);
       const userPasskey=await userPasskeyRoute(request.clone(),env,url,auth.user);
       if(userPasskey)return responseHeaders(original,userPasskey);
       const saSecurity=await saSecurityRoute(request.clone(),env,url,auth.user);

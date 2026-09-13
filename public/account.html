@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=4"></script>
+<script src="security.js?v=5"></script>
 
 <meta charset="UTF-8">
 
@@ -10,7 +10,7 @@
 
 <title>账户设置 - BoardingPassMuseum</title>
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260913">
 
     <script src="theme.js"></script>
 </head>
@@ -66,6 +66,8 @@
 </section>
 
 <section class="account-card"><h2>Passkey 登录</h2><p>使用设备的指纹、面容或屏幕锁定方式登录。添加 Passkey 时需要当前密码确认。</p><label for="userPasskeyPassword">当前密码</label><input id="userPasskeyPassword" type="password" autocomplete="current-password"><button id="addUserPasskey" type="button">添加这台设备的 Passkey</button><p id="userPasskeyMessage" role="status"></p><div id="userPasskeyList"></div></section>
+
+<section class="account-card oauth-actions" data-oauth="link" hidden><h2>第三方账户</h2><p>绑定后可直接使用对应账户登录。每个平台只能绑定一个账户。</p><button type="button" data-provider="apple" hidden>绑定 Apple</button><button type="button" data-provider="microsoft" hidden>绑定 Microsoft</button></section>
 
 <section class="account-card account-data-card">
 
@@ -410,6 +412,7 @@ data-password="confirmPassword"
 
 <script src="account.js?v=20260913"></script>
 <script src="user-passkey.js?v=1"></script>
+<script src="oauth.js?v=1"></script>
 
 
 </body>
