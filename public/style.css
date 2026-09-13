@@ -3292,8 +3292,8 @@ margin-top:10px;
 
 :root {
     --bpm-bg: #111111;
-    --bpm-text: #eeeeee;
-    --bpm-muted: #aaaaaa;
+    --bpm-text: #ffffff;
+    --bpm-muted: #c6c6c8;
     --bpm-card: #1c1c1e;
     --bpm-input: #18181a;
     --bpm-border: #333333;
@@ -3302,8 +3302,8 @@ margin-top:10px;
 
 html.light-theme {
     --bpm-bg: #f5f5f7;
-    --bpm-text: #1d1d1f;
-    --bpm-muted: #6e6e73;
+    --bpm-text: #000000;
+    --bpm-muted: #4b4b50;
     --bpm-card: #ffffff;
     --bpm-input: #ffffff;
     --bpm-border: #d2d2d7;
@@ -3314,6 +3314,21 @@ html,
 body {
     background: var(--bpm-bg);
     color: var(--bpm-text);
+}
+
+html{color-scheme:dark;}
+html.light-theme{color-scheme:light;}
+
+/* Legacy pages used several fixed greys. Keep readable text tied to the
+   current theme rather than allowing dark text to disappear on dark cards. */
+.detail-card p,.profile-info p,.gallery-desc,.account-data-card p,.account-danger-card p,
+.community-notice,.community-post-meta,.community-post-rule,.museum-result-count{
+    color:var(--bpm-muted);
+}
+
+.detail-card h1,.profile-card h1,.profile-card h2,.account-card h2,.community-post h2,
+.community-comment h3,.admin-card h2,.sa-panel h2{
+    color:var(--bpm-text);
 }
 
 header {

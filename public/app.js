@@ -122,8 +122,8 @@ function applyMuseumFilter(){
 
   const resultCount=document.getElementById("museumResultCount");
   if(resultCount)resultCount.textContent=keyword||airline||airport||year
-    ? `找到 ${displayFlights.length} 件匹配展品`
-    : `共 ${displayFlights.length} 件展品`;
+    ? (window.BPM_LANGUAGE==="en"?`${displayFlights.length} matching exhibits`:`找到 ${displayFlights.length} 件匹配展品`)
+    : (window.BPM_LANGUAGE==="en"?`${displayFlights.length} exhibits`:`共 ${displayFlights.length} 件展品`);
 
 
   const sort =
@@ -262,7 +262,7 @@ function renderMuseum() {
 
     museum.innerHTML = `
       <p class="museum-empty">
-        暂无展品
+        ${window.BPM_LANGUAGE==="en"?"No exhibits yet":"暂无展品"}
       </p>
     `;
 
@@ -271,7 +271,7 @@ function renderMuseum() {
   }
 
   if(displayFlights.length===0){
-    museum.innerHTML='<p class="museum-empty">没有符合当前筛选条件的展品。请调整关键词或清除筛选后再试。</p>';
+    museum.innerHTML=`<p class="museum-empty">${window.BPM_LANGUAGE==="en"?"No exhibits match these filters. Adjust your search or clear the filters.":"没有符合当前筛选条件的展品。请调整关键词或清除筛选后再试。"}</p>`;
     return;
   }
 

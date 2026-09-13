@@ -28,6 +28,22 @@ function updateNavbar(){
 
     const header = nav.closest(".menubar");
 
+    function localizeNavigation(){
+        if(window.BPM_LANGUAGE!=="en")return;
+        const labels={
+            "index.html":"Gallery","submit.html":"Submit","community.html":"Community",
+            "my.html":"My submissions","favorites.html":"Favorites","admin.html":"Management center",
+            "login.html":"Log in","register.html":"Sign up","notifications.html":"Notifications & appeals",
+            "account.html":"Account settings"
+        };
+        nav.querySelectorAll("a[href]").forEach(link=>{
+            const label=labels[link.getAttribute("href")];
+            if(label)link.textContent=label;
+        });
+        const update=nav.querySelector("#checkUpdate");if(update)update.textContent="Check for updates";
+        const logout=nav.querySelector("#logout");if(logout)logout.textContent="Log out";
+    }
+
     function setupMobileNavigation(){
 
         if(!header) return;
@@ -114,6 +130,7 @@ function updateNavbar(){
 
         `;
 
+        localizeNavigation();
         setupMobileNavigation();
 
 
@@ -189,6 +206,8 @@ function updateNavbar(){
 
 
         `;
+
+        localizeNavigation();
 
         const userMenu=nav.querySelector(".user-menu");
 

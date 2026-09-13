@@ -1,5 +1,26 @@
 (function () {
 
+    const translations={
+        en:{
+            "nav.gallery":"Gallery","nav.submit":"Submit","nav.community":"Community","nav.my":"My submissions","nav.favorites":"Favorites","nav.admin":"Admin","nav.login":"Log in","nav.register":"Sign up","nav.account":"Account settings","nav.notifications":"Notifications & appeals","nav.manager":"Management center","nav.logout":"Log out","nav.update":"Check for updates",
+            "home.title":"A museum for boarding passes","home.tagline":"Every pass holds a departure, a route, and a memory.","home.enter":"Explore the gallery","home.latest":"Latest exhibits","home.search":"Search flight, airline or airport…","home.sort.latest":"Latest uploads","home.sort.favorite":"Most saved","home.sort.hot":"Trending today","home.airline":"All airlines","home.airport":"All airports","home.year":"All years","home.reset":"Clear filters","home.description":"Browse boarding passes and the journeys behind them.",
+            "community.title":"Community","community.tagline":"A place for aviation enthusiasts.","community.publish":"Create a post","community.sort":"Sort","community.latest":"Latest","community.hot":"Popular","community.notice":"Please use the posting feature responsibly. Administrators may hide content that violates the rules.",
+            "footer.tagline":"A digital collection of journeys preserved on boarding passes.","footer.about":"About","footer.privacy":"Privacy","footer.rules":"Submission rules","footer.communityRules":"Community rules",
+            "submit.back":"Back to community","submit.title":"Create a community post","submit.intro":"Share boarding-pass collections, aviation travel and airport stories.","submit.postTitle":"Title","submit.content":"Post","submit.image":"Image (optional)","submit.publish":"Read the rules and publish"
+        },
+        zh:{}
+    };
+    const queryLanguage=new URLSearchParams(location.search).get("lang");
+    const savedLanguage=queryLanguage||localStorage.getItem("bpm-language")||"zh";
+    const language=savedLanguage==="en"?"en":"zh";
+    window.BPM_LANGUAGE=language;
+    window.bpmT=(key,fallback)=>translations[language]?.[key]||fallback;
+    function applyLanguage(){
+        document.documentElement.lang=language==="en"?"en":"zh-CN";
+        document.querySelectorAll("[data-i18n]").forEach(element=>{element.textContent=window.bpmT(element.dataset.i18n,element.textContent);});
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(element=>{element.placeholder=window.bpmT(element.dataset.i18nPlaceholder,element.placeholder);});
+    }
+
     const pwaScript = document.createElement("script");
     pwaScript.src = "pwa.js?v=3";
     pwaScript.defer = true;
@@ -108,6 +129,20 @@
 
     }
 
+    function addLanguageToggle(){
+        const nav=document.querySelector(".menubar nav");
+        if(!nav||document.getElementById("languageToggle"))return;
+        const button=document.createElement("button");
+        button.id="languageToggle";
+        button.className="theme-toggle language-toggle";
+        button.type="button";
+        button.textContent=language==="en"?"中文":"EN";
+        button.title=language==="en"?"切换至中文":"Switch to English";
+        button.setAttribute("aria-label",button.title);
+        button.onclick=()=>{localStorage.setItem("bpm-language",language==="en"?"zh":"en");location.reload();};
+        nav.appendChild(button);
+    }
+
     function addFooter() {
 
         if (document.querySelector(".bpm-footer")) return;
@@ -127,12 +162,14 @@
 
         document.addEventListener(
             "DOMContentLoaded",
-            () => { addToggle(); addFooter(); }
+            () => { applyLanguage(); addToggle(); addLanguageToggle(); addFooter(); }
         );
 
     } else {
 
+        applyLanguage();
         addToggle();
+        addLanguageToggle();
         addFooter();
 
     }

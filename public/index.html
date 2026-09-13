@@ -84,13 +84,12 @@ Admin
 
 
   <p>
-    记录每一次起飞，
-    保存每一段旅程留下的痕迹。
+    <span data-i18n="home.tagline">记录每一次起飞，保存每一段旅程留下的痕迹。</span>
   </p>
 
 
   <a href="#museum" class="enter-btn">
-    进入展厅
+    <span data-i18n="home.enter">进入展厅</span>
   </a>
 
 
@@ -100,45 +99,40 @@ Admin
 
 <section class="gallery">
 
-<h2>最新展品</h2>
+<h2 data-i18n="home.latest">最新展品</h2>
 
   <div class="search-box" role="search" aria-label="搜索展品">
 
 <input
 id="museumSearch"
 placeholder="搜索航班、航司、机场..."
+data-i18n-placeholder="home.search"
 >
 
 
 <select id="museumSort">
 
-<option value="latest">
-最新上传
-</option>
+<option value="latest" data-i18n="home.sort.latest">最新上传</option>
 
-<option value="favorite">
-最高收藏量
-</option>
+<option value="favorite" data-i18n="home.sort.favorite">最高收藏量</option>
 
-<option value="hot">
-今日热点
-</option>
+<option value="hot" data-i18n="home.sort.hot">今日热点</option>
 
 </select>
 
 <select id="museumAirline" aria-label="按航空公司筛选">
-<option value="">全部航空公司</option>
+<option value="" data-i18n="home.airline">全部航空公司</option>
 </select>
 
 <select id="museumAirport" aria-label="按机场筛选">
-<option value="">全部机场</option>
+<option value="" data-i18n="home.airport">全部机场</option>
 </select>
 
 <select id="museumYear" aria-label="按年份筛选">
-<option value="">全部年份</option>
+<option value="" data-i18n="home.year">全部年份</option>
 </select>
 
-<button type="button" id="museumReset">清除筛选</button>
+<button type="button" id="museumReset" data-i18n="home.reset">清除筛选</button>
 
 
 </div>
@@ -147,7 +141,7 @@ placeholder="搜索航班、航司、机场..."
 
 
 <p class="gallery-desc">
-  浏览收藏者上传的珍贵飞行记录
+  <span data-i18n="home.description">浏览收藏者上传的珍贵飞行记录</span>
 </p>
 
 
