@@ -59,7 +59,7 @@ export async function sessionUser(request,env) {
   const token=request.headers.get('Cookie')?.match(/(?:^|;\s*)bpm_session=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(!token) return null;
   return env.DB.prepare(`SELECT users.* FROM auth_sessions JOIN users ON users.id=auth_sessions.user_id
-    WHERE token_hash=? AND expires_at>datetime('now')`).bind(await sha(token)).first();
+    WHERE token_hash=? AND expires_at>datetime('now') AND users.deleted_at IS NULL`).bind(await sha(token)).first();
 }
 export async function sessionTokenHash(request) {
   const token=request.headers.get('Cookie')?.match(/(?:^|;\s*)bpm_session=([a-f0-9]{64})(?:;|$)/)?.[1];
@@ -103,7 +103,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
   if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user'}):reply({error:'请重新登录'},401);
   if(path==='/api/account/deletion-request'&&request.method==='GET') {
     if(!user) return reply({error:'请重新登录'},401);
-    const requestRow=await env.DB.prepare('SELECT id,reason,status,requested_at,resolved_at,decision_note FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
+    const requestRow=await env.DB.prepare('SELECT id,reason,status,requested_at,execute_at,finalized_at FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
     return reply({request:requestRow||null});
   }
   if(path==='/api/account/deletion-request'&&request.method==='POST') {
@@ -114,34 +114,24 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     const reason=String(body.reason||'').trim();
     if(reason.length>500) return reply({error:'申请说明不能超过 500 个字符'},400);
     const existing=await env.DB.prepare('SELECT status FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
-    if(existing&&['pending','approved'].includes(existing.status)) return reply({error:'你已有一条正在处理的注销申请'},409);
-    if(existing) await env.DB.prepare("UPDATE account_deletion_requests SET reason=?,status='pending',requested_at=CURRENT_TIMESTAMP,resolved_at=NULL,reviewer_id=NULL,decision_note=NULL WHERE user_id=?").bind(reason,user.id).run();
-    else await env.DB.prepare("INSERT INTO account_deletion_requests(user_id,reason,status) VALUES(?,?,'pending')").bind(user.id,reason).run();
-    return reply({success:true});
+    if(existing&&existing.status==='pending') return reply({error:'你已有一条正在处理的注销申请'},409);
+    if(existing) await env.DB.prepare("UPDATE account_deletion_requests SET reason=?,status='pending',requested_at=CURRENT_TIMESTAMP,execute_at=datetime('now','+48 hours'),finalized_at=NULL,resolved_at=NULL,reviewer_id=NULL,decision_note=NULL WHERE user_id=?").bind(reason,user.id).run();
+    else await env.DB.prepare("INSERT INTO account_deletion_requests(user_id,reason,status,execute_at) VALUES(?,?,'pending',datetime('now','+48 hours'))").bind(user.id,reason).run();
+    return reply({success:true,execute_at:new Date(Date.now()+48*60*60*1000).toISOString()});
   }
   if(path==='/api/account/deletion-request/cancel'&&request.method==='POST') {
     if(!user) return reply({error:'请重新登录'},401);
-    const changed=await env.DB.prepare("UPDATE account_deletion_requests SET status='cancelled',resolved_at=CURRENT_TIMESTAMP,decision_note='用户已取消申请' WHERE user_id=? AND status IN ('pending','approved')").bind(user.id).run();
+    const changed=await env.DB.prepare("UPDATE account_deletion_requests SET status='cancelled',resolved_at=CURRENT_TIMESTAMP,decision_note='用户已取消申请' WHERE user_id=? AND status='pending' AND finalized_at IS NULL").bind(user.id).run();
     if(!changed.meta.changes) return reply({error:'没有可取消的注销申请'},400);
     return reply({success:true});
   }
   if(path==='/api/sa/account-deletion-requests'&&request.method==='GET') {
     if(!isSA(user)) return reply({error:'No permission'},403);
-    const rows=await env.DB.prepare(`SELECT r.id,r.user_id,r.reason,r.status,r.requested_at,r.resolved_at,r.decision_note,u.username,u.email,u.role,
+    const rows=await env.DB.prepare(`SELECT r.id,r.user_id,r.reason,r.status,r.requested_at,r.execute_at,r.finalized_at,u.username,u.role,
       (SELECT COUNT(*) FROM flights f WHERE f.user_id=r.user_id) AS submission_count,
       (SELECT COUNT(*) FROM community_posts p WHERE p.user_id=r.user_id) AS post_count
-      FROM account_deletion_requests r JOIN users u ON u.id=r.user_id ORDER BY CASE r.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,r.requested_at ASC`).all();
+      FROM account_deletion_requests r JOIN users u ON u.id=r.user_id ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END,r.requested_at ASC`).all();
     return reply(rows.results);
-  }
-  if(path==='/api/sa/account-deletion-requests/resolve'&&request.method==='POST') {
-    if(!isSA(user)) return reply({error:'No permission'},403);
-    const body=await request.json(),id=Number(body.request_id),decision=String(body.decision||'');
-    if(!Number.isInteger(id)||id<1||!['approved','rejected'].includes(decision)) return reply({error:'请求参数错误'},400);
-    const note=String(body.decision_note||'').trim();
-    if(note.length>500) return reply({error:'处理说明不能超过 500 个字符'},400);
-    const changed=await env.DB.prepare("UPDATE account_deletion_requests SET status=?,resolved_at=CURRENT_TIMESTAMP,reviewer_id=?,decision_note=? WHERE id=? AND status='pending'").bind(decision,user.id,note,id).run();
-    if(!changed.meta.changes) return reply({error:'申请不存在或已处理'},404);
-    return reply({success:true});
   }
   if(path==='/api/account/export'&&request.method==='GET') {
     if(!user) return reply({error:'请重新登录'},401);
@@ -160,7 +150,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
       env.DB.prepare('SELECT code,awarded_at FROM user_achievements WHERE user_id=? ORDER BY awarded_at').bind(id).all(),
       env.DB.prepare('SELECT amount,reason,created_at FROM level_adjustments WHERE user_id=? ORDER BY id').bind(id).all(),
       env.DB.prepare('SELECT content,created_at,read_at FROM notifications WHERE user_id=? ORDER BY id').bind(id).all(),
-      env.DB.prepare('SELECT reason,status,requested_at,resolved_at,decision_note FROM account_deletion_requests WHERE user_id=?').bind(id).first()
+      env.DB.prepare('SELECT reason,status,requested_at,execute_at,finalized_at FROM account_deletion_requests WHERE user_id=?').bind(id).first()
     ]);
     return reply({
       exported_at:new Date().toISOString(),
@@ -189,7 +179,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
   if(await limited(env,`${path}:${ip}`,path.includes('send-code')?8:30,600)) return reply({error:'操作过于频繁，请稍后再试'},429);
   if(path==='/api/login') {
     if(await limited(env,`login:${email}`,15,900)) return reply({error:'登录尝试过多，请稍后再试'},429);
-    const found=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=?').bind(email).first();
+    const found=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
     if(!found || !await passwordMatches(body.password,found.password)) return reply({error:'账号或密码错误'},401);
     if(found.must_reset_password)return reply({error:'账户安全升级：请通过邮箱重设一个新密码后再登录'},403);
     if(!found.password.startsWith('pbkdf2$')) await env.DB.prepare('UPDATE users SET password=? WHERE id=?').bind(await passwordHash(body.password),found.id).run();

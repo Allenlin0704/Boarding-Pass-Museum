@@ -18,19 +18,19 @@ export async function communityRoute(request,env,url,user) {
     const filters=["p.deleted_at IS NULL"];
     if(!sa&&!(personal&&Number(user?.id)===owner)) filters.push("p.status='visible'");
     if(personal) filters.push('p.user_id=?');
-    const statement=env.DB.prepare(`SELECT p.*,u.username,u.avatar,(SELECT COUNT(*) FROM community_likes WHERE post_id=p.id) AS like_count,
+    const statement=env.DB.prepare(`SELECT p.*,CASE WHEN u.deleted_at IS NOT NULL THEN '账号已注销' ELSE u.username END AS username,CASE WHEN u.deleted_at IS NOT NULL THEN NULL ELSE u.avatar END AS avatar,(SELECT COUNT(*) FROM community_likes WHERE post_id=p.id) AS like_count,
       (SELECT COUNT(*) FROM community_comments WHERE post_id=p.id AND status='visible') AS comment_count
       FROM community_posts p JOIN users u ON u.id=p.user_id WHERE ${filters.join(' AND ')} ORDER BY p.created_at DESC LIMIT 100`);
     const result=await (personal?statement.bind(owner):statement).all();
     return reply({success:true,posts:result.results});
   }
   if(method==='GET'&&/^\/api\/community\/posts\/\d+$/.test(path)) {
-    const post=await env.DB.prepare("SELECT p.*,u.username FROM community_posts p JOIN users u ON u.id=p.user_id WHERE p.id=? AND p.deleted_at IS NULL").bind(Number(path.split('/').pop())).first();
+    const post=await env.DB.prepare("SELECT p.*,CASE WHEN u.deleted_at IS NOT NULL THEN '账号已注销' ELSE u.username END AS username FROM community_posts p JOIN users u ON u.id=p.user_id WHERE p.id=? AND p.deleted_at IS NULL").bind(Number(path.split('/').pop())).first();
     if(!post||(post.status!=='visible'&&!isSA(user)&&Number(user?.id)!==post.user_id)) return reply({error:'帖子不存在'},404);
     return reply({success:true,post});
   }
   if(path==='/api/community/comments'&&method==='GET') {
-    const rows=await env.DB.prepare(`SELECT c.*,u.username,u.avatar FROM community_comments c JOIN users u ON u.id=c.user_id JOIN community_posts p ON p.id=c.post_id
+    const rows=await env.DB.prepare(`SELECT c.*,CASE WHEN u.deleted_at IS NOT NULL THEN '账号已注销' ELSE u.username END AS username,CASE WHEN u.deleted_at IS NOT NULL THEN NULL ELSE u.avatar END AS avatar FROM community_comments c JOIN users u ON u.id=c.user_id JOIN community_posts p ON p.id=c.post_id
       WHERE c.post_id=? AND c.status='visible' AND p.status='visible' AND p.deleted_at IS NULL ORDER BY c.created_at`).bind(Number(url.searchParams.get('post_id'))).all();
     return reply({success:true,comments:rows.results});
   }

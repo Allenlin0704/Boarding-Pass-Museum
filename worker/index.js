@@ -245,7 +245,7 @@ await env.DB.prepare(
 `
 SELECT
 id,
-username,
+CASE WHEN deleted_at IS NOT NULL THEN '账号已注销' ELSE username END AS username,
 role,
 avatar,
 bio,
@@ -255,7 +255,7 @@ favorite_airlines,
 favorite_airports,
 created_at
 FROM users
-WHERE id=?
+WHERE id=? AND deleted_at IS NULL
 `
 )
 .bind(id)
@@ -625,8 +625,8 @@ await env.DB.prepare(
 `
 SELECT
 flights.*,
-users.username,
-users.avatar,
+CASE WHEN users.deleted_at IS NOT NULL THEN '账号已注销' ELSE users.username END AS username,
+CASE WHEN users.deleted_at IS NOT NULL THEN NULL ELSE users.avatar END AS avatar,
 COUNT(favorites.id) AS favorite_count
 FROM flights
 
@@ -677,8 +677,8 @@ await env.DB.prepare(
 `
 SELECT
 flights.*,
-users.username,
-users.avatar,
+CASE WHEN users.deleted_at IS NOT NULL THEN '账号已注销' ELSE users.username END AS username,
+CASE WHEN users.deleted_at IS NOT NULL THEN NULL ELSE users.avatar END AS avatar,
 COUNT(favorites.id) AS favorite_count
 FROM flights
 
@@ -727,7 +727,7 @@ await env.DB.prepare(
 `
 SELECT
 flights.*,
-users.username,
+CASE WHEN users.deleted_at IS NOT NULL THEN '账号已注销' ELSE users.username END AS username,
 appeals.reason AS appeal_reason,
 appeals.status AS appeal_status
 FROM flights
@@ -2500,6 +2500,16 @@ export default {
     await env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare('DELETE FROM auth_limits WHERE bucket<?').bind(Math.floor(Date.now()/1000)-86400).run();
+    const due=await env.DB.prepare("UPDATE account_deletion_requests SET finalized_at=CURRENT_TIMESTAMP WHERE status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now') RETURNING user_id").all();
+    for(const request of due.results) {
+      const id=Number(request.user_id);
+      if(id===1) continue;
+      await env.DB.batch([
+        env.DB.prepare("UPDATE users SET username='账号已注销',email=?,password='deleted-account',role='user',avatar=NULL,bio=NULL,social_media=NULL,equipment=NULL,favorite_airlines=NULL,favorite_airports=NULL,deleted_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL").bind(`deleted-${id}@bpmuseum.invalid`,id),
+        env.DB.prepare('DELETE FROM auth_sessions WHERE user_id=?').bind(id),
+        env.DB.prepare('DELETE FROM auth_codes WHERE user_id=?').bind(id)
+      ]);
+    }
   }
 
 };

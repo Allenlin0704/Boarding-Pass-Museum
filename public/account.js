@@ -43,7 +43,7 @@ const requestDeletionButton=document.getElementById("requestDeletion");
 const cancelDeletionButton=document.getElementById("cancelDeletion");
 const deletionReason=document.getElementById("deletionReason");
 const deletionPassword=document.getElementById("deletionPassword");
-const deletionLabels={pending:"已提交，等待 SA 审核",approved:"审核通过，等待站方最终确认",rejected:"申请未获通过",cancelled:"你已取消这项申请"};
+const deletionLabels={pending:"已提交，48 小时冷静期中",cancelled:"你已取消这项申请"};
 async function loadDeletionRequest(){
   if(!deletionStatus)return;
   try{
@@ -51,8 +51,8 @@ async function loadDeletionRequest(){
     const data=await response.json();
     if(!response.ok)throw Error(data.error||"无法读取注销申请状态");
     const current=data.request;
-    deletionStatus.textContent=current?`当前状态：${deletionLabels[current.status]||current.status}${current.decision_note?`。处理说明：${current.decision_note}`:""}`:"你尚未提交注销申请。";
-    const active=current&&["pending","approved"].includes(current.status);
+    deletionStatus.textContent=current?`当前状态：${current.finalized_at?"已完成匿名化":deletionLabels[current.status]||current.status}${current.execute_at&&!current.finalized_at?`。可在 ${new Date(current.execute_at+"Z").toLocaleString("zh-CN")} 前取消。`:""}`:"你尚未提交注销申请。";
+    const active=current&&current.status==="pending"&&!current.finalized_at;
     requestDeletionButton.hidden=!!active;
     cancelDeletionButton.hidden=!active;
     deletionReason.disabled=!!active;
@@ -63,7 +63,7 @@ if(requestDeletionButton){
   requestDeletionButton.onclick=async()=>{
     const password=deletionPassword.value;
     if(!password){showToast("请输入当前密码确认");return;}
-    if(!confirm("提交后将进入 SA 审核流程；数据不会立刻删除。是否继续？"))return;
+    if(!confirm("提交后进入 48 小时冷静期；期间可取消，到期后账户会匿名化。是否继续？"))return;
     requestDeletionButton.disabled=true;
     try{
       const response=await fetch(`${API}/api/account/deletion-request`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:userId,password,reason:deletionReason.value.trim()})});
