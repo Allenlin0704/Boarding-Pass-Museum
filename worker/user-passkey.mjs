@@ -10,6 +10,12 @@ const consume=(env,flow,kind)=>env.DB.prepare("DELETE FROM user_webauthn_challen
 export async function userPasskeyRoute(request,env,url,user){
   if(!url.pathname.startsWith('/api/passkey/'))return null;
   const path=url.pathname,body=request.method==='POST'?await request.json():{};
+  if(path==='/api/passkey/status'&&request.method==='GET'){
+    if(!user)return reply({error:'请重新登录'},401);const keys=await env.DB.prepare('SELECT credential_id,created_at,last_used_at FROM user_passkeys WHERE user_id=? ORDER BY created_at').bind(user.id).all();return reply({passkeys:keys.results});
+  }
+  if(path==='/api/passkey/delete'){
+    if(!user)return reply({error:'请重新登录'},401);const result=await env.DB.prepare('DELETE FROM user_passkeys WHERE credential_id=? AND user_id=?').bind(String(body.credential_id||''),user.id).run();return result.meta.changes?reply({success:true}):reply({error:'Passkey 不存在'},404);
+  }
   if(path==='/api/passkey/register/options'){
     if(!user)return reply({error:'请重新登录'},401);if(!await passwordMatches(body.password,user.password))return reply({error:'当前密码错误'},403);
     const flow=await sessionTokenHash(request),keys=(await env.DB.prepare('SELECT * FROM user_passkeys WHERE user_id=?').bind(user.id).all()).results;
