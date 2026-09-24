@@ -16,3 +16,25 @@ button{background:var(--bpm-card);color:var(--bpm-text);border:1px solid var(--b
 .bpm-sa-page{max-width:1100px;margin:0 auto;padding:26px 20px 56px}.bpm-sa-page .bpm-page-hero{padding-top:10px}.bpm-sa-shortcut{display:inline-flex;align-items:center;min-height:42px;padding:0 14px;border:1px solid #73b9ee;border-radius:10px;color:#73b9ee;text-decoration:none;font-weight:650}.bpm-sa-page .sa-panel{margin-top:18px;background:var(--bpm-card);border-color:var(--bpm-border);color:var(--bpm-text)}.bpm-sa-page .sa-panel p{color:var(--bpm-muted)}.bpm-sa-page .sa-panel input,.bpm-sa-page .sa-panel textarea{background:var(--bpm-input);border-color:var(--bpm-border);color:var(--bpm-text)}@media(max-width:700px){.bpm-sa-page{padding:14px}}.bpm-info-page .bpm-panel{margin:16px 0;padding:22px;border:1px solid #7a9abd66;border-radius:18px;background:var(--bpm-card);color:var(--bpm-text)}.bpm-info-page .bpm-panel h2{margin-top:0}.bpm-info-page .bpm-panel p{line-height:1.8;color:var(--bpm-text)}.bpm-info-page .bpm-panel a,.bpm-auto-footer a{color:#73b9ee}.mobile-nav-toggle{display:none}@media(max-width:700px){.menubar{position:sticky!important;top:0!important;z-index:1000!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;min-height:58px!important;gap:8px!important}.menubar .brand{font-size:16px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}.menubar nav{display:none!important;position:absolute!important;top:100%!important;left:0!important;right:0!important;width:auto!important;max-height:calc(100dvh - 58px);overflow-y:auto!important;flex-direction:column!important;align-items:stretch!important;gap:0!important;padding:8px 14px 20px!important;background:var(--bpm-card)!important;border-top:1px solid var(--bpm-border)!important;border-bottom:1px solid var(--bpm-border)!important;box-shadow:0 16px 28px #001b3644!important;white-space:normal!important}.menubar.mobile-nav-open nav{display:flex!important}.menubar nav>a,.menubar nav>#userArea,.menubar nav>.bpm-install-app{width:100%!important;box-sizing:border-box!important;min-height:48px!important;margin:0!important;padding:12px 10px!important;border-bottom:1px solid var(--bpm-border)!important;text-align:left!important}.menubar nav>#userArea{display:flex!important;flex-direction:column!important}.menubar nav>#userArea a{margin:0!important}.mobile-nav-toggle{display:inline-flex!important;align-items:center;justify-content:center;width:44px;height:44px;flex:0 0 44px;border-radius:10px!important;font-size:24px!important;line-height:1!important}.menubar>.user-menu{position:static!important;flex:0 1 auto;min-width:0}.menubar>.user-menu #userMenuBtn{max-width:115px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:44px!important;padding:0 8px!important}.menubar>.user-menu .user-dropdown{position:fixed!important;top:58px!important;right:10px!important;left:auto!important;width:min(280px,calc(100vw - 20px))!important;max-height:calc(100dvh - 70px)!important;overflow-y:auto!important;z-index:1002!important}.menubar nav .bpm-install-app{border-radius:10px!important;text-align:center!important}}
 
 .museum-result-count{margin:8px 0 0;text-align:center;color:var(--bpm-muted,#52718a);font-size:14px}
+
+/* Keep the collapsed mobile menu readable in both themes. */
+@media(max-width:700px){
+  .menubar nav a,
+  .menubar nav #userArea a,
+  .menubar nav button,
+  .menubar nav #userArea,
+  .menubar nav #userArea span{
+    color:var(--bpm-text)!important;
+  }
+  .menubar nav a:hover,
+  .menubar nav button:hover{
+    background:var(--bpm-input)!important;
+  }
+  .menubar>.user-menu .user-dropdown{
+    background:var(--bpm-card)!important;
+    border:1px solid var(--bpm-border);
+  }
+  .menubar>.user-menu .user-dropdown a{
+    color:var(--bpm-text)!important;
+  }
+}

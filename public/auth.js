@@ -62,6 +62,7 @@ function updateNavbar(){
             toggle.onclick=()=>{
                 const open=header.classList.toggle("mobile-nav-open");
                 toggle.setAttribute("aria-expanded",String(open));
+                toggle.setAttribute("aria-label",open?"关闭导航":"展开导航");
                 toggle.textContent=open?"×":"☰";
             };
         }
