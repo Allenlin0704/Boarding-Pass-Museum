@@ -632,13 +632,30 @@ item.iata+
 
 }
 
-
-
 return name;
 
 
 
 }
+
+const flightAssistBtn=document.getElementById("flightAssistBtn");
+const flightAssistStatus=document.getElementById("flightAssistStatus");
+const normalizeFlight=value=>String(value||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+function matchCatalog(list,value){const text=String(value||"").toLowerCase();return list.find(item=>[item.iata,item.icao,item.name_cn,item.name_en].some(part=>part&&text.includes(String(part).toLowerCase())));}
+function inferAirlineFromFlight(flight){const prefix=normalizeFlight(flight).match(/^[A-Z0-9]{2}/)?.[0];return airlines.find(item=>String(item.iata||"").toUpperCase()===prefix)||null;}
+async function assistFlight(){
+  const flight=normalizeFlight(document.getElementById("flight")?.value),date=document.getElementById("date")?.value||"";
+  if(flight.length<3){if(flightAssistStatus)flightAssistStatus.textContent="请先输入完整航班号";return;}
+  flightAssistBtn.disabled=true;if(flightAssistStatus)flightAssistStatus.textContent="正在查找航班信息…";
+  try{
+    const localAirline=inferAirlineFromFlight(flight);if(localAirline){selectedAirline=localAirline;airlineInput.value=displayName(localAirline);}
+    const response=await fetch(`https://api.bpmuseum.org.cn/api/flight-assist?flight=${encodeURIComponent(flight)}&date=${encodeURIComponent(date)}`),data=await response.json();
+    if(response.ok&&data.found){const airline=matchCatalog(airlines,data.airline),airport=matchCatalog(airports,data.airport);if(airline){selectedAirline=airline;airlineInput.value=displayName(airline);}if(airport){selectedAirport=airport;airportInput.value=displayName(airport);}flightAssistStatus.textContent="已根据馆内审核记录补全，请核对后提交";}
+    else flightAssistStatus.textContent=localAirline?"已识别航空公司；馆内暂无该航班的出发机场记录，请手动选择":"暂无可靠记录，请手动选择航司和机场";
+    queueDraftSave();
+  }catch{flightAssistStatus.textContent="自动补全暂不可用，请手动填写";}finally{flightAssistBtn.disabled=false;}
+}
+flightAssistBtn?.addEventListener("click",assistFlight);
 // =====================================
 // BoardingPassMuseum
 // submit.js P2

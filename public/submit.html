@@ -188,6 +188,9 @@ id="date"
 type="date"
 >
 
+<button id="flightAssistBtn" type="button">自动补全航班信息</button>
+<p id="flightAssistStatus" role="status"></p>
+
 
 
 
@@ -262,6 +265,15 @@ value="1"
 <p>
 拖动图片调整位置
 </p>
+
+<h3>隐私遮挡</h3>
+<p>点击“开始遮挡”后，在图片上拖动框选姓名、票号、二维码或条形码。遮挡会直接写入最终投稿图片。</p>
+<div class="privacy-mask-controls">
+<button id="maskModeBtn" type="button">开始遮挡</button>
+<button id="undoMaskBtn" type="button">撤销上一个</button>
+<button id="clearMasksBtn" type="button">清除遮挡</button>
+</div>
+<p id="maskStatus" role="status">当前为图片移动模式</p>
 
 
 
@@ -401,14 +413,14 @@ BoardingPassMuseum © 2026
 
 <script src="auth.js?v=20260912"></script>
 
-<script src="watermark.js"></script>
+<script src="watermark.js?v=20260924"></script>
 
 <script src="display.js"></script>
 
 <script src="config.js"></script>
 
 <script src="notice.js?v=20260912"></script>
-<script src="submit.js?v=20260912b"></script>
+<script src="submit.js?v=20260924"></script>
 
 <footer class="bpm-footer">
 

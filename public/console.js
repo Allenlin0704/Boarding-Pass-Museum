@@ -13,7 +13,6 @@ controls.forEach(button=>button.addEventListener("click",()=>selectPage(button))
     const account=await response.json();
     if(!response.ok||!["administrator","superadministrator"].includes(account.role))throw Error("无权限");
     welcome.textContent=`${account.username} 的工作区`;
-    if(account.role==="superadministrator")document.querySelectorAll(".sa-only").forEach(item=>item.hidden=false);
   }catch{
     location.replace("login.html");
   }

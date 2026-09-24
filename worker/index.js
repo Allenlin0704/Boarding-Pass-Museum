@@ -2468,6 +2468,12 @@ export default {
       if(url.pathname==="/api/upload-image"&&request.method==="POST") return responseHeaders(original,await uploadImage(request,env));
       const account = await accountRoute(request.clone(),env,url,auth.user,sendVerificationEmail);
       if(account) return responseHeaders(original,account);
+      if(url.pathname==='/api/flight-assist'&&request.method==='GET'){
+        const flight=String(url.searchParams.get('flight')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12),date=String(url.searchParams.get('date')||'').slice(0,10);
+        if(flight.length<3)return responseHeaders(original,reply({error:'航班号格式错误'},400));
+        const found=await env.DB.prepare(`SELECT airline,airport,flight,date FROM flights WHERE status='approved' AND upper(replace(replace(flight,' ',''),'-',''))=? ORDER BY CASE WHEN date=? THEN 0 ELSE 1 END,date DESC,id DESC LIMIT 1`).bind(flight,date).first();
+        return responseHeaders(original,reply(found?{found:true,...found}:{found:false}));
+      }
       const progress = await progressRoute(request,env,url);
       if(progress) return responseHeaders(original,progress);
       const community = await communityRoute(request.clone(),env,url,auth.user);

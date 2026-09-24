@@ -191,6 +191,8 @@ function updateNavbar(){
                 管理员中心
                 </a>
 
+                ${currentUser.role==="superadministrator"?'<a href="sa.html">SA 控制台</a>':''}
+
                 <button type="button" id="checkUpdate">检查新版本</button>
 
 
