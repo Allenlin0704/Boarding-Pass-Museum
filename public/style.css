@@ -4277,6 +4277,115 @@ html:not(.light-theme) .bpm-footer a {
     }
 }
 
+/* 登录 / 注册采用完整照片背景，表单集中在玻璃质感面板内。 */
+body.auth-photo-background{
+    min-height:100svh;
+    background-color:#10243a;
+    background-image:linear-gradient(180deg,rgba(3,15,29,.44),rgba(3,15,29,.58)),var(--auth-cover);
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    background-repeat:no-repeat;
+}
+
+body.auth-photo-background .menubar{
+    color:#fff;
+    background:rgba(3,15,29,.44);
+    border-bottom-color:rgba(255,255,255,.18);
+}
+
+body.auth-photo-background .menubar a,
+body.auth-photo-background .menubar .brand,
+body.auth-photo-background .menubar #userMenuBtn{
+    color:#fff;
+}
+
+body.auth-photo-background .menubar a:hover,
+body.auth-photo-background .menubar #userMenuBtn:hover{
+    background:rgba(255,255,255,.12);
+}
+
+.auth-page{
+    position:relative;
+    width:min(460px,calc(100% - 32px));
+    max-width:460px;
+    min-height:calc(100svh - 48px);
+    margin:0 auto;
+    padding:clamp(24px,5vh,48px) clamp(22px,5vw,40px);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:stretch;
+    gap:12px;
+}
+
+.auth-photo-hero{
+    width:100%;
+    min-height:0;
+    padding:0 0 8px;
+    border-radius:0;
+    background:none;
+    box-shadow:none;
+    align-items:center;
+    text-align:center;
+    justify-content:center;
+    text-shadow:0 2px 18px rgba(0,0,0,.32);
+}
+
+.auth-photo-hero h1{
+    margin:8px 0;
+    font-size:clamp(30px,8vw,38px);
+}
+
+.auth-photo-hero p{font-size:15px;}
+
+.auth-page>.submit-form{
+    max-width:none;
+    margin:0;
+    padding:24px;
+    border:1px solid rgba(255,255,255,.32);
+    border-radius:24px;
+    background:var(--bpm-card);
+    background:color-mix(in srgb,var(--bpm-card) 91%,transparent);
+    color:var(--bpm-text);
+    box-shadow:0 20px 60px rgba(0,0,0,.26);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+}
+
+.auth-photo-credit{
+    position:absolute;
+    right:18px;
+    bottom:12px;
+    z-index:2;
+    color:rgba(255,255,255,.88);
+    font-size:12px;
+    letter-spacing:.02em;
+    text-shadow:0 1px 8px rgba(0,0,0,.7);
+}
+
+.welcome{position:relative;}
+
+.home-photo-credit{
+    position:absolute;
+    right:18px;
+    bottom:14px;
+    color:rgba(255,255,255,.86);
+    font-size:12px;
+    text-shadow:0 1px 8px rgba(0,0,0,.7);
+}
+
+@media(max-width:760px){
+    .auth-page{
+        width:min(460px,calc(100% - 24px));
+        min-height:calc(100svh - 48px);
+        padding:24px 0 36px;
+        gap:10px;
+    }
+    .auth-page>.submit-form{padding:22px 18px;border-radius:21px;}
+    .auth-photo-credit{right:12px;bottom:8px;font-size:11px;}
+}
+
 .bpm-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.18em;flex:none}
 
 @media(max-width:700px){.bpm-console-sidebar .bpm-console-exit{order:-1}}
