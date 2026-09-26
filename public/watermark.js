@@ -10,15 +10,24 @@ if (imageInput && canvas) {
     const watermarkSize =
         document.getElementById("watermarkSize");
 
+    const watermarkFont =
+        document.getElementById("watermarkFont");
+
     const watermarkPosition =
         document.getElementById("watermarkPosition");
 
     const WATERMARK_TEXT = "BoardingPassMuseum";
     const WATERMARK_OPACITY = 0.55;
+    const WATERMARK_FONTS = {inter:"BPM Inter",plex:"BPM Plex",playfair:"BPM Playfair"};
+    function updateWatermarkPreview(){
+        const family=WATERMARK_FONTS[watermarkFont?.value]||WATERMARK_FONTS.inter;
+        document.querySelectorAll(".watermark-fixed-preview").forEach(node=>{node.style.fontFamily=`\"${family}\", sans-serif`;});
+    }
     function restoreWatermarkSettings(){
         try{
             const settings=JSON.parse(sessionStorage.getItem("bpmImageEditorWatermarkSettings")||"null");
             if(!settings)return;
+            if(watermarkFont&&Object.prototype.hasOwnProperty.call(WATERMARK_FONTS,settings.font))watermarkFont.value=settings.font;
             const size=Number(settings.size);
             if(watermarkSize&&Number.isFinite(size))watermarkSize.value=String(Math.min(Number(watermarkSize.max)||120,Math.max(Number(watermarkSize.min)||10,size)));
             if(watermarkPosition&&["bottom-right","bottom-left","top-right","top-left"].includes(settings.position))watermarkPosition.value=settings.position;
@@ -303,8 +312,9 @@ if (imageInput && canvas) {
 
 
 
+        const fontFamily=WATERMARK_FONTS[watermarkFont?.value]||WATERMARK_FONTS.inter;
         ctx.font =
-            `600 ${size}px Arial, sans-serif`;
+            `600 ${size}px \"${fontFamily}\", sans-serif`;
 
 
 
@@ -417,6 +427,7 @@ if (imageInput && canvas) {
 
 
     [
+        watermarkFont,
         watermarkSize,
         watermarkPosition
 
@@ -441,6 +452,12 @@ if (imageInput && canvas) {
 
         }
     );
+
+    updateWatermarkPreview();
+    if(watermarkFont)watermarkFont.addEventListener("change",updateWatermarkPreview);
+    if(document.fonts?.load){
+        Promise.all(Object.values(WATERMARK_FONTS).map(family=>document.fonts.load(`600 40px \"${family}\"`))).then(()=>{updateWatermarkPreview();draw();}).catch(()=>draw());
+    }
 
 
 }

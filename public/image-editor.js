@@ -12,6 +12,7 @@
     node.textContent = message;
   };
   const watermarkSettings = () => ({
+    font: document.getElementById("watermarkFont")?.value || "inter",
     size: document.getElementById("watermarkSize")?.value || "40",
     position: document.getElementById("watermarkPosition")?.value || "bottom-right"
   });

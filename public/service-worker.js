@@ -1,6 +1,7 @@
-const CACHE = 'bpmuseum-shell-v7';
+const CACHE = 'bpmuseum-shell-v8';
 const SHELL = [
-  '/', '/index.html', '/style.css', '/features.css', '/submit-page.css', '/theme.js', '/pwa.js', '/watermark.js', '/image-editor.js',
+  '/', '/index.html', '/style.css', '/features.css', '/submit-page.css', '/watermark-fonts.css', '/theme.js', '/pwa.js', '/watermark.js', '/image-editor.js',
+  '/fonts/inter-boardingpass-600.woff2', '/fonts/ibm-plex-sans-boardingpass-600.woff2', '/fonts/playfair-display-boardingpass-600.woff2',
   '/manifest.webmanifest', '/favicon.png', '/offline.html'
 ];
 

@@ -7,6 +7,7 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260927-mobile1">
 <link rel="stylesheet" href="features.css?v=20260927-mobile1">
+<link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
 <script src="theme.js?v=20260927-baggage1"></script>
 <script src="security.js?v=4"></script>
 <style>
@@ -25,10 +26,10 @@
 <div class="privacy-mask-controls"><button id="rotateImageLeft" type="button"><span data-bpm-icon="rotateLeft"></span> 逆时针旋转</button><button id="rotateImageRight" type="button"><span data-bpm-icon="rotateRight"></span> 顺时针旋转</button></div>
 <h2>隐私遮挡</h2><label for="maskColor">实色遮挡</label><select id="maskColor"><option value="#000000">纯黑</option><option value="#ffffff">纯白</option></select>
 <div class="privacy-mask-controls"><button id="maskModeBtn" type="button">开始遮挡</button><button id="undoMaskBtn" type="button">撤销上一个</button><button id="clearMasksBtn" type="button">清除遮挡</button></div><p id="maskStatus" role="status">图片移动模式</p>
-<h2>水印</h2><p class="watermark-fixed-preview">固定水印 · BoardingPassMuseum</p><label for="watermarkSize">字体大小</label><input id="watermarkSize" type="range" min="10" max="120" value="40"><label for="watermarkPosition">位置</label><select id="watermarkPosition"><option value="bottom-right">右下角</option><option value="bottom-left">左下角</option><option value="top-right">右上角</option><option value="top-left">左上角</option></select>
+<h2>水印</h2><p class="watermark-fixed-preview">固定文字 · BoardingPassMuseum</p><label for="watermarkFont">字体</label><select id="watermarkFont"><option value="inter">Inter</option><option value="plex">IBM Plex Sans</option><option value="playfair">Playfair Display</option></select><label for="watermarkSize">字体大小</label><input id="watermarkSize" type="range" min="10" max="120" value="40"><label for="watermarkPosition">位置</label><select id="watermarkPosition"><option value="bottom-right">右下角</option><option value="bottom-left">左下角</option><option value="top-right">右上角</option><option value="top-left">左上角</option></select>
 <div class="image-editor-finalize"><button type="button" id="applyImageEditorResult">完成并返回投稿</button></div>
 </section></div>
 </main>
-<script src="watermark.js?v=20260927-fixed3"></script>
-<script src="image-editor.js?v=20260927-watermark2"></script>
+<script src="watermark.js?v=20260927-fixed4"></script>
+<script src="image-editor.js?v=20260927-watermark3"></script>
 </body></html>
