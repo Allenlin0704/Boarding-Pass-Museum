@@ -14,7 +14,7 @@
 
 <link rel="stylesheet" href="style.css?v=20260927-mobile1">
 <link rel="stylesheet" href="features.css?v=20260927-mobile1">
-<link rel="stylesheet" href="submit-page.css?v=20260927-2">
+<link rel="stylesheet" href="submit-page.css?v=20260927-4">
   <script src="theme.js?v=20260927-baggage1"></script>
 
 
@@ -136,10 +136,9 @@ Admin
     <div class="privacy-mask-controls"><button id="rotateImageLeft" type="button">逆时针旋转</button><button id="rotateImageRight" type="button">顺时针旋转</button></div>
     <div class="privacy-mask-controls"><button id="maskModeBtn" type="button">开始遮挡</button><button id="undoMaskBtn" type="button">撤销上一个</button><button id="clearMasksBtn" type="button">清除遮挡</button></div>
     <p id="maskStatus" role="status">当前为图片移动模式</p>
-    <details class="submit-watermark-settings"><summary>水印设置 <span>自动添加，可调整</span></summary>
-      <label for="watermarkText">水印文字</label><input id="watermarkText" value="BoardingPassMuseum">
-      <label for="watermarkOpacity">透明度</label><input id="watermarkOpacity" type="range" min="0.1" max="1" step="0.05" value="0.5">
-      <label for="watermarkSize">大小</label><input id="watermarkSize" type="range" min="10" max="120" value="40">
+    <details class="submit-watermark-settings"><summary>水印设置 <span>固定文字 · 可调整大小和位置</span></summary>
+      <p class="watermark-fixed-preview">BoardingPassMuseum</p>
+      <label for="watermarkSize">字体大小</label><input id="watermarkSize" type="range" min="10" max="120" value="40">
       <label for="watermarkPosition">位置</label><select id="watermarkPosition"><option value="bottom-right">右下角</option><option value="bottom-left">左下角</option><option value="top-right">右上角</option><option value="top-left">左上角</option></select>
     </details>
   </div>
@@ -171,8 +170,8 @@ BoardingPassMuseum © 2026
 
 <script src="auth.js?v=20260927"></script>
 
-<script src="watermark.js?v=20260927"></script>
-<script src="image-editor.js?v=1"></script>
+<script src="watermark.js?v=20260927-fixed3"></script>
+<script src="image-editor.js?v=20260927-watermark2"></script>
 
 <script src="display.js"></script>
 

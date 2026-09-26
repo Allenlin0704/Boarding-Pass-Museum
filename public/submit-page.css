@@ -57,6 +57,7 @@
 .submit-watermark-settings{margin-top:4px;border-top:1px solid var(--bpm-border);padding-top:11px}
 .submit-watermark-settings summary{cursor:pointer;font-size:13px;font-weight:650}
 .submit-watermark-settings summary span{margin-left:5px;color:var(--bpm-muted);font-size:11px;font-weight:450}
+.submit-watermark-settings .watermark-fixed-preview{margin:9px 0 5px;padding:10px 12px;border:1px solid color-mix(in srgb,#4e91bf 35%,var(--bpm-border));border-radius:9px;background:#003c6b;color:#fff;font-size:13px;font-weight:650;letter-spacing:.02em}
 .submit-watermark-settings label{margin-top:12px}
 .submit-final-card{padding:22px 26px}
 .submit-final-card .submit-card-heading{margin-bottom:15px}

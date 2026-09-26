@@ -7,17 +7,24 @@ if (imageInput && canvas) {
 
     const scaleInput = document.getElementById("imageScale");
 
-    const watermarkText =
-        document.getElementById("watermarkText");
-
-    const watermarkOpacity =
-        document.getElementById("watermarkOpacity");
-
     const watermarkSize =
         document.getElementById("watermarkSize");
 
     const watermarkPosition =
         document.getElementById("watermarkPosition");
+
+    const WATERMARK_TEXT = "BoardingPassMuseum";
+    const WATERMARK_OPACITY = 0.55;
+    function restoreWatermarkSettings(){
+        try{
+            const settings=JSON.parse(sessionStorage.getItem("bpmImageEditorWatermarkSettings")||"null");
+            if(!settings)return;
+            const size=Number(settings.size);
+            if(watermarkSize&&Number.isFinite(size))watermarkSize.value=String(Math.min(Number(watermarkSize.max)||120,Math.max(Number(watermarkSize.min)||10,size)));
+            if(watermarkPosition&&["bottom-right","bottom-left","top-right","top-left"].includes(settings.position))watermarkPosition.value=settings.position;
+        }catch{}
+    }
+    restoreWatermarkSettings();
 
 
     let img = new Image();
@@ -272,7 +279,7 @@ if (imageInput && canvas) {
     window.bpmLoadEditorSource=source=>{const next=new Image();next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();};next.src=source;};
     window.bpmExportEditorImage=()=>{if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");drawImageAndMasks();const result=canvas.toDataURL("image/png");draw();return result;};
     if(location.pathname.endsWith("/image-editor.html")){const source=sessionStorage.getItem("bpmImageEditorSource");if(source){sessionStorage.removeItem("bpmImageEditorSource");window.bpmLoadEditorSource(source);}}
-    window.addEventListener("pageshow",()=>{const result=sessionStorage.getItem("bpmImageEditorResult");if(!result)return;sessionStorage.removeItem("bpmImageEditorResult");window.bpmLoadEditorSource(result);});
+    window.addEventListener("pageshow",()=>{restoreWatermarkSettings();const result=sessionStorage.getItem("bpmImageEditorResult");if(!result)return;sessionStorage.removeItem("bpmImageEditorResult");window.bpmLoadEditorSource(result);});
 
 
 
@@ -283,9 +290,7 @@ if (imageInput && canvas) {
     function drawWatermark(){
 
 
-        const text =
-            watermarkText.value ||
-            "Boarding Pass Museum";
+        const text = WATERMARK_TEXT;
 
 
 
@@ -294,13 +299,12 @@ if (imageInput && canvas) {
 
 
 
-        const opacity =
-            Number(watermarkOpacity.value) || 0.5;
+        const opacity = WATERMARK_OPACITY;
 
 
 
         ctx.font =
-            `${size}px Arial`;
+            `600 ${size}px Arial, sans-serif`;
 
 
 
@@ -413,8 +417,6 @@ if (imageInput && canvas) {
 
 
     [
-        watermarkText,
-        watermarkOpacity,
         watermarkSize,
         watermarkPosition
 
