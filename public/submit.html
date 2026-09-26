@@ -14,31 +14,11 @@
 
 <link rel="stylesheet" href="style.css?v=20260927-mobile1">
 <link rel="stylesheet" href="features.css?v=20260927-mobile1">
+<link rel="stylesheet" href="submit-page.css?v=20260927-1">
   <script src="theme.js?v=20260927-baggage1"></script>
 
 
-<style>
-.submission-rules-notice{
-margin:20px 0 14px;
-font-size:14px;
-line-height:1.7;
-text-align:center;
-color:#666;
-}
 
-.submission-rules-notice a{
-color:#d00;
-font-weight:700;
-text-decoration:underline;
-}
-
-#submitBtn{
-font-size:18px;
-font-weight:700;
-padding:15px 28px;
-min-height:52px;
-}
-</style>
 </head>
 
 
@@ -88,361 +68,91 @@ Admin
 
 
 
-<main>
-
-
-<section class="welcome">
-
-<h1>
-上传你的登机牌
-</h1>
-
-<p>
-记录每一次飞行留下的痕迹
-</p>
-
+<main class="bpm-form-page bpm-submission-page">
+<a class="submit-back-link" href="index.html">← 返回展厅</a>
+<section class="submit-hero">
+  <h1>投稿至展厅</h1>
+  <p>上传登机牌或火车票，补充行程信息，并在提交前处理票面隐私。</p>
+  <div class="submit-hero-meta"><span>登机牌与火车票均可投稿</span><span>请遮挡姓名、票号和二维码</span></div>
 </section>
 
+<section class="submit-form submit-flow" aria-label="投稿表单">
+<ol class="submit-steps" aria-label="投稿流程">
+  <li><span>01</span><span>票据信息</span></li>
+  <li><span>02</span><span>图片处理</span></li>
+  <li><span>03</span><span>提交审核</span></li>
+</ol>
 
-
-
-
-<section class="submit-form">
-
-<label for="submissionType">投稿类型</label>
-<select id="submissionType">
-  <option value="boarding_pass">登机牌</option>
-  <option value="rail_ticket">火车票</option>
-</select>
-
-<div id="airSubmissionFields">
-
-
-
-<h2>
-航班信息
-</h2>
-
-
-
-<label>
-航空公司
-</label>
-
-
-<input
-id="airlineSearch"
-placeholder="搜索航司 / IATA / ICAO"
->
-
-
-<div id="airlineResults"></div>
-
-
-
-
-
-<label>
-出发机场
-</label>
-
-
-<input
-id="departureSearch"
-placeholder="搜索机场 / IATA / ICAO"
->
-
-
-<div id="departureResults"></div>
-
-
-<label>
-登机牌打印机场（可选）
-</label>
-
-
-<input
-id="issueAirportSearch"
-placeholder="搜索机场 / IATA / ICAO"
->
-
-
-<div id="issueAirportResults"></div>
-
-
-
-
-
-<label>
-航班号
-</label>
-
-
-<input
-id="flight"
-placeholder="例如 MU5309"
->
-
-
-
-
-<label>
-飞行日期
-</label>
-
-
-<input
-id="date"
-type="date"
->
-
-<button id="flightAssistBtn" type="button">自动补全航班信息</button>
-<p id="flightAssistStatus" role="status"></p>
-
-<label for="ticketFormat">登机牌形式</label>
-<select id="ticketFormat"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select>
-<fieldset class="special-tags">
-  <legend data-i18n="submit.baggageTags">特殊行李标记（可选）</legend>
-  <p data-i18n="submit.baggageTagsHint">这是行李相关标记，不是投稿类别。</p>
-  <label><input type="checkbox" name="specialTag" value="transfer"> <span data-i18n="submit.transferBaggage">转机行李</span></label>
-  <label><input type="checkbox" name="specialTag" value="two_cabin"> <span data-i18n="submit.twoCabinBaggage">两舱行李</span></label>
-</fieldset>
+<div class="submit-type-picker">
+  <label for="submissionType">票据类型</label>
+  <select id="submissionType"><option value="boarding_pass">登机牌</option><option value="rail_ticket">火车票</option></select>
+  <p>请按票面信息填写；提交后将进入人工审核。</p>
 </div>
 
-<div id="railSubmissionFields" hidden>
-  <h2>火车票信息</h2>
-  <label for="railOperatorSearch">运营公司</label>
-  <input id="railOperatorSearch" placeholder="搜索运营公司，例如 CR、DB、Acela">
-  <div id="railOperatorResults" class="submit-search-results"></div>
-  <label for="railDepartureStation">出发车站</label>
-  <input id="railDepartureStation" maxlength="200" placeholder="输入车站名称">
-  <label for="departureCountry">出发国家 / 地区</label>
-  <input id="departureCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区">
-  <datalist id="countryOptions"></datalist>
-  <label for="railArrivalStation">到达车站</label>
-  <input id="railArrivalStation" maxlength="200" placeholder="输入车站名称">
-  <label for="arrivalCountry">到达国家 / 地区</label>
-  <input id="arrivalCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区">
-  <label for="railTrainNumber">车次</label>
-  <input id="railTrainNumber" maxlength="30" placeholder="例如 G101、ICE 123、Acela 2150">
-  <label for="railDate">乘车日期</label>
-  <input id="railDate" type="date">
-  <label for="railTicketFormat">车票形式</label>
-  <select id="railTicketFormat"><option value="paper">纸质车票</option><option value="digital">电子车票</option></select>
+<section class="submit-card" aria-labelledby="travelDetailsTitle">
+<div class="submit-card-heading"><span class="submit-section-index">01</span><div><h2 id="travelDetailsTitle">行程信息</h2><p>填写票面上的承运方、出发地点与日期。</p></div></div>
+<div id="airSubmissionFields" class="submit-fields-grid">
+  <div class="submit-field"><label for="airlineSearch">航空公司</label><input id="airlineSearch" placeholder="搜索航司 / IATA / ICAO"><div id="airlineResults"></div></div>
+  <div class="submit-field"><label for="departureSearch">出发机场</label><input id="departureSearch" placeholder="搜索机场 / IATA / ICAO"><div id="departureResults"></div></div>
+  <div class="submit-field"><label for="issueAirportSearch">登机牌打印机场 <span class="submit-optional">可选</span></label><input id="issueAirportSearch" placeholder="搜索机场 / IATA / ICAO"><div id="issueAirportResults"></div></div>
+  <div class="submit-field"><label for="flight">航班号</label><input id="flight" placeholder="例如 MU5309"></div>
+  <div class="submit-field"><label for="date">飞行日期</label><input id="date" type="date"></div>
+  <div class="submit-field submit-assist-field"><span class="submit-field-label">信息补全</span><button id="flightAssistBtn" type="button">自动补全航班信息</button><p id="flightAssistStatus" role="status"></p></div>
+  <div class="submit-field"><label for="ticketFormat">登机牌形式</label><select id="ticketFormat"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select></div>
+  <fieldset class="special-tags"><legend data-i18n="submit.baggageTags">特殊行李标记（可选）</legend><p data-i18n="submit.baggageTagsHint">转机行李和两舱行李都属于行李标记，不是投稿类别。</p><label><input type="checkbox" name="specialTag" value="transfer"> <span data-i18n="submit.transferBaggage">转机行李</span></label><label><input type="checkbox" name="specialTag" value="two_cabin"> <span data-i18n="submit.twoCabinBaggage">两舱行李</span></label></fieldset>
 </div>
+<div id="railSubmissionFields" class="submit-fields-grid" hidden>
+  <h2 class="submit-field-wide">火车票信息</h2>
+  <div class="submit-field"><label for="railOperatorSearch">运营公司</label><input id="railOperatorSearch" placeholder="搜索运营公司，例如 CR、DB、Acela"><div id="railOperatorResults" class="submit-search-results"></div></div>
+  <div class="submit-field"><label for="railTrainNumber">车次</label><input id="railTrainNumber" maxlength="30" placeholder="例如 G101、ICE 123、Acela 2150"></div>
+  <div class="submit-field"><label for="railDepartureStation">出发车站</label><input id="railDepartureStation" maxlength="200" placeholder="输入车站名称"><label for="departureCountry">出发国家 / 地区</label><input id="departureCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区"><datalist id="countryOptions"></datalist></div>
+  <div class="submit-field"><label for="railArrivalStation">到达车站</label><input id="railArrivalStation" maxlength="200" placeholder="输入车站名称"><label for="arrivalCountry">到达国家 / 地区</label><input id="arrivalCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区"></div>
+  <div class="submit-field"><label for="railDate">乘车日期</label><input id="railDate" type="date"><label for="railTicketFormat">车票形式</label><select id="railTicketFormat"><option value="paper">纸质车票</option><option value="digital">电子车票</option></select></div>
+</div>
+</section>
 
+<section class="submit-card submit-story-card">
+<div class="submit-card-heading"><span class="submit-section-index">+</span><div><h2>旅程补充</h2><p>选填一段简短说明，帮助参观者了解这张票据。</p></div></div>
+<label for="story">故事或备注 <span class="submit-optional">选填</span></label>
+<textarea id="story" placeholder="例如：这张登机牌记录了我第一次独自飞行。"></textarea>
+</section>
 
-
-
-
-<label>
-飞行故事
-</label>
-
-
-<textarea
-id="story"
-placeholder="分享这段旅程..."
-></textarea>
-
-
-
-
-
-
-
-
-<h2>
-票据图片处理
-</h2>
-
-
-
+<section class="submit-card submit-image-card">
+<div class="submit-card-heading"><span class="submit-section-index">02</span><div><h2>图片与隐私</h2><p>裁剪、旋转并遮住个人信息，处理结果会用于最终投稿。</p></div></div>
 <div class="image-editor-layout">
-<div class="image-editor-preview-column">
-<input
-id="ticketImage"
-type="file"
-accept="image/*"
->
-
-
-
-
-
-<div class="preview-area">
-
-<button type="button" id="openImageEditor" class="open-image-editor">打开独立图片编辑器</button>
-
-<canvas
-id="watermarkCanvas">
-</canvas>
-
-
+  <div class="image-editor-preview-column">
+    <label class="submit-upload-label" for="ticketImage">选择票据图片</label>
+    <input id="ticketImage" type="file" accept="image/*">
+    <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开独立图片编辑器</button><canvas id="watermarkCanvas"></canvas></div>
+  </div>
+  <div class="image-editor-controls-column">
+    <h3>整理图片</h3>
+    <div class="privacy-mask-controls image-crop-controls"><button id="cropModeBtn" type="button">框选裁剪区域</button><button id="applyCropBtn" type="button" disabled>应用裁剪</button><button id="cancelCropBtn" type="button" disabled>取消</button></div>
+    <label for="cropAspect">裁剪比例</label><select id="cropAspect"><option value="free">自由</option><option value="1">1:1</option><option value="1.333333">4:3</option><option value="1.777778">16:9</option></select>
+    <p>拖动选框裁剪。完成后可继续调整方向并遮挡隐私。</p>
+    <label for="imageScale">图片位置</label><input id="imageScale" type="range" min="0.5" max="2" step="0.05" value="1"><p>拖动图片调整位置</p>
+    <h3>遮挡个人信息</h3><p>选择“开始遮挡”，在图片上框出姓名、票号、二维码或条形码。遮挡会写入最终投稿图片。</p>
+    <label for="maskColor">遮挡颜色</label><select id="maskColor"><option value="#000000">纯黑</option><option value="#ffffff">纯白</option></select>
+    <div class="privacy-mask-controls"><button id="rotateImageLeft" type="button">逆时针旋转</button><button id="rotateImageRight" type="button">顺时针旋转</button></div>
+    <div class="privacy-mask-controls"><button id="maskModeBtn" type="button">开始遮挡</button><button id="undoMaskBtn" type="button">撤销上一个</button><button id="clearMasksBtn" type="button">清除遮挡</button></div>
+    <p id="maskStatus" role="status">当前为图片移动模式</p>
+    <details class="submit-watermark-settings"><summary>水印设置 <span>自动添加，可调整</span></summary>
+      <label for="watermarkText">水印文字</label><input id="watermarkText" value="BoardingPassMuseum">
+      <label for="watermarkOpacity">透明度</label><input id="watermarkOpacity" type="range" min="0.1" max="1" step="0.05" value="0.5">
+      <label for="watermarkSize">大小</label><input id="watermarkSize" type="range" min="10" max="120" value="40">
+      <label for="watermarkPosition">位置</label><select id="watermarkPosition"><option value="bottom-right">右下角</option><option value="bottom-left">左下角</option><option value="top-right">右上角</option><option value="top-left">左上角</option></select>
+    </details>
+  </div>
 </div>
-</div>
-<div class="image-editor-controls-column">
-<h3>
-图片调整
-</h3>
-
-<div class="privacy-mask-controls image-crop-controls">
-<button id="cropModeBtn" type="button">框选裁剪区域</button>
-<button id="applyCropBtn" type="button" disabled>应用裁剪</button>
-<button id="cancelCropBtn" type="button" disabled>取消</button>
-</div>
-<label for="cropAspect">裁剪比例</label>
-<select id="cropAspect"><option value="free">自由</option><option value="1">1:1</option><option value="1.333333">4:3</option><option value="1.777778">16:9</option></select>
-<p>拖动选框确定裁剪区域；裁剪完成后可继续旋转、遮挡和添加水印。</p>
-
-
-
-<label>
-图片缩放
-</label>
-
-
-<input
-id="imageScale"
-type="range"
-min="0.5"
-max="2"
-step="0.05"
-value="1"
->
-
-<p>
-拖动图片调整位置
-</p>
-
-<h3>隐私遮挡</h3>
-<p>点击“开始遮挡”后，在图片上拖动框选姓名、票号、二维码或条形码。遮挡会直接写入最终投稿图片。</p>
-<label for="maskColor">遮挡颜色</label>
-<select id="maskColor"><option value="#000000">纯黑</option><option value="#ffffff">纯白</option></select>
-<div class="privacy-mask-controls"><button id="rotateImageLeft" type="button">逆时针旋转</button><button id="rotateImageRight" type="button">顺时针旋转</button></div>
-<div class="privacy-mask-controls">
-<button id="maskModeBtn" type="button">开始遮挡</button>
-<button id="undoMaskBtn" type="button">撤销上一个</button>
-<button id="clearMasksBtn" type="button">清除遮挡</button>
-</div>
-<p id="maskStatus" role="status">当前为图片移动模式</p>
-
-
-
-
-
-
-
-
-<h3>
-水印设置（自动添加）
-</h3>
-
-
-
-<label>
-水印文字
-</label>
-
-
-<input
-id="watermarkText"
-value="BoardingPassMuseum"
->
-
-
-
-
-
-<label>
-水印透明度
-</label>
-
-
-<input
-id="watermarkOpacity"
-type="range"
-min="0.1"
-max="1"
-step="0.05"
-value="0.5"
->
-
-
-
-
-
-<label>
-水印大小
-</label>
-
-
-<input
-id="watermarkSize"
-type="range"
-min="10"
-max="120"
-value="40"
->
-
-
-
-
-
-<label>
-水印位置
-</label>
-
-
-<select
-id="watermarkPosition"
->
-
-<option value="bottom-right">
-右下角
-</option>
-
-<option value="bottom-left">
-左下角
-</option>
-
-<option value="top-right">
-右上角
-</option>
-
-<option value="top-left">
-左上角
-</option>
-
-</select>
-</div>
-</div>
-
-<p class="submission-rules-notice">
-投稿即代表您接受本站的
-<a href="rules.html" target="_blank">
-<strong>《投稿及审核条例》</strong>
-</a>
-</p>
-
-<button
-id="submitBtn"
-type="button"
->
-提交审核
-</button>
-
-<div class="submit-draft-actions">
-<button id="saveDraftBtn" type="button">保存草稿</button>
-<button id="clearDraftBtn" type="button">清除草稿</button>
-<p id="draftStatus" role="status" aria-live="polite"></p>
-</div>
-
-
-
 </section>
 
-
+<section class="submit-final-card">
+<div class="submit-card-heading"><span class="submit-section-index">03</span><div><h2>检查并提交</h2><p>确认票据信息准确，图片已处理，再提交审核。</p></div></div>
+<p class="submission-rules-notice">投稿即代表您接受本站的 <a href="rules.html" target="_blank" rel="noopener"><strong>《投稿及审核条例》</strong></a></p>
+<button id="submitBtn" type="button">提交审核</button>
+<div class="submit-draft-actions"><button id="saveDraftBtn" type="button">保存草稿</button><button id="clearDraftBtn" type="button">清除草稿</button><p id="draftStatus" role="status" aria-live="polite"></p></div>
+</section>
+</section>
 </main>
 
 
