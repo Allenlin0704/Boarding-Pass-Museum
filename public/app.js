@@ -136,9 +136,13 @@ function applyMuseumFilter(){
   });
 
   const resultCount=document.getElementById("museumResultCount");
-  if(resultCount)resultCount.textContent=keyword||airline||category||baggageTag||format||airport||year
-    ? (window.BPM_LANGUAGE==="en"?`${displayFlights.length} matching exhibits`:`找到 ${displayFlights.length} 件匹配展品`)
-    : (window.BPM_LANGUAGE==="en"?`${displayFlights.length} exhibits`:`共 ${displayFlights.length} 件展品`);
+  const english=window.BPM_LANGUAGE==="en",traditional=window.BPM_LANGUAGE==="zh-TW";
+  const filtered=Boolean(keyword||airline||category||baggageTag||format||airport||year);
+  if(resultCount)resultCount.textContent=english
+    ? `${displayFlights.length} ${filtered?"matching ":""}exhibits`
+    : traditional
+      ? `${displayFlights.length} 件${filtered?"符合條件的":""}展品`
+      : filtered?`找到 ${displayFlights.length} 件匹配展品`:`共 ${displayFlights.length} 件展品`;
 
 
   const sort =
@@ -281,7 +285,7 @@ function renderMuseum() {
 
     museum.innerHTML = `
       <p class="museum-empty">
-        ${window.BPM_LANGUAGE==="en"?"No exhibits yet":"暂无展品"}
+        ${window.BPM_LANGUAGE==="en"?"No exhibits yet":window.BPM_LANGUAGE==="zh-TW"?"目前沒有展品":"暂无展品"}
       </p>
     `;
 
@@ -290,7 +294,7 @@ function renderMuseum() {
   }
 
   if(displayFlights.length===0){
-    museum.innerHTML=`<p class="museum-empty">${window.BPM_LANGUAGE==="en"?"No exhibits match these filters. Adjust your search or clear the filters.":"没有符合当前筛选条件的展品。请调整关键词或清除筛选后再试。"}</p>`;
+    museum.innerHTML=`<p class="museum-empty">${window.BPM_LANGUAGE==="en"?"No exhibits match these filters. Adjust your search or clear the filters.":window.BPM_LANGUAGE==="zh-TW"?"找不到符合目前篩選條件的展品。請調整關鍵字或清除篩選後再試。":"没有符合当前筛选条件的展品。请调整关键词或清除筛选后再试。"}</p>`;
     return;
   }
 
@@ -307,7 +311,9 @@ function renderMuseum() {
       const english=window.BPM_LANGUAGE==="en";
       const labels=english
         ? {rail:"Rail ticket",boarding:"Boarding pass",transfer:"Transfer",twoCabin:"Business/first class",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station"}
-        : {rail:"火车票",boarding:"登机牌",transfer:"转机",twoCabin:"两舱",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站"};
+        : traditional
+          ? {rail:"火車票",boarding:"登機牌",transfer:"轉機",twoCabin:"兩艙",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站"}
+          : {rail:"火车票",boarding:"登机牌",transfer:"转机",twoCabin:"两舱",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
       const specialBadges=specialTags.filter(tag=>["transfer","two_cabin"].includes(tag)).map(tag=>badge(tag==="transfer"?"repeat":"armchair",tag==="transfer"?labels.transfer:labels.twoCabin)).join("");

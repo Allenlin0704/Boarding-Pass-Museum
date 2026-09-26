@@ -716,7 +716,7 @@ async function loadProgress(id){
   try {
     const res=await fetch(`${API}/api/account/progress?id=${encodeURIComponent(id)}`);
     if(!res.ok)throw Error();const data=await res.json();
-    const english=window.BPM_LANGUAGE==='en';
+    const english=window.BPM_LANGUAGE==='en',traditional=window.BPM_LANGUAGE==='zh-TW';
     const catalog={
       star:['新星','Star','首件投稿通过审核。','Your first submission passed review.','你已有至少 1 件投稿通过审核。','At least one of your submissions passed review.'],
       resilient:['百折不挠','Resilient','经历挫折后首次获得审核通过。','Earned your first approval after setbacks.','在第一件通过审核的投稿之前，你至少有 3 件投稿被拒。','At least three submissions were rejected before your first approval.'],
@@ -737,14 +737,14 @@ async function loadProgress(id){
       airport5:['时光荏苒','Airport Regular','同一机场累计集齐至少五件展品。','Collected at least five exhibits from the same airport.','你的馆藏中有同一机场的至少五件展品。','Your collection has at least five exhibits from one airport.'],
       complete:['大满贯','Grand Slam','获得本馆全部其他成就。','Earned every other museum achievement.','你已获得本馆列出的全部其他成就。','You have earned every other museum achievement.']
     };
-    const text=(zh,en)=>english?en:zh;
+    const text=(zh,en)=>english?en:traditional?window.bpmLocaleText(zh):zh;
     const achievements=data.achievements.map(a=>{
       const item=catalog[a.code];
       const name=item?text(item[0],item[1]):a.name;
       return `<li><button type="button" class="bpm-achievement-button" data-achievement="${escapeHTML(a.code)}" data-awarded="${escapeHTML(a.awarded_at||'')}">${escapeHTML(name)}</button></li>`;
     }).join('');
     box.innerHTML=`<h2>Lv${Number(data.level)}</h2><progress class="bpm-progress" max="100" value="${Number(data.progress)}" aria-label="等级进度"></progress>
-      <p>${data.next===null?'已达到当前角色最高等级':`下一级需 ${Number(data.next)} 张${data.review_count===null?'等级计数投稿':'经手审核稿件'}`}</p>
+      <p>${data.next===null?text('已达到当前角色最高等级','You have reached the highest level for this role'):traditional?`升至下一級需 ${Number(data.next)} 件${data.review_count===null?'等級計數投稿':'經手審核稿件'}`:`下一级需 ${Number(data.next)} 张${data.review_count===null?'等级计数投稿':'经手审核稿件'}`}</p>
       <div class="bpm-stats"><div><strong>${Number(data.level_count)}</strong>等级计数投稿</div><div><strong>${Number(data.total_submissions)}</strong>累计投稿</div>${data.review_count===null?'':`<div><strong>${Number(data.review_count)}</strong>审核数量</div>`}</div>
       <h3>${text('成就','Achievements')}</h3><ul class="bpm-achievements">${achievements||`<li>${text('尚未获得成就','No achievements yet')}</li>`}</ul>${data.historical_note?`<p>${escapeHTML(data.historical_note)}</p>`:''}
       <dialog class="bpm-dialog bpm-achievement-dialog" id="achievementDialog" aria-labelledby="achievementDialogTitle"><h2 id="achievementDialogTitle"></h2><p class="bpm-achievement-detail"></p><p class="bpm-achievement-reason"></p><p class="bpm-achievement-date"></p><form method="dialog"><button type="submit">${text('关闭','Close')}</button></form></dialog>`;
@@ -756,7 +756,7 @@ async function loadProgress(id){
       dialog.querySelector('.bpm-achievement-detail').textContent=text(item[2],item[3]);
       dialog.querySelector('.bpm-achievement-reason').textContent=`${text('获得原因：','Why you earned it: ')}${text(item[4],item[5])}`;
       const awarded=button.dataset.awarded?new Date(button.dataset.awarded):null;
-      dialog.querySelector('.bpm-achievement-date').textContent=awarded&&!Number.isNaN(awarded.getTime())?`${text('获得时间：','Awarded: ')}${awarded.toLocaleDateString(english?'en-US':'zh-CN')}`:'';
+      dialog.querySelector('.bpm-achievement-date').textContent=awarded&&!Number.isNaN(awarded.getTime())?`${text('获得时间：','Awarded: ')}${awarded.toLocaleDateString(english?'en-US':traditional?'zh-TW':'zh-CN')}`:'';
       dialog.showModal();
     });
   }catch{box.textContent='等级信息暂时无法加载';}

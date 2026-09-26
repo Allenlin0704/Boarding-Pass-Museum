@@ -137,3 +137,22 @@
 - [x] 重复开发已经完成的系统公告
 - [x] 重复开发管理员申请
 
+
+---
+
+# Product extensions / 多语言 (2026-09-27)
+
+## In progress / completed
+
+- [ ] English and Traditional Chinese localization across public pages and interactions
+- [ ] Keep user-submitted stories, posts, and comments in their original language
+
+## Next product ideas
+
+- [ ] Expand ticket types beyond boarding passes and rail tickets; define the supported metadata and privacy rules for each type before implementation
+- [ ] Build a journey timeline grouped by trip date and city, with links between an arrival and the next departure
+- [ ] Link related exhibits using explainable signals: same flight number, route, date, airport, operator, or journey
+- [ ] Add a related-exhibits section to exhibit detail pages, with links to each record
+- [ ] Consider collection maps and city/airport visit statistics after the core timeline data is reliable
+
+Implementation order: finish language QA first; then agree on ticket categories and fields; next add the timeline and exhibit relationships using existing exhibit data where possible.
