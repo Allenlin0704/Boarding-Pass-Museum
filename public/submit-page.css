@@ -76,7 +76,7 @@
  .submit-card-heading{gap:11px;margin-bottom:18px}.submit-section-index{flex-basis:32px;width:32px;height:32px}.submit-card-heading h2{font-size:18px}.submit-card-heading p{font-size:12px}
  .submit-fields-grid{grid-template-columns:minmax(0,1fr);gap:15px}.submit-field-wide,.special-tags{grid-column:auto}.special-tags{grid-template-columns:1fr;padding:12px}.special-tags p{grid-column:auto}
  .submit-field input,.submit-field select,.submit-type-picker select,.submit-story-card textarea{min-height:48px;font-size:16px}
- .submit-image-card .image-editor-layout{display:block}.submit-image-card .image-editor-controls-column{display:flex;margin-top:12px;padding:14px}.submit-image-card .preview-area{min-height:230px;height:34vh;max-height:360px;margin-top:10px}.submit-image-card .preview-area canvas{max-height:100%}
+ .submit-image-card .image-editor-layout{display:block}.submit-image-card .image-editor-controls-column{display:none}.submit-image-card .preview-area{display:flex;flex-direction:column;justify-content:space-between;gap:8px;min-height:230px;height:34vh;max-height:360px;margin-top:10px}.submit-image-card .open-image-editor{display:flex!important;flex:0 0 48px;width:100%!important;min-height:48px;margin:8px 0 0}.submit-image-card .preview-area canvas{flex:0 1 auto;max-height:calc(100% - 60px)}
  .submit-final-card{padding:18px 16px}#submitBtn{min-height:50px}.submit-draft-actions button{width:auto;min-height:40px}
 }
 @media(min-width:701px) and (max-width:900px){.bpm-submission-page{width:calc(100% - 36px)}.submit-image-card .image-editor-layout{grid-template-columns:minmax(0,1fr) minmax(280px,.9fr)}}
