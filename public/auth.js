@@ -42,6 +42,7 @@ function updateNavbar(){
         });
         const update=nav.querySelector("#checkUpdate");if(update)update.textContent="Check for updates";
         const logout=nav.querySelector("#logout");if(logout)logout.textContent="Log out";
+        const profile=nav.querySelector("[data-nav-profile]");if(profile)profile.textContent="View profile";
     }
 
     function setupMobileNavigation(){
@@ -57,13 +58,13 @@ function updateNavbar(){
             toggle.className="mobile-nav-toggle";
             toggle.setAttribute("aria-label","展开导航");
             toggle.setAttribute("aria-expanded","false");
-            toggle.textContent="☰";
+            toggle.innerHTML=window.bpmIcon("menu");
             header.appendChild(toggle);
             toggle.onclick=()=>{
                 const open=header.classList.toggle("mobile-nav-open");
                 toggle.setAttribute("aria-expanded",String(open));
                 toggle.setAttribute("aria-label",open?"关闭导航":"展开导航");
-                toggle.textContent=open?"×":"☰";
+                toggle.innerHTML=window.bpmIcon(open?"close":"menu");
             };
         }
 
@@ -71,7 +72,7 @@ function updateNavbar(){
             link.onclick=()=>{
                 header.classList.remove("mobile-nav-open");
                 toggle.setAttribute("aria-expanded","false");
-                toggle.textContent="☰";
+                toggle.innerHTML=window.bpmIcon("menu");
             };
         });
 
@@ -172,6 +173,7 @@ function updateNavbar(){
             <div id="userDropdown" class="user-dropdown">
 
 
+                <a href="profile.html?id=${encodeURIComponent(currentUser.id)}" data-nav-profile>查看个人主页</a>
                 <a href="notifications.html">通知与申诉</a>
                 <a href="account.html">
                 账户设置

@@ -64,7 +64,7 @@ async function loadMySubmissions() {
 
 function getStatus(flight) {
   if (flight.status === "hidden") {
-    return { text: "已下架", className: "status-hidden", icon: "−" };
+    return { text: "已下架", className: "status-hidden", icon: "xCircle" };
   }
 
 
@@ -73,7 +73,7 @@ function getStatus(flight) {
     return {
       text: "已通过",
       className: "status-approved",
-      icon: "✓"
+      icon: "check"
     };
 
   }
@@ -83,7 +83,7 @@ function getStatus(flight) {
     return {
       text: "未通过",
       className: "status-rejected",
-      icon: "!"
+      icon: "xCircle"
     };
 
   }
@@ -91,7 +91,7 @@ function getStatus(flight) {
   return {
     text: "审核中",
     className: "status-pending",
-    icon: "•"
+    icon: "alert"
   };
 
 }
@@ -147,13 +147,13 @@ function renderSubmissions(flights) {
           ${
             flight.appeal_status === "pending"
             ?
-            "⚠ 申诉处理中"
+            `${window.bpmIcon("alert")} 申诉处理中`
             :
             flight.appeal_status === "approved"
             ?
-            "✅ 申诉已通过"
+            `${window.bpmIcon("check")} 申诉已通过`
             :
-            "❌ 申诉未通过"
+            `${window.bpmIcon("xCircle")} 申诉未通过`
           }
 
         </div>
@@ -230,17 +230,17 @@ function renderSubmissions(flights) {
 
 
         <p class="submission-flight">
-          ✈ ${flight.flight || ""}
+          ${window.bpmIcon("plane")} ${flight.flight || ""}
         </p>
 
 
         <p>
-          📍 ${flight.airport || "未知机场"}
+          ${window.bpmIcon("pin")} ${flight.airport || "未知机场"}
         </p>
 
 
         <p>
-          📅 ${flight.date || ""}
+          ${window.bpmIcon("calendar")} ${flight.date || ""}
         </p>
 
 
@@ -248,7 +248,7 @@ function renderSubmissions(flights) {
         <div class="submission-status ${status.className}">
 
           <span class="status-icon">
-            ${status.icon}
+            ${window.bpmIcon(status.icon)}
           </span>
 
           <span>
@@ -278,11 +278,11 @@ function renderSubmissions(flights) {
 
           ${flight.status === "hidden" ? `
             <button type="button" class="restore-btn" onclick="restoreFlight(${flight.id})">
-              ↩️ 恢复展品
+              ${window.bpmIcon("rotateLeft")} 恢复展品
             </button>
           ` : `
             <button type="button" class="withdraw-btn" onclick="withdrawFlight(${flight.id})">
-              🗑️ 下架展品
+              ${window.bpmIcon("trash")} 下架展品
             </button>
           `}
 

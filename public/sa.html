@@ -5,18 +5,22 @@
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
-<link rel="stylesheet" href="style.css">
-  <script src="theme.js"></script>
-<link rel="stylesheet" href="features.css">
+<link rel="stylesheet" href="style.css?v=20260927-mobile1">
+  <script src="theme.js?v=20260927"></script>
+<link rel="stylesheet" href="features.css?v=20260927-mobile1">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
 
 <body>
-<header class="menubar"><div class="brand">✈ BoardingPassMuseum</div><nav><a href="index.html">展厅</a><a href="console.html">管理中心</a><a href="login.html">登录</a></nav></header>
+<header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum</div><nav><a href="index.html">展厅</a><a href="console.html">管理中心</a><a href="login.html">登录</a></nav></header>
 <main class="bpm-sa-page">
 <section class="bpm-page-hero"><span>站主工作台</span><h1>SA 控制台</h1><p id="welcome">正在加载账户状态…</p><a class="bpm-sa-shortcut" href="moderation.html">打开社区举报、处罚与申诉管理 →</a></section>
 
+<nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
+<a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+</nav>
+
 <section class="sa-panel" id="saSecurityPanel">
-<h2>🔐 SA 二次验证</h2>
+<h2><span data-bpm-icon="lock"></span> SA 二次验证</h2>
 <p>敏感操作需先使用 Passkey 或 6 位备用 PIN 验证；授权有效期为 15 分钟。</p>
 <p id="saSecurityStatus" role="status">正在检查安全状态…</p>
 <label>当前账户密码 <input id="saSecurityPassword" type="password" autocomplete="current-password"></label>
@@ -30,10 +34,25 @@
 
 <div id="appeals"></div>
 
-<section class="sa-panel">
+<section class="sa-panel" id="reviewerSchedulePanel">
+<h2>审核排班</h2>
+<p>启用的管理员按待审量均衡分配；顺序用于待审量相同的排班优先级。只有 ID=1 的站主账号可加入 SA 排班。</p>
+<div id="reviewerSchedule">加载中…</div>
+<button type="button" id="saveReviewerSchedule">保存排班</button>
+<p id="reviewerScheduleStatus" role="status"></p>
+</section>
+
+<section class="sa-panel" id="flightCorrectionsPanel">
+<h2>展品纠错</h2>
+<p>用户提交的展品信息纠错会列在这里；点开原展品可另开窗口核对。</p>
+<div id="flightCorrections">加载中…</div>
+</section>
+
+
+<section class="sa-panel" id="adminApplications">
 
 <h2>
-👤 管理员申请
+<span data-bpm-icon="users"></span> 管理员申请
 </h2>
 
 <div id="adminRequests">
@@ -42,10 +61,10 @@
 
 </section>
 
-<section class="sa-panel">
+<section class="sa-panel" id="saExhibits">
 
 <h2>
-🖼 展品管理
+<span data-bpm-icon="image"></span> 展品管理
 </h2>
 
 <p>
@@ -69,10 +88,10 @@ placeholder="输入展品 ID"
 
 
 
-<section class="sa-panel">
+<section class="sa-panel" id="saCommunity">
 
 <h2>
-💬 社区管理
+<span data-bpm-icon="message"></span> 社区管理
 </h2>
 
 <p>
@@ -86,24 +105,24 @@ placeholder="输入展品 ID"
 </section>
 
 
-<section class="sa-panel">
+<section class="sa-panel" id="saAnnouncements">
 
 <h2>
-📢 更新日志管理
+<span data-bpm-icon="megaphone"></span> 公告通知
 </h2>
 
 <p>
-发布新的 BoardingPassMuseum 更新日志。
+每次发布都会追加保存；网站会在用户每天首次打开时展示公告。
 </p>
 
 <input
 id="noticeVersion"
-placeholder="版本号，例如 v1.0.1"
+placeholder="公告标题"
 >
 
 <textarea
 id="noticeContent"
-placeholder="输入本次更新内容……"
+placeholder="输入公告内容……"
 ></textarea>
 
 <div class="sa-editor-tools">
@@ -112,65 +131,19 @@ type="button"
 class="red-text-btn"
 onclick="markSelectedRed('noticeContent')"
 >
-🔴 标红选中文字
+<span data-bpm-icon="circle"></span> 标红选中文字
 </button>
 </div>
 
 <button id="publishNotice">
-发布更新
+发布公告
 </button>
 
 </section>
-
-
-<section class="sa-panel">
+<section class="sa-panel" id="saStaff">
 
 <h2>
-📌 长期置顶事项
-</h2>
-
-<p>
-这里用于发布长期有效的公告、QQ群、技术支持等信息。
-</p>
-
-<input
-id="updateTitle"
-type="text"
-placeholder="输入置顶事项标题……"
-autocomplete="off"
->
-
-<textarea
-id="updateContent"
-placeholder="输入长期置顶内容……"
-></textarea>
-
-<div class="sa-editor-tools">
-<button
-type="button"
-class="red-text-btn"
-onclick="markSelectedRed('updateContent')"
->
-🔴 标红选中文字
-</button>
-</div>
-
-<p class="rules-fixed-note">
-📋 长期固定入口：
-<a href="rules.html" target="_blank">
-投稿及审核条例
-</a>
-</p>
-
-<button id="publishUpdate">
-发布置顶事项
-</button>
-
-</section>
-<section class="sa-panel">
-
-<h2>
-👥 管理人员管理
+<span data-bpm-icon="users"></span> 管理人员管理
 </h2>
 
 <div id="users">
@@ -179,7 +152,7 @@ onclick="markSelectedRed('updateContent')"
 
 </section>
 
-<section class="sa-panel">
+<section class="sa-panel" id="saDeletions">
 
 <h2>账户注销申请</h2>
 
@@ -190,10 +163,10 @@ onclick="markSelectedRed('updateContent')"
 </section>
 
 </main>
-<script src="auth.js?v=20260912"></script>
+<script src="auth.js?v=20260927"></script>
 <script src="sa-security.js?v=1"></script>
 <script src="review-rules.js"></script>
-<script src="sa.js?v=20260913"></script>
+<script src="sa.js?v=20260927"></script>
 
 
 
@@ -218,7 +191,7 @@ class="demote-overlay"
 </p>
 
 <p class="demote-warning">
-⚠️ 此操作不会删除账号，只会将管理员恢复为普通用户。
+<span data-bpm-icon="alert"></span> 此操作不会删除账号，只会将管理员恢复为普通用户。
 </p>
 
 <p>

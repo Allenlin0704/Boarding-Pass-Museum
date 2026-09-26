@@ -193,12 +193,31 @@ Preserving memories of every journey.<br>
 })
 }
 );
-
 if(!response.ok) throw new Error("Verification email delivery failed");
 return true;
-
 }
 
+async function sendSubmissionStatusEmail(env,flightId,statusLabel,extraMessage=""){
+  if(!env.RESEND_API_KEY)return;
+  const flight=await env.DB.prepare(`SELECT f.id,f.airline,f.flight,f.date,f.status,f.reject_reason,u.email
+    FROM flights f JOIN users u ON u.id=f.user_id WHERE f.id=?`).bind(Number(flightId)).first();
+  if(!flight?.email)return;
+  const escape=value=>String(value??"").replace(/[&<>\"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+  const isRejected=flight.status==='rejected';
+  const detail=extraMessage||flight.reject_reason||"";
+  const target=flight.status==='approved'?`detail.html?id=${flight.id}`:"my.html";
+  const response=await fetch("https://api.resend.com/emails",{
+    method:"POST",
+    headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      from:"BoardingPassMuseum <noreply@bpmuseum.org.cn>",
+      to:[flight.email],
+      subject:`BoardingPassMuseum 投稿状态更新：${statusLabel}`,
+      html:`<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.7;max-width:600px;margin:0 auto;padding:28px 22px;color:#17324b"><h2>BoardingPassMuseum</h2><p>您好，您的投稿状态有更新。</p><p><strong>${escape(statusLabel)}</strong></p><p>展品：#${flight.id} · ${escape(flight.airline)} ${escape(flight.flight)} · ${escape(flight.date)}</p>${detail?`<p>${isRejected?"审核说明：":"处理说明："}<br>${escape(detail).replace(/\n/g,"<br>")}</p>`:""}<p><a href="https://bpmuseum.org.cn/${target}">查看投稿状态</a></p><p style="color:#60758a;font-size:13px">BoardingPassMuseum 登机牌博物馆</p></div>`
+    })
+  });
+  if(!response.ok)throw new Error(`Resend status ${response.status}`);
+}
 
 const legacy = {
 
@@ -250,6 +269,7 @@ id,
 CASE WHEN deleted_at IS NOT NULL THEN '账号已注销' ELSE username END AS username,
 role,
 avatar,
+avatar_shape,
 bio,
 social_media,
 equipment,
@@ -302,6 +322,7 @@ request.method==="POST"
 const {
 user_id,
 avatar,
+avatar_shape,
 bio,
 social_media,
 equipment,
@@ -317,6 +338,7 @@ await env.DB.prepare(
 UPDATE users
 SET
 avatar=?,
+avatar_shape=?,
 bio=?,
 social_media=?,
 equipment=?,
@@ -327,6 +349,7 @@ WHERE id=?
 )
 .bind(
 avatar || "",
+avatar_shape || "circle",
 bio || "",
 social_media || "",
 equipment || "",
@@ -767,70 +790,6 @@ headers
 );
 
 }
-
-// =====================================
-// USER RESTORE / WITHDRAW
-// =====================================
-
-if (url.pathname === "/api/my/restore" && request.method === "POST") {
-  const { flight_id, user_id } = await request.json();
-  if (!Number.isSafeInteger(Number(flight_id)) || Number(flight_id) <= 0 ||
-      !Number.isSafeInteger(Number(user_id)) || Number(user_id) <= 0) {
-    return Response.json({ success: false, error: "无效的展品或用户 ID" }, { status: 400, headers });
-  }
-  const result = await env.DB.prepare(`
-    UPDATE flights SET status='screening', reject_reason=NULL,
-      reviewer_id=(SELECT users.id FROM users WHERE users.role='administrator'
-        ORDER BY (SELECT COUNT(*) FROM flights AS queue
-          WHERE queue.status='screening' AND queue.reviewer_id=users.id), users.id LIMIT 1)
-    WHERE id=? AND user_id=? AND status='hidden'
-  `).bind(Number(flight_id), Number(user_id)).run();
-  if (!result.meta.changes) {
-    return Response.json({ success: false, error: "展品不存在、不属于你或未下架" }, { status: 409, headers });
-  }
-  return Response.json({ success: true }, { headers });
-}
-
-if(
-url.pathname==="/api/my/withdraw"
-&&
-request.method==="POST"
-){
-
-const {
-flight_id,
-user_id
-}
-=
-await request.json();
-
-
-await env.DB.prepare(
-`
-UPDATE flights
-SET status='hidden'
-WHERE id=?
-AND user_id=?
-`
-)
-.bind(
-flight_id,
-user_id
-)
-.run();
-
-
-return Response.json(
-{
-success:true
-},
-{
-headers
-}
-);
-
-}
-
 
 // =====================================
 // USER SUBMISSIONS
@@ -1958,7 +1917,7 @@ VALUES (?,?,?)
 `
 )
 .bind(
-"BoardingPassMuseum 更新日志",
+version.trim(),
 version.trim(),
 content.trim()
 )
@@ -2429,7 +2388,7 @@ headers
 };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const original = request;
     try {
       const url = new URL(request.url);
@@ -2468,6 +2427,14 @@ export default {
       if(url.pathname==="/api/upload-image"&&request.method==="POST") return responseHeaders(original,await uploadImage(request,env));
       const account = await accountRoute(request.clone(),env,url,auth.user,sendVerificationEmail);
       if(account) return responseHeaders(original,account);
+      if(url.pathname==='/api/account/profile'&&request.method==='POST'){
+        if(!auth.user)return responseHeaders(original,reply({error:'请重新登录'},401));
+        const body=await request.json(),avatar=String(body.avatar||''),shape=String(body.avatar_shape||'circle');
+        const textFields=['bio','social_media','equipment','favorite_airlines','favorite_airports'];
+        if(!['circle','square'].includes(shape)||avatar.length>500||avatar&&!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[A-Za-z0-9.-]+$/.test(avatar)||textFields.some(key=>String(body[key]||'').length>2000))return responseHeaders(original,reply({error:'资料格式无效'},400));
+        await env.DB.prepare('UPDATE users SET avatar=?,avatar_shape=?,bio=?,social_media=?,equipment=?,favorite_airlines=?,favorite_airports=? WHERE id=?').bind(avatar,shape,...textFields.map(key=>String(body[key]||'')),auth.user.id).run();
+        return responseHeaders(original,reply({success:true}));
+      }
       if(url.pathname==='/api/flight-assist'&&request.method==='GET'){
         const flight=String(url.searchParams.get('flight')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12),date=String(url.searchParams.get('date')||'').slice(0,10);
         if(flight.length<3)return responseHeaders(original,reply({error:'航班号格式错误'},400));
@@ -2480,6 +2447,28 @@ export default {
       if(community) return responseHeaders(original,community);
       const reviewed = await reviewRoute(request.clone(),env,url,auth.user);
       if(reviewed) {
+        if(reviewed.ok && request.method==='POST') {
+          let event=null,flightId=null,extraMessage="";
+          const body=await request.clone().json().catch(()=>({}));
+          if(url.pathname==='/api/submit'){
+            const result=await reviewed.clone().json().catch(()=>({}));flightId=result.flight_id;event='投稿已提交，已进入审核队列';
+          } else if(url.pathname==='/api/my/restore'){
+            flightId=Number(body.flight_id);event='展品已恢复，已重新进入审核队列';
+          } else if(url.pathname==='/api/my/withdraw'){
+            flightId=Number(body.flight_id);event='展品已下架';
+          } else if(/\/api\/(admin|sa)\/(approve|reject)$/.test(url.pathname)){
+            flightId=Number(body.flight_id);event=url.pathname.endsWith('/approve')?'投稿已通过审核':'投稿未通过审核';
+          } else if(url.pathname==='/api/sa/appeal/approve'||url.pathname==='/api/sa/appeal/reject'){
+            const appeal=await env.DB.prepare('SELECT flight_id,status FROM appeals WHERE id=?').bind(Number(body.appeal_id)).first();
+            flightId=appeal?.flight_id;event=appeal?.status==='approved'?'申诉已通过，投稿重新进入审核队列':'申诉处理完成';
+            if(appeal?.status==='rejected')extraMessage='申诉未获通过，请在“我的投稿”查看处理状态。';
+          }
+          if(flightId&&event){
+            const send=sendSubmissionStatusEmail(env,flightId,event,extraMessage).catch(error=>console.error('Submission status email failed',error.name));
+            if(ctx?.waitUntil)ctx.waitUntil(send);else await send;
+          }
+        }
+        if(reviewed.ok&&url.pathname==='/api/submit')await progressFor(env,auth.user);
         if(reviewed.ok && /\/(approve|reject)$/.test(url.pathname)) {
           const body=await request.clone().json();
           const flight=body.flight_id?await env.DB.prepare('SELECT user_id FROM flights WHERE id=?').bind(Number(body.flight_id)).first():null;

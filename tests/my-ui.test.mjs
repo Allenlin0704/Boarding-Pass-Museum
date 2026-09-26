@@ -6,14 +6,14 @@ test('hidden cards show only restore; other cards show one withdraw; successful 
   const cards=[]; const calls=[];
   const box={innerHTML:'',appendChild(card){cards.push(card);}};
   const context=vm.createContext({
-    bpmSafeRecord:x=>x, currentUser:{id:3,username:'Test'}, console, location:{}, showToast(){}, confirm:()=>true,
+    bpmSafeRecord:x=>x, currentUser:{id:3,username:'Test'}, console, location:{}, window:{bpmIcon:name=>`<svg data-icon="${name}"></svg>`}, showToast(){}, confirm:()=>true,
     document:{getElementById:id=>id==='mySubmissions'?box:null,addEventListener(){},createElement:()=>({})},
     fetch:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>options?{success:true}:[]};}
   });
   vm.runInContext(readFileSync(new URL('../public/my.js',import.meta.url),'utf8'),context);
   await new Promise(resolve=>setImmediate(resolve));
   vm.runInContext(`renderSubmissions([{id:11,status:'hidden'},{id:12,status:'pending'},{id:13,status:'approved'}])`,context);
-  assert.match(cards[0].innerHTML,/↩️ 恢复展品/);
+  assert.match(cards[0].innerHTML,/恢复展品/);
   assert.doesNotMatch(cards[0].innerHTML,/withdrawFlight/);
   assert.match(cards[0].innerHTML,/已下架/);
   for(const card of cards.slice(1)) {

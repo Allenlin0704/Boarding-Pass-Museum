@@ -117,14 +117,14 @@ function renderPost(post) {
             ${post.image ? `<img class="community-post-image" src="${escapeHTML(post.image)}" alt="帖子图片" loading="lazy">` : ''}
             <div class="community-actions">
               <button type="button" data-report-type="post" data-report-id="${Number(post.id)}">举报</button>
-              ${currentUser && ['administrator','superadministrator'].includes(currentUser.role) ? `<button type="button" data-hide-type="post" data-hide-id="${Number(post.id)}">🚫 下架帖子</button>` : ''}
+              ${currentUser && ['administrator','superadministrator'].includes(currentUser.role) ? `<button type="button" data-hide-type="post" data-hide-id="${Number(post.id)}">${window.bpmIcon("xCircle")} 下架帖子</button>` : ''}
 
                 <button
                     type="button"
                     class="community-like"
                     data-post-id="${Number(post.id)}"
                 >
-                    ❤️ ${Number(post.like_count || 0)}
+                    ${window.bpmIcon("heart")} ${Number(post.like_count || 0)}
                 </button>
 
                 <button
@@ -132,7 +132,7 @@ function renderPost(post) {
                     class="community-comment-toggle"
                     data-post-id="${Number(post.id)}"
                 >
-                    💬 ${Number(post.comment_count || 0)}
+                    ${window.bpmIcon("message")} ${Number(post.comment_count || 0)}
                 </button>
 
             </div>

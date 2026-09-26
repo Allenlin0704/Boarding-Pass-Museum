@@ -1,4 +1,4 @@
-const CACHE = 'bpmuseum-shell-v2';
+const CACHE = 'bpmuseum-shell-v3';
 const SHELL = [
   '/', '/index.html', '/style.css', '/features.css', '/theme.js', '/pwa.js',
   '/manifest.webmanifest', '/favicon.png', '/offline.html'

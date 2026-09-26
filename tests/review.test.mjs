@@ -8,7 +8,7 @@ test('restore: owner and hidden status required; requeue and clear rejection', a
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:0})).status,400);
   assert.deepEqual(await (await call('/api/my/restore',{user_id:3,flight_id:11})).json(),{success:true});
   const flight=db.prepare('SELECT * FROM flights WHERE id=11').get();
-  assert.equal(flight.status,'screening'); assert.equal(flight.reject_reason,null); assert.equal(flight.reviewer_id,2);
+  assert.equal(flight.status,'screening'); assert.equal(flight.reject_reason,null); assert.equal(flight.reviewer_id,1);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11})).status,409);
 });
 test('SA can see all pending and approve/reject own submission and override results', async () => {

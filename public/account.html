@@ -10,9 +10,9 @@
 
 <title>账户设置 - BoardingPassMuseum</title>
 
-<link rel="stylesheet" href="style.css?v=20260913">
+<link rel="stylesheet" href="style.css?v=20260927-mobile1">
 
-    <script src="theme.js"></script>
+    <script src="theme.js?v=20260927"></script>
 </head>
 
 
@@ -141,7 +141,7 @@ id="emailPassword"
 class="password-toggle"
 data-password="emailPassword"
 >
-👁
+<span data-bpm-icon="eye"></span>
 </button>
 
 </div>
@@ -229,8 +229,14 @@ hidden
 >
 </label>
 
+<label for="avatarCropShape">头像框形</label>
+<select id="avatarCropShape"><option value="circle">圆形</option><option value="square">方形</option></select>
+<label for="avatarCropZoom">缩放</label>
+<input id="avatarCropZoom" type="range" min="1" max="3" step="0.05" value="1">
+<button type="button" id="saveAvatarCrop" disabled>使用此裁剪</button>
+
 <p class="avatar-hint">
-支持 JPG、PNG、WEBP，头像会自动裁切为正方形
+支持 JPG、PNG、WEBP。拖动图片调整取景，选择缩放与圆形/方形裁剪后再保存。
 </p>
 
 </div>
@@ -370,7 +376,7 @@ id="newPassword"
 class="password-toggle"
 data-password="newPassword"
 >
-👁
+<span data-bpm-icon="eye"></span>
 </button>
 
 </div>
@@ -391,7 +397,7 @@ id="confirmPassword"
 class="password-toggle"
 data-password="confirmPassword"
 >
-👁
+<span data-bpm-icon="eye"></span>
 </button>
 
 </div>
@@ -406,13 +412,13 @@ data-password="confirmPassword"
 
 
 
-<script src="auth.js?v=20260912"></script>
+<script src="auth.js?v=20260927"></script>
 
-<script src="password-toggle.js"></script>
+<script src="password-toggle.js?v=20260927"></script>
 
-<script src="account.js?v=20260913"></script>
+<script src="account.js?v=20260927"></script>
 <script src="user-passkey.js?v=1"></script>
-<script src="oauth.js?v=1"></script>
+<script src="oauth.js?v=20260927"></script>
 
 
 </body>

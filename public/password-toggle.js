@@ -10,7 +10,7 @@ document.querySelectorAll(".password-toggle").forEach(button => {
         if (input.type === "password") {
 
             input.type = "text";
-            button.textContent = "🙈";
+            button.innerHTML=window.bpmIcon("eyeOff");
             button.setAttribute(
                 "aria-label",
                 "隐藏密码"
@@ -19,7 +19,7 @@ document.querySelectorAll(".password-toggle").forEach(button => {
         } else {
 
             input.type = "password";
-            button.textContent = "👁";
+            button.innerHTML=window.bpmIcon("eye");
             button.setAttribute(
                 "aria-label",
                 "显示密码"

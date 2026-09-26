@@ -97,6 +97,8 @@ function applyMuseumFilter(){
     "";
 
   const airline = document.getElementById("museumAirline")?.value || "";
+  const category = document.getElementById("museumType")?.value || "";
+  const format = document.getElementById("museumFormat")?.value || "";
   const airport = document.getElementById("museumAirport")?.value || "";
   const year = document.getElementById("museumYear")?.value || "";
 
@@ -109,19 +111,32 @@ function applyMuseumFilter(){
     ${f.airline || ""}
     ${f.flight || ""}
     ${f.airport || ""}
+    ${f.route || ""}
     `
     .toLowerCase();
 
 
+    let tags = f.special_tags || [];
+    if(typeof tags === "string"){
+      try{ tags = JSON.parse(tags); }catch{ tags = []; }
+    }
+    if(!Array.isArray(tags)) tags = [];
+    const categoryMatches = !category
+      || (category === "boarding_pass" && (f.submission_type || "boarding_pass") === "boarding_pass")
+      || (category === "rail_ticket" && f.submission_type === "rail_ticket")
+      || (category === "transfer" && tags.includes("transfer"))
+      || (category === "two_cabin" && tags.includes("two_cabin"));
     return text.includes(keyword)
       && (!airline || String(f.airline || "").trim() === airline)
+      && categoryMatches
+      && (!format || (f.submission_type !== "rail_ticket" && (f.ticket_format || "paper") === format))
       && (!airport || String(f.airport || "").trim() === airport)
       && (!year || String(f.date || "").startsWith(year));
 
   });
 
   const resultCount=document.getElementById("museumResultCount");
-  if(resultCount)resultCount.textContent=keyword||airline||airport||year
+  if(resultCount)resultCount.textContent=keyword||airline||category||format||airport||year
     ? (window.BPM_LANGUAGE==="en"?`${displayFlights.length} matching exhibits`:`找到 ${displayFlights.length} 件匹配展品`)
     : (window.BPM_LANGUAGE==="en"?`${displayFlights.length} exhibits`:`共 ${displayFlights.length} 件展品`);
 
@@ -187,8 +202,10 @@ function applyMuseumFilter(){
 
 function populateMuseumFilters(){
   const options = [
-    ["museumAirline", "airline", "全部航空公司"],
-    ["museumAirport", "airport", "全部机场"],
+    ["museumAirline", "airline", "全部航空公司 / 运营公司"],
+    ["museumType", null, "全部投稿类别"],
+    ["museumFormat", null, "全部登机牌形式"],
+    ["museumAirport", "airport", "全部出发机场或车站"],
     ["museumYear", "year", "全部年份"]
   ];
 
@@ -196,6 +213,7 @@ function populateMuseumFilters(){
     const select = document.getElementById(id);
     if(!select) return;
     const current = select.value;
+    if(!field) return;
     const values = [...new Set(flights.map(f => field === "year" ? String(f.date || "").slice(0,4) : String(f[field] || "").trim()).filter(Boolean))]
       .sort((a,b) => field === "year" ? b.localeCompare(a) : a.localeCompare(b, "zh-CN"));
     select.replaceChildren(new Option(fallback, ""), ...values.map(value => new Option(value, value)));
@@ -224,12 +242,12 @@ document.addEventListener(
     applyMuseumFilter
   );
 
-  ["museumAirline", "museumAirport", "museumYear"].forEach(id =>
+  ["museumAirline", "museumType", "museumFormat", "museumAirport", "museumYear"].forEach(id =>
     document.getElementById(id)?.addEventListener("change", applyMuseumFilter)
   );
 
   document.getElementById("museumReset")?.addEventListener("click", () => {
-    ["museumSearch", "museumAirline", "museumAirport", "museumYear"].forEach(id => {
+    ["museumSearch", "museumAirline", "museumType", "museumFormat", "museumAirport", "museumYear"].forEach(id => {
       const field = document.getElementById(id);
       if(field) field.value = "";
     });
@@ -279,6 +297,19 @@ function renderMuseum() {
   displayFlights.forEach(
     (flight, index) => {
       flight=bpmSafeRecord(flight);
+      const isRail=flight.submission_type==="rail_ticket";
+      let specialTags=flight.special_tags||[];
+      if(typeof specialTags==="string"){
+        try{specialTags=JSON.parse(specialTags);}catch{specialTags=[];}
+      }
+      if(!Array.isArray(specialTags))specialTags=[];
+      const english=window.BPM_LANGUAGE==="en";
+      const labels=english
+        ? {rail:"Rail ticket",boarding:"Boarding pass",transfer:"Transfer",twoCabin:"Business/first class",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station"}
+        : {rail:"火车票",boarding:"登机牌",transfer:"转机",twoCabin:"两舱",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站"};
+      const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
+      const inlineIcon=icon=>window.bpmIcon(icon);
+      const specialBadges=specialTags.filter(tag=>["transfer","two_cabin"].includes(tag)).map(tag=>badge(tag==="transfer"?"repeat":"armchair",tag==="transfer"?labels.transfer:labels.twoCabin)).join("");
 
       let card =
         document.createElement("div");
@@ -302,24 +333,30 @@ function renderMuseum() {
           data-preview="${flight.image || ''}"
         >
 
+        ${badge(isRail?"train":"plane",isRail?labels.rail:labels.boarding)}
+
         <span class="tag">
-          ${flight.airline || "Unknown Airline"}
+          ${flight.airline || labels.operator}
         </span>
+
+        ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${specialBadges}`:``}
 
         <h3>
           ${flight.flight || ""}
         </h3>
 
         <p>
-          📍 ${flight.airport || ""}
+          ${inlineIcon("pin")} ${isRail?labels.departureStation:labels.departureAirport}：${flight.airport || ""}
+        </p>
+
+        ${isRail&&flight.route?`<p>${inlineIcon("pin")} ${labels.arrivalStation}：${flight.route}</p>`:""}
+
+        <p>
+          ${inlineIcon("calendar")} ${flight.date || ""}
         </p>
 
         <p>
-          📅 ${flight.date || ""}
-        </p>
-
-        <p>
-          ❤️ ${flight.favorite_count || 0} 收藏
+          ${inlineIcon("heart")} ${flight.favorite_count || 0} ${english?"saves":"收藏"}
         </p>
 
         <div
@@ -346,9 +383,9 @@ ${flight.username || "匿名用户"}
         <button
         class="favorite-btn"
         data-id="${flight.id}">
-        ${favoriteIds.includes(flight.id)
-        ? "❤️ 已收藏"
-        : "🤍 收藏"}
+        ${inlineIcon("heart")} ${favoriteIds.includes(flight.id)
+        ? (english?"Saved":"已收藏")
+        : (english?"Save":"收藏")}
         </button>
 
       `;
@@ -490,7 +527,7 @@ favoriteIds.push(
 flightId
 );
 
-alert("收藏成功 ❤️");
+alert("收藏成功");
 
 }
 

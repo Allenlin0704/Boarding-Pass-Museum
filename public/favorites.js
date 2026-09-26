@@ -64,7 +64,7 @@ museum.innerHTML = `
 
 
 <p>
-去展厅收藏你的第一张登机牌吧 ✈️
+去展厅收藏你的第一张登机牌吧
 </p>
 
 
@@ -176,7 +176,7 @@ ${flight.flight}
 
 <p>
 
-✈ 航线：
+${window.bpmIcon("plane")} 航线：
 
 ${flight.route}
 
@@ -186,7 +186,7 @@ ${flight.route}
 
 <p>
 
-📅 日期：
+${window.bpmIcon("calendar")} 日期：
 
 ${flight.date}
 
@@ -196,7 +196,7 @@ ${flight.date}
 
 <p>
 
-📍 机场：
+${window.bpmIcon("pin")} 机场：
 
 ${flight.airport}
 

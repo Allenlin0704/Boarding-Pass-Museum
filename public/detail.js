@@ -118,8 +118,16 @@ data.appeal_status
 ${data.story || ""}
 </p>
 
+${(()=>{const current=JSON.parse(localStorage.getItem("currentUser")||"null");return data.status==="approved"&&current&&Number(current.id)===Number(data.user_id)?`<section class="bpm-panel"><h2>展品信息有误？</h2><p>提交后会送交站主核对，不会直接改动公开展品。</p><form id="flightCorrectionForm"><label for="flightCorrectionMessage">纠错说明</label><textarea id="flightCorrectionMessage" rows="4" maxlength="2000" required></textarea><button type="submit">提交纠错给站主</button><p id="flightCorrectionStatus" role="status"></p></form></section>`:"";})()}
+
 
 `;
+
+const correctionForm=document.getElementById("flightCorrectionForm");
+correctionForm?.addEventListener("submit",async event=>{
+  event.preventDefault();const status=document.getElementById("flightCorrectionStatus"),button=correctionForm.querySelector("button[type=submit]");button.disabled=true;status.textContent="正在提交…";
+  try{const current=JSON.parse(localStorage.getItem("currentUser")||"null"),response=await fetch(`${API}/api/flight/correction`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({flight_id:Number(id),message:document.getElementById("flightCorrectionMessage").value.trim(),user_id:current?.id})}),result=await response.json();if(!response.ok)throw Error(result.error||"提交失败");status.textContent="已送交站主核对。";correctionForm.reset();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+});
 
 
 }catch(e){

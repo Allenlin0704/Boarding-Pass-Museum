@@ -12,9 +12,9 @@
 
   <title>登机牌博物馆 | BoardingPassMuseum</title>
 
-  <link rel="stylesheet" href="style.css?v=20260925">
-  <link rel="stylesheet" href="features.css?v=20260925">
-  <script src="theme.js?v=20260925"></script>
+  <link rel="stylesheet" href="style.css?v=20260927-mobile1">
+  <link rel="stylesheet" href="features.css?v=20260927-mobile1">
+  <script src="theme.js?v=20260927"></script>
 </head>
 
 
@@ -25,7 +25,7 @@
 
 
   <div class="brand">
-    ✈ BoardingPassMuseum
+    <span data-bpm-icon="plane"></span> BoardingPassMuseum
   </div>
 
 
@@ -106,7 +106,7 @@ Admin
 
 <input
 id="museumSearch"
-placeholder="搜索航班、航司、机场..."
+placeholder="搜索航班、运营公司、车站或机场..."
 data-i18n-placeholder="home.search"
 >
 
@@ -122,11 +122,25 @@ data-i18n-placeholder="home.search"
 </select>
 
 <select id="museumAirline" aria-label="按航空公司筛选">
-<option value="" data-i18n="home.airline">全部航空公司</option>
+<option value="" data-i18n="home.airline">全部航空公司 / 运营公司</option>
 </select>
 
-<select id="museumAirport" aria-label="按机场筛选">
-<option value="" data-i18n="home.airport">全部机场</option>
+<select id="museumType" aria-label="按投稿类别筛选">
+<option value="" data-i18n="home.category">全部投稿类别</option>
+<option value="boarding_pass" data-i18n="home.category.boarding">登机牌</option>
+<option value="rail_ticket" data-i18n="home.category.rail">火车票</option>
+<option value="transfer" data-i18n="home.category.transfer">转机</option>
+<option value="two_cabin" data-i18n="home.category.twoCabin">两舱</option>
+</select>
+
+<select id="museumFormat" aria-label="按登机牌形式筛选">
+<option value="" data-i18n="home.format">全部登机牌形式</option>
+<option value="paper" data-i18n="home.format.paper">纸质</option>
+<option value="digital" data-i18n="home.format.digital">电子</option>
+</select>
+
+<select id="museumAirport" aria-label="按出发机场或车站筛选">
+<option value="" data-i18n="home.airport">全部出发机场或车站</option>
 </select>
 
 <select id="museumYear" aria-label="按年份筛选">
@@ -160,10 +174,10 @@ data-i18n-placeholder="home.search"
 
 
 
-<script src="auth.js?v=20260925"></script>
+<script src="auth.js?v=20260927"></script>
 <script src="image-preview.js"></script>
-<script src="app.js?v=20260913"></script>
-<script src="notice.js?v=20260912"></script>
+<script src="app.js?v=20260927"></script>
+<script src="notice.js?v=20260927"></script>
 
 <footer class="bpm-footer">
 

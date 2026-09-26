@@ -4,7 +4,8 @@ username TEXT NOT NULL,
 email TEXT NOT NULL UNIQUE,
 password TEXT NOT NULL,
 role TEXT DEFAULT 'user',
-created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+avatar_shape TEXT NOT NULL DEFAULT 'circle' CHECK(avatar_shape IN ('circle','square'))
 );
 
 
@@ -22,7 +23,13 @@ story TEXT,
 status TEXT DEFAULT 'pending',
 reject_reason TEXT,
 reviewer_id INTEGER,
-created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+submission_type TEXT NOT NULL DEFAULT 'boarding_pass',
+ticket_format TEXT NOT NULL DEFAULT 'paper',
+departure_country TEXT NOT NULL DEFAULT '',
+arrival_country TEXT NOT NULL DEFAULT '',
+special_tags TEXT NOT NULL DEFAULT '[]',
+issue_airport TEXT
 );
 
 

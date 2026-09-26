@@ -67,6 +67,10 @@ async function loadAppeals(){
 
             <p>状态:${x.status}</p>
 
+            <a href="detail.html?id=${Number(x.flight_id)}" target="_blank" rel="noopener">在新窗口查看展品</a>
+
+            ${x.status==='pending'?`<div class="appeal-actions"><button type="button" data-flight-appeal="${Number(x.id)}" data-flight-id="${Number(x.flight_id)}" data-result="approve">通过申诉</button><button type="button" data-flight-appeal="${Number(x.id)}" data-flight-id="${Number(x.flight_id)}" data-result="reject">驳回申诉</button></div>`:''}
+
             </div>
 
             `;
@@ -81,6 +85,40 @@ async function loadAppeals(){
     }
 
 }
+
+document.getElementById("appeals")?.addEventListener("click",async event=>{
+  const button=event.target.closest("button[data-flight-appeal]");if(!button)return;button.disabled=true;
+  try{const response=await fetch(`${API}/api/sa/appeal/${button.dataset.result}`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,appeal_id:Number(button.dataset.flightAppeal),flight_id:Number(button.dataset.flightId)})}),result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");await loadAppeals();showToast("申诉已处理");}catch(error){button.disabled=false;showToast(error.message);}
+});
+
+async function loadFlightCorrections(){
+  const box=document.getElementById("flightCorrections");if(!box)return;
+  try{
+    const response=await fetch(`${API}/api/sa/flight-corrections?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();
+    if(!response.ok)throw Error(rows.error||"加载失败");
+    if(!Array.isArray(rows)||!rows.length){box.textContent="暂无待处理纠错";return;}
+    box.innerHTML=rows.map(raw=>{const x=bpmSafeRecord(raw);return `<article class="card"><h3>${escapeSACommunityHTML(x.airline)} ${escapeSACommunityHTML(x.flight)} · #${Number(x.flight_id)}</h3><p>投稿人：${escapeSACommunityHTML(x.username)} · ${escapeSACommunityHTML(x.created_at)}</p><p>${escapeSACommunityHTML(x.message)}</p><a href="detail.html?id=${Number(x.flight_id)}" target="_blank" rel="noopener">在新窗口查看展品</a><label>处理说明<textarea data-correction-decision="${Number(x.id)}" rows="3" maxlength="2000"></textarea></label><button type="button" data-correction="${Number(x.id)}" data-status="accepted">采纳</button><button type="button" data-correction="${Number(x.id)}" data-status="dismissed">不采纳</button></article>`;}).join("");
+  }catch(error){box.textContent=`加载失败：${error.message}`;}
+}
+
+async function loadReviewerSchedule(){
+  const box=document.getElementById("reviewerSchedule");if(!box)return;
+  try{const response=await fetch(`${API}/api/sa/reviewer-schedule?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();if(!response.ok)throw Error(rows.error||"加载失败");
+    box.innerHTML=rows.map((row,index)=>`<label class="reviewer-schedule-row"><input type="checkbox" data-reviewer-id="${Number(row.id)}" ${row.active?"checked":""}><span>${escapeSACommunityHTML(row.username)} · ${row.role==="superadministrator"?"SA":"管理员"} · ID ${Number(row.id)}</span><input aria-label="排班顺序" type="number" min="1" max="100" data-reviewer-order="${Number(row.id)}" value="${Number(row.active?row.sort_order+1:index+1)}"></label>`).join("")||"目前没有可排班的管理员。";
+  }catch(error){box.textContent=`加载失败：${error.message}`;}
+}
+
+document.getElementById("saveReviewerSchedule")?.addEventListener("click",async event=>{
+  const status=document.getElementById("reviewerScheduleStatus"),button=event.currentTarget;
+  const ids=[...document.querySelectorAll("#reviewerSchedule input[data-reviewer-id]:checked")].map(input=>({id:Number(input.dataset.reviewerId),order:Number(document.querySelector(`[data-reviewer-order="${input.dataset.reviewerId}"]`)?.value)||999})).sort((a,b)=>a.order-b.order||a.id-b.id).map(item=>item.id);
+  if(!ids.length){status.textContent="至少选择一名审核人。";return;}button.disabled=true;status.textContent="保存中…";
+  try{const response=await fetch(`${API}/api/sa/reviewer-schedule`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,reviewer_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");status.textContent="排班已保存。";await loadReviewerSchedule();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+});
+
+document.getElementById("flightCorrections")?.addEventListener("click",async event=>{
+  const button=event.target.closest("button[data-correction]");if(!button)return;const id=Number(button.dataset.correction),decision=document.querySelector(`[data-correction-decision="${id}"]`)?.value.trim();if(!decision){showToast("请填写处理说明");return;}button.disabled=true;
+  try{const response=await fetch(`${API}/api/sa/flight-corrections/resolve`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,correction_id:id,status:button.dataset.status,decision})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");await loadFlightCorrections();}catch(error){showToast(error.message);button.disabled=false;}
+});
 
 
 
@@ -165,9 +203,9 @@ async function loadSACommunity(){
                     </p>
 
                     <p>
-                        ❤️ ${Number(post.like_count || 0)}
+                        ${window.bpmIcon("heart")} ${Number(post.like_count || 0)}
                         &nbsp;&nbsp;
-                        💬 ${Number(post.comment_count || 0)}
+                        ${window.bpmIcon("message")} ${Number(post.comment_count || 0)}
                     </p>
 
                     <div class="sa-community-content">
@@ -186,7 +224,7 @@ async function loadSACommunity(){
                             '${hidden ? "visible" : "hidden"}'
                         )"
                     >
-                        ${hidden ? "↩️ 恢复帖子" : "🚫 下架帖子"}
+                        ${window.bpmIcon(hidden?"rotateLeft":"xCircle")} ${hidden ? "恢复帖子" : "下架帖子"}
                     </button>
 
                 </div>
@@ -431,7 +469,7 @@ async function loadSAFlights(){
                 class="danger-button"
                 onclick="deleteSAFlight(${x.id})"
                 >
-                🗑 移除展品
+                ${window.bpmIcon("trash")} 移除展品
                 </button>
 
             </div>
@@ -748,6 +786,10 @@ async function rejectAdmin(id){
 
 loadAppeals();
 
+loadReviewerSchedule();
+
+loadFlightCorrections();
+
 loadAdminRequests();
 
 loadUsers();
@@ -942,14 +984,14 @@ if(searchSAFlight){
                     <button
                     type="button"
                     onclick="saApproveFlight(${Number(x.id)})">
-                    ✅ 批准展品
+                    ${window.bpmIcon("check")} 批准展品
                     </button>
 
                     <button
                     type="button"
                     class="danger-button"
                     onclick="saRejectFlight(${Number(x.id)})">
-                    ❌ 拒绝展品
+                    ${window.bpmIcon("xCircle")} 拒绝展品
                     </button>
                 `;
 
@@ -960,7 +1002,7 @@ if(searchSAFlight){
                     type="button"
                     class="danger-button"
                     onclick="saRejectFlight(${Number(x.id)})">
-                    ❌ SA 覆盖为拒绝
+                    ${window.bpmIcon("xCircle")} SA 覆盖为拒绝
                     </button>
                 `;
 
@@ -970,7 +1012,7 @@ if(searchSAFlight){
                     <button
                     type="button"
                     onclick="saApproveFlight(${Number(x.id)})">
-                    ✅ SA 覆盖为批准
+                    ${window.bpmIcon("check")} SA 覆盖为批准
                     </button>
                 `;
 
@@ -1023,7 +1065,7 @@ if(searchSAFlight){
             <button
             class="danger-button"
             onclick="deleteSAFlight(${Number(x.id)})">
-            🗑 移除展品
+            ${window.bpmIcon("trash")} 移除展品
             </button>
 
             </div>

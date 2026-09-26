@@ -5,7 +5,7 @@ import worker from '../worker/index.js';
 export function fixture() {
   const db = new DatabaseSync(':memory:');
   db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,role TEXT,username TEXT,email TEXT,password TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,avatar TEXT,bio TEXT,social_media TEXT,equipment TEXT,favorite_airlines TEXT,favorite_airports TEXT);
-    CREATE TABLE flights(id INTEGER PRIMARY KEY,user_id INTEGER,status TEXT,reviewer_id INTEGER,reject_reason TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,airline TEXT,flight TEXT,route TEXT,date TEXT,aircraft TEXT,airport TEXT,image TEXT,story TEXT);
+    CREATE TABLE flights(id INTEGER PRIMARY KEY,user_id INTEGER,status TEXT,reviewer_id INTEGER,reject_reason TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,airline TEXT,flight TEXT,route TEXT,date TEXT,aircraft TEXT,airport TEXT,issue_airport TEXT,image TEXT,story TEXT);
     CREATE TABLE favorites(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE appeals(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER,reason TEXT,status TEXT DEFAULT 'pending',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
     INSERT INTO users(id,role,username,email) VALUES(1,'superadministrator','SA','sa@example.test'),(2,'administrator','Admin','a@example.test'),(3,'user','User','u@example.test'),(4,'superadministrator','Invalid SA','i@example.test'),(5,'administrator','Other admin','b@example.test');
@@ -14,7 +14,7 @@ export function fixture() {
   db.exec(`CREATE TABLE community_posts(id INTEGER PRIMARY KEY,user_id INTEGER,title TEXT,content TEXT,status TEXT DEFAULT 'visible',created_at TEXT DEFAULT CURRENT_TIMESTAMP,moderation_reason TEXT);
     CREATE TABLE community_likes(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER);
     CREATE TABLE community_comments(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
-  for(const file of ['0003_security.sql','0004_progress_community.sql','0005_moderation_appeals.sql','0006_password_reset_required.sql','0007_sa_security.sql','0008_account_deletion_requests.sql','0009_self_service_account_deletion.sql','0010_user_passkeys.sql','0011_oauth_identities.sql','0012_oauth_authorization_context.sql','0013_github_oauth.sql']) db.exec(readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8'));
+  for(const file of ['0003_security.sql','0004_progress_community.sql','0005_moderation_appeals.sql','0006_password_reset_required.sql','0007_sa_security.sql','0008_account_deletion_requests.sql','0009_self_service_account_deletion.sql','0010_user_passkeys.sql','0011_oauth_identities.sql','0012_oauth_authorization_context.sql','0013_github_oauth.sql','0014_special_submissions_corrections.sql','0015_reviewer_schedule.sql','0016_avatar_shape.sql']) db.exec(readFileSync(new URL('../migrations/'+file,import.meta.url),'utf8'));
   for(const id of [1,2,3,4,5]) db.prepare("INSERT INTO auth_sessions VALUES(?,?,datetime('now','+1 day'))").run(createHash('sha256').update(String(id).repeat(64)).digest('hex'),id);
   const env = { TURNSTILE_TEST_BYPASS:true, SA_SECURITY_TEST_BYPASS:true, DB: { async batch(statements) { db.exec('BEGIN'); try {const results=[];for(const stmt of statements) results.push(await stmt.run());db.exec('COMMIT');return results;}catch(e){db.exec('ROLLBACK');throw e;} }, prepare(sql) {
     let args = [];

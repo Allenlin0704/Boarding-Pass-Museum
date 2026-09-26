@@ -102,6 +102,7 @@ async function loadProfile(){
         avatar.src =
         user.avatar ||
         "logo.png";
+        avatar.style.borderRadius=user.avatar_shape==="square"?"12px":"50%";
 
 
         avatar.onerror = ()=>{
@@ -302,13 +303,13 @@ async function loadUserFlights(id){
                 </h3>
 
                 <p>
-                    📅 ${escapeHTML(
+                    ${window.bpmIcon("calendar")} ${escapeHTML(
                         flight.date || ""
                     )}
                 </p>
 
                 <p>
-                    ❤️ ${Number(
+                    ${window.bpmIcon("heart")} ${Number(
                         flight.favorite_count || 0
                     )} 收藏
                 </p>
@@ -539,7 +540,7 @@ function renderProfilePost(post){
             ?
             `
             <div class="profile-post-moderation">
-                <strong>🚫 该动态已被下架</strong>
+                <strong>${window.bpmIcon("xCircle")} 该动态已被下架</strong>
                 <p>
                     下架原因：
                     ${escapeHTML(
@@ -561,11 +562,11 @@ function renderProfilePost(post){
             </span>
 
             <span>
-            ❤️ ${Number(post.like_count || 0)}
+            ${window.bpmIcon("heart")} ${Number(post.like_count || 0)}
             </span>
 
             <span>
-            💬 ${Number(post.comment_count || 0)}
+            ${window.bpmIcon("message")} ${Number(post.comment_count || 0)}
             </span>
 
         </div>
@@ -715,9 +716,48 @@ async function loadProgress(id){
   try {
     const res=await fetch(`${API}/api/account/progress?id=${encodeURIComponent(id)}`);
     if(!res.ok)throw Error();const data=await res.json();
+    const english=window.BPM_LANGUAGE==='en';
+    const catalog={
+      star:['新星','Star','首件投稿通过审核。','Your first submission passed review.','你已有至少 1 件投稿通过审核。','At least one of your submissions passed review.'],
+      resilient:['百折不挠','Resilient','经历挫折后首次获得审核通过。','Earned your first approval after setbacks.','在第一件通过审核的投稿之前，你至少有 3 件投稿被拒。','At least three submissions were rejected before your first approval.'],
+      fifteen:['再接再厉','Going Strong','累计通过审核 15 件投稿。','15 submissions passed review.','你累计有至少 15 件投稿通过审核。','At least 15 of your submissions passed review.'],
+      thirty:['高处不胜寒','High Flyer','累计通过审核 30 件投稿。','30 submissions passed review.','你累计有至少 30 件投稿通过审核。','At least 30 of your submissions passed review.'],
+      fifty:['云端常客','Frequent Flyer','累计通过审核 50 件投稿。','50 submissions passed review.','你累计有至少 50 件投稿通过审核。','At least 50 of your submissions passed review.'],
+      streak:['连击之王','Streak','连续六个完整月份每月投稿至少 3 件，且这些月份没有被拒的稿件。','Submitted at least three items in each of six consecutive full months, with no rejected submission in those months.','系统记录确认你达成了连续六个月的投稿条件。','Your submission history meets the six-month streak criteria.'],
+      admin:['中流砥柱','Pillar of the Museum','成为 BoardingPassMuseum 管理员。','Became a BoardingPassMuseum administrator.','你的账号已成为管理员。','Your account is an administrator.'],
+      review50:['为站发电','Powering the Museum','管理员经手审核 50 件投稿。','Reviewed 50 submissions as an administrator.','你已累计经手审核至少 50 件投稿。','You have reviewed at least 50 submissions.'],
+      review100:['审核圣手','Review Master','管理员经手审核 100 件投稿。','Reviewed 100 submissions as an administrator.','你已累计经手审核至少 100 件投稿。','You have reviewed at least 100 submissions.'],
+      night:['深夜加班','Night Shift','管理员在北京时间 00:00–05:59 经手审核投稿。','Reviewed a submission between 00:00 and 05:59 Beijing time.','你的审核记录中包含北京时间 00:00–05:59 的工作时段。','Your review history includes work between 00:00 and 05:59 Beijing time.'],
+      world:['寰宇行者','World Traveler','集齐五眼国家馆藏，或在境外（含港澳台）投稿超过 5 次。','Collected exhibits from all Five Eyes countries, or submitted more than five exhibits abroad, including Hong Kong, Macao and Taiwan.','你的已展出馆藏满足该成就的国家与境外投稿条件。','Your approved collection meets the country and overseas-submission criteria.'],
+      gateways:['国门常客','Gateway Collector','集齐北京首都 PEK、上海浦东 PVG、广州白云 CAN 三座机场的展品。','Collected exhibits from Beijing Capital (PEK), Shanghai Pudong (PVG), and Guangzhou Baiyun (CAN).','你的馆藏包含 PEK、PVG 和 CAN 三座机场。','Your collection includes PEK, PVG, and CAN.'],
+      big3:['三航元勋','Big Three','集齐中国国际航空、中国东方航空、中国南方航空的展品。','Collected exhibits from Air China, China Eastern, and China Southern.','你的馆藏包含国航、东航和南航。','Your collection includes Air China, China Eastern, and China Southern.'],
+      vintage:['真古收藏','Vintage Collector','投稿并通过审核的行程日期距投稿时间至少十年。','An approved submission documents a journey at least ten years before it was submitted.','你有至少一件通过审核的投稿记录了十年或更早的旅程。','At least one approved submission documents a journey from ten or more years earlier.'],
+      polar:['极地探险家','Polar Explorer','馆藏涉及北极圈国家或地区。','Your collection includes a country or region in the Arctic Circle.','你的馆藏涉及北极圈国家或地区。','Your collection includes an Arctic Circle country or region.'],
+      continents:['洲际飞人','Continental Flyer','馆藏覆盖三个或更多大洲。','Your collection spans at least three continents.','你的馆藏覆盖至少三个大洲。','Your collection spans at least three continents.'],
+      airport5:['时光荏苒','Airport Regular','同一机场累计集齐至少五件展品。','Collected at least five exhibits from the same airport.','你的馆藏中有同一机场的至少五件展品。','Your collection has at least five exhibits from one airport.'],
+      complete:['大满贯','Grand Slam','获得本馆全部其他成就。','Earned every other museum achievement.','你已获得本馆列出的全部其他成就。','You have earned every other museum achievement.']
+    };
+    const text=(zh,en)=>english?en:zh;
+    const achievements=data.achievements.map(a=>{
+      const item=catalog[a.code];
+      const name=item?text(item[0],item[1]):a.name;
+      return `<li><button type="button" class="bpm-achievement-button" data-achievement="${escapeHTML(a.code)}" data-awarded="${escapeHTML(a.awarded_at||'')}">${escapeHTML(name)}</button></li>`;
+    }).join('');
     box.innerHTML=`<h2>Lv${Number(data.level)}</h2><progress class="bpm-progress" max="100" value="${Number(data.progress)}" aria-label="等级进度"></progress>
       <p>${data.next===null?'已达到当前角色最高等级':`下一级需 ${Number(data.next)} 张${data.review_count===null?'等级计数投稿':'经手审核稿件'}`}</p>
       <div class="bpm-stats"><div><strong>${Number(data.level_count)}</strong>等级计数投稿</div><div><strong>${Number(data.total_submissions)}</strong>累计投稿</div>${data.review_count===null?'':`<div><strong>${Number(data.review_count)}</strong>审核数量</div>`}</div>
-      <h3>成就</h3><ul class="bpm-achievements">${data.achievements.map(a=>`<li title="${escapeHTML(a.awarded_at)}">${escapeHTML(a.name)}</li>`).join('')||'<li>尚未获得成就</li>'}</ul>${data.historical_note?`<p>${escapeHTML(data.historical_note)}</p>`:''}`;
+      <h3>${text('成就','Achievements')}</h3><ul class="bpm-achievements">${achievements||`<li>${text('尚未获得成就','No achievements yet')}</li>`}</ul>${data.historical_note?`<p>${escapeHTML(data.historical_note)}</p>`:''}
+      <dialog class="bpm-dialog bpm-achievement-dialog" id="achievementDialog" aria-labelledby="achievementDialogTitle"><h2 id="achievementDialogTitle"></h2><p class="bpm-achievement-detail"></p><p class="bpm-achievement-reason"></p><p class="bpm-achievement-date"></p><form method="dialog"><button type="submit">${text('关闭','Close')}</button></form></dialog>`;
+    box.addEventListener('click',event=>{
+      const button=event.target.closest('[data-achievement]');if(!button)return;
+      const item=catalog[button.dataset.achievement];if(!item)return;
+      const dialog=box.querySelector('#achievementDialog');
+      dialog.querySelector('#achievementDialogTitle').textContent=text(item[0],item[1]);
+      dialog.querySelector('.bpm-achievement-detail').textContent=text(item[2],item[3]);
+      dialog.querySelector('.bpm-achievement-reason').textContent=`${text('获得原因：','Why you earned it: ')}${text(item[4],item[5])}`;
+      const awarded=button.dataset.awarded?new Date(button.dataset.awarded):null;
+      dialog.querySelector('.bpm-achievement-date').textContent=awarded&&!Number.isNaN(awarded.getTime())?`${text('获得时间：','Awarded: ')}${awarded.toLocaleDateString(english?'en-US':'zh-CN')}`:'';
+      dialog.showModal();
+    });
   }catch{box.textContent='等级信息暂时无法加载';}
 }

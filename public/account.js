@@ -632,6 +632,11 @@ document.getElementById(
 ).value =
 data.avatar || "";
 
+const shapeControl=document.getElementById("avatarCropShape");
+if(shapeControl)shapeControl.value=data.avatar_shape||"circle";
+const avatarImagePreview=document.getElementById("profileAvatarPreview");
+if(avatarImagePreview){avatarImagePreview.src=data.avatar||"logo.png";avatarImagePreview.style.borderRadius=(data.avatar_shape||"circle")==="square"?"12px":"50%";}
+
 
 
 document.getElementById(
@@ -759,6 +764,8 @@ document.getElementById(
 "profileAvatarInput"
 ).value.trim(),
 
+avatar_shape:document.getElementById("avatarCropShape")?.value||"circle",
+
 
 bio:
 document.getElementById(
@@ -884,139 +891,33 @@ avatarCanvas
 
 
 if(avatarFile && avatarCanvas && avatarCtx){
-
-avatarFile.onchange = function(){
-
-const file=this.files[0];
-
-if(!file)
-return;
-
-if(!file.type.startsWith("image/")){
-
-showToast("请选择图片文件");
-return;
-
+let avatarImage=null,cropX=0,cropY=0,cropZoom=1,pointer=null;
+const shapeControl=document.getElementById("avatarCropShape"),zoomControl=document.getElementById("avatarCropZoom"),saveControl=document.getElementById("saveAvatarCrop");
+const previewWrap=avatarCanvas.closest(".avatar-preview-wrap");if(previewWrap)previewWrap.style.display="block";
+function renderAvatarCrop(){
+ if(!avatarImage)return;
+ const side=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom;
+ cropX=Math.max(0,Math.min(avatarImage.naturalWidth-side,cropX));cropY=Math.max(0,Math.min(avatarImage.naturalHeight-side,cropY));
+ avatarCtx.clearRect(0,0,300,300);avatarCtx.save();
+ if(shapeControl?.value==="circle"){avatarCtx.beginPath();avatarCtx.arc(150,150,150,0,Math.PI*2);avatarCtx.clip();}
+ avatarCtx.drawImage(avatarImage,cropX,cropY,side,side,0,0,300,300);avatarCtx.restore();
+ avatarCanvas.style.borderRadius=shapeControl?.value==="circle"?"50%":"8px";if(saveControl)saveControl.disabled=false;
 }
-
-const reader=new FileReader();
-
-reader.onload=function(e){
-
-const img=new Image();
-
-img.onload=function(){
-
-const size=300;
-
-const side=Math.min(
-img.naturalWidth,
-img.naturalHeight
-);
-
-const sx=
-(img.naturalWidth-side)/2;
-
-const sy=
-(img.naturalHeight-side)/2;
-
-avatarCtx.clearRect(
-0,
-0,
-size,
-size
-);
-
-avatarCtx.drawImage(
-img,
-sx,
-sy,
-side,
-side,
-0,
-0,
-size,
-size
-);
-
-avatarCanvas.style.display="block";
-
-avatarCanvas.toBlob(
-async function(blob){
-
-if(!blob){
-
-showToast("图片处理失败");
-return;
-
-}
-
-const formData=new FormData();
-
-formData.append(
-"image",
-blob,
-"avatar.jpg"
-);
-
-try{
-
-showToast("正在上传头像");
-
-const res=await fetch(
-"https://api.bpmuseum.org.cn/api/upload-image",
-{
-method:"POST",
-body:formData
-}
-);
-
-const data=await res.json();
-
-if(!res.ok || !data.url){
-
-showToast(
-data.error || "头像上传失败"
-);
-
-return;
-
-}
-
-avatarInput.value=data.url;
-
-avatarPreview.src=data.url;
-
-showToast("头像上传成功");
-
-}catch(err){
-
-console.error(err);
-
-showToast("头像上传失败");
-
-}
-
-},
-"image/jpeg",
-0.9
-);
-
+avatarFile.onchange=function(){
+ const file=this.files[0];if(!file)return;if(!file.type.startsWith("image/")){showToast("请选择图片文件");return;}
+ const reader=new FileReader();reader.onload=event=>{const image=new Image();image.onload=()=>{avatarImage=image;cropZoom=1;const side=Math.min(image.naturalWidth,image.naturalHeight);cropX=(image.naturalWidth-side)/2;cropY=(image.naturalHeight-side)/2;if(zoomControl)zoomControl.value="1";renderAvatarCrop();};image.src=event.target.result;};reader.readAsDataURL(file);
 };
-
-img.src=e.target.result;
-
-};
-
-reader.readAsDataURL(file);
-
-};
-
+zoomControl?.addEventListener("input",()=>{if(!avatarImage)return;const oldSide=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom,cx=cropX+oldSide/2,cy=cropY+oldSide/2;cropZoom=Number(zoomControl.value)||1;const side=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom;cropX=cx-side/2;cropY=cy-side/2;renderAvatarCrop();});
+shapeControl?.addEventListener("change",renderAvatarCrop);
+avatarCanvas.addEventListener("pointerdown",event=>{if(!avatarImage)return;pointer={x:event.clientX,y:event.clientY};avatarCanvas.setPointerCapture(event.pointerId);});
+avatarCanvas.addEventListener("pointermove",event=>{if(!pointer||!avatarImage)return;const rect=avatarCanvas.getBoundingClientRect(),side=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom;cropX-=(event.clientX-pointer.x)*side/rect.width;cropY-=(event.clientY-pointer.y)*side/rect.height;pointer={x:event.clientX,y:event.clientY};renderAvatarCrop();});
+for(const name of ["pointerup","pointercancel","lostpointercapture"])avatarCanvas.addEventListener(name,()=>{pointer=null;});
+saveControl?.addEventListener("click",async()=>{
+ if(!avatarImage)return;saveControl.disabled=true;const circle=shapeControl?.value==="circle",mime=circle?"image/png":"image/jpeg";
+ avatarCanvas.toBlob(async blob=>{if(!blob){showToast("图片处理失败");saveControl.disabled=false;return;}const formData=new FormData();formData.append("image",blob,circle?"avatar.png":"avatar.jpg");try{showToast("正在上传头像");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.style.borderRadius=circle?"50%":"12px";const saveButton=document.getElementById("saveProfile");if(saveButton?.onclick)await saveButton.onclick();showToast("头像已上传并保存到档案");}catch(error){showToast(error.message||"头像上传失败");}finally{saveControl.disabled=false;}},mime,0.92);
+});
 }
 
-
-
-// =====================================
 // PROFILE 航司 / 机场选择器
 // =====================================
 

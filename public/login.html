@@ -8,8 +8,8 @@
 
 <title>登录 | BoardingPassMuseum</title>
 
-<link rel="stylesheet" href="style.css?v=20260913">
-  <script src="theme.js"></script>
+<link rel="stylesheet" href="style.css?v=20260927-mobile1">
+  <script src="theme.js?v=20260927"></script>
 
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
 
@@ -21,7 +21,7 @@
 
 
 <div class="brand">
-✈ BoardingPassMuseum
+<span data-bpm-icon="plane"></span> BoardingPassMuseum
 </div>
 
 
@@ -42,7 +42,13 @@
 
 
 
-<main>
+<main class="auth-page">
+
+<section class="auth-photo-hero">
+  <span>BoardingPassMuseum</span>
+  <h1 data-i18n="authHero.title">登机牌博物馆</h1>
+  <p data-i18n="authHero.subtitle">登机牌、航线和旅客收藏。</p>
+</section>
 
 
 <section class="submit-form">
@@ -72,7 +78,7 @@ type="button"
 class="password-toggle"
 data-password="loginPassword"
 aria-label="显示密码"
->👁</button>
+><span data-bpm-icon="eye"></span></button>
 
 </div>
 <a href="reset-password.html">
@@ -100,10 +106,11 @@ aria-label="显示密码"
 
 
 
-<script src="notice.js?v=20260912"></script>
+<script src="notice.js?v=20260927"></script>
+<script src="auth-hero.js?v=1"></script>
 <script src="login.js"></script>
 <script src="login-passkey.js?v=1"></script>
-<script src="oauth.js?v=1"></script>
+<script src="oauth.js?v=20260927"></script>
 
 <footer class="bpm-footer">
 
@@ -155,7 +162,7 @@ allenlin_developer@outlook.com
 
 </footer>
 
-<script src="password-toggle.js"></script>
+<script src="password-toggle.js?v=20260927"></script>
 </body>
 
 </html>

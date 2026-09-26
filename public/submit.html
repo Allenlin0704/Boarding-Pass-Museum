@@ -12,9 +12,9 @@
 投稿 | BoardingPassMuseum
 </title>
 
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="features.css">
-  <script src="theme.js"></script>
+<link rel="stylesheet" href="style.css?v=20260927-mobile1">
+<link rel="stylesheet" href="features.css?v=20260927-mobile1">
+  <script src="theme.js?v=20260927"></script>
 
 
 <style>
@@ -49,7 +49,7 @@ min-height:52px;
 
 
 <div class="brand">
-✈ BoardingPassMuseum
+<span data-bpm-icon="plane"></span> BoardingPassMuseum
 </div>
 
 
@@ -108,6 +108,14 @@ Admin
 
 
 <section class="submit-form">
+
+<label for="submissionType">投稿类型</label>
+<select id="submissionType">
+  <option value="boarding_pass">登机牌</option>
+  <option value="rail_ticket">火车票</option>
+</select>
+
+<div id="airSubmissionFields">
 
 
 
@@ -191,6 +199,37 @@ type="date"
 <button id="flightAssistBtn" type="button">自动补全航班信息</button>
 <p id="flightAssistStatus" role="status"></p>
 
+<label for="ticketFormat">登机牌形式</label>
+<select id="ticketFormat"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select>
+<fieldset class="special-tags">
+  <legend>特殊行程标记（可选）</legend>
+  <label><input type="checkbox" name="specialTag" value="transfer"> 转机</label>
+  <label><input type="checkbox" name="specialTag" value="two_cabin"> 两舱</label>
+</fieldset>
+</div>
+
+<div id="railSubmissionFields" hidden>
+  <h2>火车票信息</h2>
+  <label for="railOperatorSearch">运营公司</label>
+  <input id="railOperatorSearch" placeholder="搜索运营公司，例如 CR、DB、Acela">
+  <div id="railOperatorResults" class="submit-search-results"></div>
+  <label for="railDepartureStation">出发车站</label>
+  <input id="railDepartureStation" maxlength="200" placeholder="输入车站名称">
+  <label for="departureCountry">出发国家 / 地区</label>
+  <input id="departureCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区">
+  <datalist id="countryOptions"></datalist>
+  <label for="railArrivalStation">到达车站</label>
+  <input id="railArrivalStation" maxlength="200" placeholder="输入车站名称">
+  <label for="arrivalCountry">到达国家 / 地区</label>
+  <input id="arrivalCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区">
+  <label for="railTrainNumber">车次</label>
+  <input id="railTrainNumber" maxlength="30" placeholder="例如 G101、ICE 123、Acela 2150">
+  <label for="railDate">乘车日期</label>
+  <input id="railDate" type="date">
+  <label for="railTicketFormat">车票形式</label>
+  <select id="railTicketFormat"><option value="paper">纸质车票</option><option value="digital">电子车票</option></select>
+</div>
+
 
 
 
@@ -213,11 +252,13 @@ placeholder="分享这段旅程..."
 
 
 <h2>
-登机牌图片处理
+票据图片处理
 </h2>
 
 
 
+<div class="image-editor-layout">
+<div class="image-editor-preview-column">
 <input
 id="ticketImage"
 type="file"
@@ -230,6 +271,7 @@ accept="image/*"
 
 <div class="preview-area">
 
+<button type="button" id="openImageEditor" class="open-image-editor">打开独立图片编辑器</button>
 
 <canvas
 id="watermarkCanvas">
@@ -237,14 +279,20 @@ id="watermarkCanvas">
 
 
 </div>
-
-
-
-
-
+</div>
+<div class="image-editor-controls-column">
 <h3>
 图片调整
 </h3>
+
+<div class="privacy-mask-controls image-crop-controls">
+<button id="cropModeBtn" type="button">框选裁剪区域</button>
+<button id="applyCropBtn" type="button" disabled>应用裁剪</button>
+<button id="cancelCropBtn" type="button" disabled>取消</button>
+</div>
+<label for="cropAspect">裁剪比例</label>
+<select id="cropAspect"><option value="free">自由</option><option value="1">1:1</option><option value="1.333333">4:3</option><option value="1.777778">16:9</option></select>
+<p>拖动选框确定裁剪区域；裁剪完成后可继续旋转、遮挡和添加水印。</p>
 
 
 
@@ -268,6 +316,9 @@ value="1"
 
 <h3>隐私遮挡</h3>
 <p>点击“开始遮挡”后，在图片上拖动框选姓名、票号、二维码或条形码。遮挡会直接写入最终投稿图片。</p>
+<label for="maskColor">遮挡颜色</label>
+<select id="maskColor"><option value="#000000">纯黑</option><option value="#ffffff">纯白</option></select>
+<div class="privacy-mask-controls"><button id="rotateImageLeft" type="button">逆时针旋转</button><button id="rotateImageRight" type="button">顺时针旋转</button></div>
 <div class="privacy-mask-controls">
 <button id="maskModeBtn" type="button">开始遮挡</button>
 <button id="undoMaskBtn" type="button">撤销上一个</button>
@@ -363,12 +414,8 @@ id="watermarkPosition"
 </option>
 
 </select>
-
-
-
-
-
-
+</div>
+</div>
 
 <p class="submission-rules-notice">
 投稿即代表您接受本站的
@@ -411,16 +458,17 @@ BoardingPassMuseum © 2026
 
 
 
-<script src="auth.js?v=20260912"></script>
+<script src="auth.js?v=20260927"></script>
 
-<script src="watermark.js?v=20260924"></script>
+<script src="watermark.js?v=20260927"></script>
+<script src="image-editor.js?v=1"></script>
 
 <script src="display.js"></script>
 
 <script src="config.js"></script>
 
-<script src="notice.js?v=20260912"></script>
-<script src="submit.js?v=20260924"></script>
+<script src="notice.js?v=20260927"></script>
+<script src="submit.js?v=20260927"></script>
 
 <footer class="bpm-footer">
 

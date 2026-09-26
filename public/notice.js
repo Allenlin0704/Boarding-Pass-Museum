@@ -77,39 +77,9 @@ async function loadNotice(){
         }
 
 
-        // 最新公告
-        const item =
-        data[0];
-
-
-        // 版本号作为唯一标识
-        const version =
-        String(
-            item.version || ""
-        ).trim();
-
-
-        if(!version){
-
-            return;
-
-        }
-
-
-        // 用户已经看过这个版本
-        const lastSeen =
-        localStorage.getItem(
-            "bpmLastSeenChangelog"
-        );
-
-
-        if(
-            lastSeen === version
-        ){
-
-            return;
-
-        }
+        const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+        const today=`${parts.find(x=>x.type==='year').value}-${parts.find(x=>x.type==='month').value}-${parts.find(x=>x.type==='day').value}`;
+        if(localStorage.getItem('bpmLastAnnouncementDay')===today)return;
 
 
         // ==============================
@@ -130,41 +100,9 @@ async function loadNotice(){
 
         <div class="bpm-update-modal">
 
-            <h2>
-            📢 BoardingPassMuseum 更新日志
-            </h2>
-
-            <h3>
-            ${bpmEscape(item.version || "")}
-            </h3>
-
-            ${
-                item.date
-                ?
-                `<p class="bpm-update-date">
-                    ${bpmEscape(item.date)}
-                </p>`
-                :
-                ""
-            }
-
-            <div class="bpm-update-content">
-                ${
-                    Array.isArray(item.content)
-                    ?
-                    `<ul>
-                        ${
-                            item.content
-                            .map(
-                                x =>
-                                `<li>${bpmEscape(x)}</li>`
-                            )
-                            .join("")
-                        }
-                    </ul>`
-                    :
-                    `<p>${bpmEscape(item.content || "")}</p>`
-                }
+            <h2>${window.bpmIcon("megaphone")} BoardingPassMuseum 公告</h2>
+            <div class="bpm-update-content bpm-announcement-list">
+                ${data.map(item=>`<article class="bpm-announcement"><h3>${bpmEscape(item.title||item.version||'公告')}</h3><time>${bpmEscape(item.created_at||'')}</time><p>${bpmEscape(Array.isArray(item.content)?item.content.join('\n'):item.content||'')}</p></article>`).join('')}
             </div>
 
             <button id="closeBpmUpdate">
@@ -190,11 +128,7 @@ async function loadNotice(){
         closeButton.onclick =
         function(){
 
-            // 只有用户确认后才记录
-            localStorage.setItem(
-                "bpmLastSeenChangelog",
-                version
-            );
+            localStorage.setItem('bpmLastAnnouncementDay',today);
 
             overlay.remove();
 
