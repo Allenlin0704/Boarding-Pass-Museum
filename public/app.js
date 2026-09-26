@@ -98,6 +98,7 @@ function applyMuseumFilter(){
 
   const airline = document.getElementById("museumAirline")?.value || "";
   const category = document.getElementById("museumType")?.value || "";
+  const baggageTag = document.getElementById("museumBaggageTag")?.value || "";
   const format = document.getElementById("museumFormat")?.value || "";
   const airport = document.getElementById("museumAirport")?.value || "";
   const year = document.getElementById("museumYear")?.value || "";
@@ -123,12 +124,11 @@ function applyMuseumFilter(){
     if(!Array.isArray(tags)) tags = [];
     const categoryMatches = !category
       || (category === "boarding_pass" && (f.submission_type || "boarding_pass") === "boarding_pass")
-      || (category === "rail_ticket" && f.submission_type === "rail_ticket")
-      || (category === "transfer" && tags.includes("transfer"))
-      || (category === "two_cabin" && tags.includes("two_cabin"));
+      || (category === "rail_ticket" && f.submission_type === "rail_ticket");
     return text.includes(keyword)
       && (!airline || String(f.airline || "").trim() === airline)
       && categoryMatches
+      && (!baggageTag || tags.includes(baggageTag))
       && (!format || (f.submission_type !== "rail_ticket" && (f.ticket_format || "paper") === format))
       && (!airport || String(f.airport || "").trim() === airport)
       && (!year || String(f.date || "").startsWith(year));
@@ -136,7 +136,7 @@ function applyMuseumFilter(){
   });
 
   const resultCount=document.getElementById("museumResultCount");
-  if(resultCount)resultCount.textContent=keyword||airline||category||format||airport||year
+  if(resultCount)resultCount.textContent=keyword||airline||category||baggageTag||format||airport||year
     ? (window.BPM_LANGUAGE==="en"?`${displayFlights.length} matching exhibits`:`找到 ${displayFlights.length} 件匹配展品`)
     : (window.BPM_LANGUAGE==="en"?`${displayFlights.length} exhibits`:`共 ${displayFlights.length} 件展品`);
 
@@ -204,6 +204,7 @@ function populateMuseumFilters(){
   const options = [
     ["museumAirline", "airline", "全部航空公司 / 运营公司"],
     ["museumType", null, "全部投稿类别"],
+    ["museumBaggageTag", null, "全部行李标记"],
     ["museumFormat", null, "全部登机牌形式"],
     ["museumAirport", "airport", "全部出发机场或车站"],
     ["museumYear", "year", "全部年份"]
@@ -242,12 +243,12 @@ document.addEventListener(
     applyMuseumFilter
   );
 
-  ["museumAirline", "museumType", "museumFormat", "museumAirport", "museumYear"].forEach(id =>
+  ["museumAirline", "museumType", "museumBaggageTag", "museumFormat", "museumAirport", "museumYear"].forEach(id =>
     document.getElementById(id)?.addEventListener("change", applyMuseumFilter)
   );
 
   document.getElementById("museumReset")?.addEventListener("click", () => {
-    ["museumSearch", "museumAirline", "museumType", "museumFormat", "museumAirport", "museumYear"].forEach(id => {
+    ["museumSearch", "museumAirline", "museumType", "museumBaggageTag", "museumFormat", "museumAirport", "museumYear"].forEach(id => {
       const field = document.getElementById(id);
       if(field) field.value = "";
     });

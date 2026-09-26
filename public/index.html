@@ -14,7 +14,7 @@
 
   <link rel="stylesheet" href="style.css?v=20260927-mobile1">
   <link rel="stylesheet" href="features.css?v=20260927-mobile1">
-  <script src="theme.js?v=20260927"></script>
+  <script src="theme.js?v=20260927-baggage1"></script>
 </head>
 
 
@@ -129,8 +129,12 @@ data-i18n-placeholder="home.search"
 <option value="" data-i18n="home.category">全部投稿类别</option>
 <option value="boarding_pass" data-i18n="home.category.boarding">登机牌</option>
 <option value="rail_ticket" data-i18n="home.category.rail">火车票</option>
-<option value="transfer" data-i18n="home.category.transfer">转机</option>
-<option value="two_cabin" data-i18n="home.category.twoCabin">两舱</option>
+</select>
+
+<select id="museumBaggageTag" aria-label="按行李标记筛选">
+<option value="" data-i18n="home.baggageTags">全部行李标记</option>
+<option value="transfer" data-i18n="home.baggageTag.transfer">转机行李</option>
+<option value="two_cabin" data-i18n="home.baggageTag.twoCabin">两舱行李</option>
 </select>
 
 <select id="museumFormat" aria-label="按登机牌形式筛选">
@@ -176,7 +180,7 @@ data-i18n-placeholder="home.search"
 
 <script src="auth.js?v=20260927"></script>
 <script src="image-preview.js"></script>
-<script src="app.js?v=20260927"></script>
+<script src="app.js?v=20260927-baggage1"></script>
 <script src="notice.js?v=20260927"></script>
 
 <footer class="bpm-footer">

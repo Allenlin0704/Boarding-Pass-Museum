@@ -14,7 +14,7 @@
 
 <link rel="stylesheet" href="style.css?v=20260927-mobile1">
 <link rel="stylesheet" href="features.css?v=20260927-mobile1">
-  <script src="theme.js?v=20260927"></script>
+  <script src="theme.js?v=20260927-baggage1"></script>
 
 
 <style>
@@ -202,9 +202,10 @@ type="date"
 <label for="ticketFormat">登机牌形式</label>
 <select id="ticketFormat"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select>
 <fieldset class="special-tags">
-  <legend>特殊行程标记（可选）</legend>
-  <label><input type="checkbox" name="specialTag" value="transfer"> 转机</label>
-  <label><input type="checkbox" name="specialTag" value="two_cabin"> 两舱</label>
+  <legend data-i18n="submit.baggageTags">特殊行李标记（可选）</legend>
+  <p data-i18n="submit.baggageTagsHint">这是行李相关标记，不是投稿类别。</p>
+  <label><input type="checkbox" name="specialTag" value="transfer"> <span data-i18n="submit.transferBaggage">转机行李</span></label>
+  <label><input type="checkbox" name="specialTag" value="two_cabin"> <span data-i18n="submit.twoCabinBaggage">两舱行李</span></label>
 </fieldset>
 </div>
 
