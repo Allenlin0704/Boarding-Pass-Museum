@@ -270,6 +270,8 @@ document.addEventListener(
 
 function renderMuseum() {
 
+  const traditional = window.BPM_LANGUAGE === "zh-TW";
+
   const museum =
     document.getElementById("museum");
 
