@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /console.html
+Disallow: /sa.html
+Disallow: /moderation.html
+Disallow: /account.html
+Disallow: /my.html
+Disallow: /favorites.html
+Disallow: /notifications.html
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /reset-password.html
+Disallow: /oauth-complete.html
+Disallow: /image-editor.html
+Disallow: /offline.html
+Disallow: /backup/
+Disallow: /data/
+Disallow: /api/
+
+Sitemap: https://bpmuseum.org.cn/sitemap.xml
