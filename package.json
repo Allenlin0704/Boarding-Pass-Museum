@@ -4,7 +4,8 @@
   "description": "BoardingPassMuseum digital boarding pass museum",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "indexnow:submit": "node scripts/submit-indexnow.mjs"
   },
   "dependencies": {
     "@simplewebauthn/server": "^14.0.0",
