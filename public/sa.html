@@ -5,9 +5,9 @@
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=20260927-mobile1">
-  <script src="theme.js?v=20260927-locale4"></script>
-<link rel="stylesheet" href="features.css?v=20260927-mobile1">
+<link rel="stylesheet" href="style.css?v=20260930-site-photos">
+  <script src="theme.js?v=20260930-site-photos"></script>
+<link rel="stylesheet" href="features.css?v=20260930-site-photos">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
 
 <body>
@@ -16,7 +16,7 @@
 <section class="bpm-page-hero"><span>站主工作台</span><h1>SA 控制台</h1><p id="welcome">正在加载账户状态…</p><a class="bpm-sa-shortcut" href="moderation.html">打开社区举报、处罚与申诉管理 →</a></section>
 
 <nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
-<a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+<a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
 </nav>
 
 <section class="sa-panel" id="saSecurityPanel">
@@ -36,10 +36,35 @@
 
 <section class="sa-panel" id="reviewerSchedulePanel">
 <h2>审核排班</h2>
-<p>启用的管理员按待审量均衡分配；顺序用于待审量相同的排班优先级。只有 ID=1 的站主账号可加入 SA 排班。</p>
+<p>先勾选接收新稿的审核人，系统会自动把新稿分给当前待审最少的人。待审量相同时，列表靠前者优先；用上下箭头调整即可。SA 也可勾选加入。</p>
 <div id="reviewerSchedule">加载中…</div>
 <button type="button" id="saveReviewerSchedule">保存排班</button>
 <p id="reviewerScheduleStatus" role="status"></p>
+</section>
+
+<section class="sa-panel" id="heroPhotosPanel">
+<h2><span data-bpm-icon="image"></span> 每日主页照片</h2>
+<p>照片按北京时间和排期顺序每日轮换。你可以预览首页、登录页与注册页效果，调整署名和展示位置。访客不能上传；只邀请普通管理员提交，并由 SA 审核后加入轮播。</p>
+<div class="site-photo-invite-form">
+  <label for="sitePhotoInviteAdmins">邀请管理员参与照片征集</label>
+  <select id="sitePhotoInviteAdmins" multiple size="4" aria-describedby="sitePhotoInviteHelp"></select>
+  <p id="sitePhotoInviteHelp">按住 Command（Mac）或 Ctrl（Windows）可选择多位管理员。</p>
+  <button type="button" id="sendSitePhotoInvites">发送邀请</button>
+  <p id="sitePhotoInviteStatus" role="status"></p>
+</div>
+<h3>等待审核</h3>
+<div id="sitePhotoRequests">加载中…</div>
+<h3>已排期照片</h3>
+<div id="sitePhotoLibrary">加载中…</div>
+<dialog id="sitePhotoPreviewDialog" class="site-photo-preview-dialog">
+  <div class="site-photo-preview-stage" id="sitePhotoPreviewStage">
+    <span id="sitePhotoPreviewTitle"></span>
+    <strong>BoardingPassMuseum</strong>
+    <p>保存每一段真实旅程</p>
+    <span id="sitePhotoPreviewCredit"></span>
+  </div>
+  <button type="button" id="closeSitePhotoPreview">关闭预览</button>
+</dialog>
 </section>
 
 <section class="sa-panel" id="flightCorrectionsPanel">
@@ -166,7 +191,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="auth.js?v=20260927"></script>
 <script src="sa-security.js?v=1"></script>
 <script src="review-rules.js"></script>
-<script src="sa.js?v=20260927"></script>
+<script src="sa.js?v=20260930-site-photos"></script>
 
 
 

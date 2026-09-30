@@ -18,6 +18,9 @@ test('submission, restore and withdrawal each notify the authenticated submitter
     assert.equal(messages.length,1);
     assert.deepEqual(messages[0].to,['u@example.test']);
     assert.match(messages[0].subject,/进入审核队列/);
+    assert.match(messages[0].html,/boardingpassmuseum-intro\.gif/);
+    assert.match(messages[0].html,/alt="BoardingPassMuseum 开场动画/);
+    assert.match(messages[0].text,/投稿状态有更新/);
 
     assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11},3)).status,200);
     assert.equal((await call('/api/my/withdraw',{user_id:3,flight_id:11},3)).status,200);
@@ -46,6 +49,8 @@ test('successful status changes email the submitter; repeated decisions do not r
     assert.deepEqual(messages[0].to,['u@example.test']);
     assert.match(messages[0].subject,/未通过审核/);
     assert.match(messages[0].html,/请重新遮挡票号/);
+    assert.match(messages[0].html,/boardingpassmuseum-intro\.gif/);
+    assert.match(messages[0].text,/请重新遮挡票号/);
 
     const duplicate=await call('/api/admin/reject',{flight_id:13,reason:'【隐私守护规范】重复操作'},1);
     assert.equal(duplicate.status,409);
@@ -56,6 +61,27 @@ test('successful status changes email the submitter; repeated decisions do not r
     assert.equal(messages.length,2);
     assert.match(messages[1].subject,/已通过审核/);
     assert.match(messages[1].html,/detail\.html\?id=13/);
+  }finally{
+    globalThis.fetch=originalFetch;
+  }
+});
+
+test('verification emails include the public-account intro GIF and a text alternative',async()=>{
+  const {call,env}=fixture();
+  env.RESEND_API_KEY='test-resend-key';
+  const originalFetch=globalThis.fetch,messages=[];
+  globalThis.fetch=async (url,options)=>{
+    assert.equal(String(url),'https://api.resend.com/emails');
+    messages.push(JSON.parse(options.body));
+    return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
+  };
+  try{
+    const response=await call('/api/send-code',{email:'new@example.test'},3);
+    assert.equal(response.status,200);
+    assert.equal(messages.length,1);
+    assert.match(messages[0].html,/boardingpassmuseum-intro\.gif/);
+    assert.match(messages[0].html,/alt="BoardingPassMuseum 开场动画/);
+    assert.match(messages[0].text,/verification code/i);
   }finally{
     globalThis.fetch=originalFetch;
   }

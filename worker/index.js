@@ -4,6 +4,7 @@ import { wechatRoute } from "./wechat.mjs";
 import { userPasskeyRoute } from "./user-passkey.mjs";
 import { oauthRoute } from "./oauth.mjs";
 import { reviewRoute } from "./review.mjs";
+import { sitePhotoRoute } from "./site-photos.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
@@ -104,6 +105,8 @@ return user;
 // RESEND EMAIL
 // =====================================
 
+const emailBrandHeader = `<div style="max-width:552px;margin:0 auto 24px;text-align:center"><img src="https://bpmuseum.org.cn/boardingpassmuseum-intro.gif" width="552" alt="BoardingPassMuseum 开场动画：飞机起飞并留下航迹 / BoardingPassMuseum airplane intro animation" style="display:block;width:100%;height:auto;border:0;border-radius:12px"><p style="margin:10px 0 0;color:#17324b;font-size:15px;font-weight:700">BoardingPassMuseum 登机牌博物馆</p></div>`;
+
 async function sendVerificationEmail(env,email,code){
 
 const response =
@@ -130,8 +133,10 @@ to:[email],
 subject:
 "BoardingPassMuseum 账户验证码",
 
+text:`BoardingPassMuseum 账户验证码 / Account verification code\n\n您好，您正在进行 BoardingPassMuseum 账户验证。\nYour verification code: ${code}\n验证码将在 10 分钟后失效。\nThis code expires in 10 minutes.\n\n如果这不是您的操作，请忽略此邮件。\nIf you did not request this, ignore this email.`,
+
 html:`
-<div style="
+<!doctype html><html lang="zh-CN" dir="ltr"><head><meta charset="utf-8"><title>BoardingPassMuseum 账户验证码</title></head><body style="margin:0;padding:0;background:#f3f6f8"><div lang="zh-CN" dir="ltr" style="
 font-family:-apple-system,BlinkMacSystemFont,
 'Segoe UI',Arial,sans-serif;
 line-height:1.7;
@@ -140,8 +145,9 @@ margin:0 auto;
 padding:32px 24px;
 color:#222;
 ">
+${emailBrandHeader}
 
-<h2>BoardingPassMuseum</h2>
+<h1 style="font-size:24px">账户验证码 / Account verification</h1>
 
 <p>
 您好，您正在进行 BoardingPassMuseum 账户验证。
@@ -187,7 +193,7 @@ Preserving memories of every journey.<br>
 记录每一次旅程的登机牌博物馆。
 </p>
 
-</div>
+</div></body></html>
 `
 
 })
@@ -213,7 +219,8 @@ async function sendSubmissionStatusEmail(env,flightId,statusLabel,extraMessage="
       from:"BoardingPassMuseum <noreply@bpmuseum.org.cn>",
       to:[flight.email],
       subject:`BoardingPassMuseum 投稿状态更新：${statusLabel}`,
-      html:`<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.7;max-width:600px;margin:0 auto;padding:28px 22px;color:#17324b"><h2>BoardingPassMuseum</h2><p>您好，您的投稿状态有更新。</p><p><strong>${escape(statusLabel)}</strong></p><p>展品：#${flight.id} · ${escape(flight.airline)} ${escape(flight.flight)} · ${escape(flight.date)}</p>${detail?`<p>${isRejected?"审核说明：":"处理说明："}<br>${escape(detail).replace(/\n/g,"<br>")}</p>`:""}<p><a href="https://bpmuseum.org.cn/${target}">查看投稿状态</a></p><p style="color:#60758a;font-size:13px">BoardingPassMuseum 登机牌博物馆</p></div>`
+      text:`BoardingPassMuseum 投稿状态更新：${statusLabel}\n\n您的投稿状态有更新。\n展品：#${flight.id} · ${flight.airline} ${flight.flight} · ${flight.date}${detail?`\n处理说明：${detail}`:""}\n\n查看投稿状态：https://bpmuseum.org.cn/${target}`,
+      html:`<!doctype html><html lang="zh-CN" dir="ltr"><head><meta charset="utf-8"><title>BoardingPassMuseum 投稿状态更新</title></head><body style="margin:0;padding:0;background:#f3f6f8"><div lang="zh-CN" dir="ltr" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.7;max-width:600px;margin:0 auto;padding:28px 22px;color:#17324b">${emailBrandHeader}<h1 style="font-size:24px">投稿状态更新</h1><p>您好，您的投稿状态有更新。</p><p><strong>${escape(statusLabel)}</strong></p><p>展品：#${flight.id} · ${escape(flight.airline)} ${escape(flight.flight)} · ${escape(flight.date)}</p>${detail?`<p>${isRejected?"审核说明：":"处理说明："}<br>${escape(detail).replace(/\n/g,"<br>")}</p>`:""}<p><a href="https://bpmuseum.org.cn/${target}">查看投稿状态</a></p><p style="color:#60758a;font-size:13px">BoardingPassMuseum 登机牌博物馆</p></div></body></html>`
     })
   });
   if(!response.ok)throw new Error(`Resend status ${response.status}`);
@@ -1809,11 +1816,22 @@ await env.DB.prepare(
 `
 SELECT
 id,
+title,
 version,
 content,
-created_at
+created_at,
+'announcement' AS source
 FROM announcements
-ORDER BY id DESC
+UNION ALL
+SELECT
+id,
+title,
+'' AS version,
+content,
+created_at,
+'update' AS source
+FROM updates
+ORDER BY created_at DESC
 `
 ).all();
 
@@ -2400,7 +2418,8 @@ export default {
           return responseHeaders(original,reply({error:"来源不受信任"},403));
         }
         const type=request.headers.get("Content-Type")||"";
-        if (!type.includes("application/json") && !(url.pathname==="/api/upload-image"&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml')) && !(url.pathname==='/api/oauth/apple/callback'&&type.includes('application/x-www-form-urlencoded'))) {
+        const sitePhotoUpload=/^\/api\/admin\/site-photo-requests\/\d+\/submit$/.test(url.pathname);
+        if (!type.includes("application/json") && !((url.pathname==="/api/upload-image"||sitePhotoUpload)&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml')) && !(url.pathname==='/api/oauth/apple/callback'&&type.includes('application/x-www-form-urlencoded'))) {
           return responseHeaders(original,reply({error:"请求格式不支持"},415));
         }
       }
@@ -2443,6 +2462,8 @@ export default {
       }
       const progress = await progressRoute(request,env,url);
       if(progress) return responseHeaders(original,progress);
+      const sitePhotos = await sitePhotoRoute(request.clone(),env,url,auth.user,uploadImage);
+      if(sitePhotos) return responseHeaders(original,sitePhotos);
       const community = await communityRoute(request.clone(),env,url,auth.user);
       if(community) return responseHeaders(original,community);
       const reviewed = await reviewRoute(request.clone(),env,url,auth.user);

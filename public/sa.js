@@ -104,16 +104,67 @@ async function loadFlightCorrections(){
 async function loadReviewerSchedule(){
   const box=document.getElementById("reviewerSchedule");if(!box)return;
   try{const response=await fetch(`${API}/api/sa/reviewer-schedule?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();if(!response.ok)throw Error(rows.error||"加载失败");
-    box.innerHTML=rows.map((row,index)=>`<label class="reviewer-schedule-row"><input type="checkbox" data-reviewer-id="${Number(row.id)}" ${row.active?"checked":""}><span>${escapeSACommunityHTML(row.username)} · ${row.role==="superadministrator"?"SA":"管理员"} · ID ${Number(row.id)}</span><input aria-label="排班顺序" type="number" min="1" max="100" data-reviewer-order="${Number(row.id)}" value="${Number(row.active?row.sort_order+1:index+1)}"></label>`).join("")||"目前没有可排班的管理员。";
+    box.innerHTML=rows.map(row=>`<div class="reviewer-schedule-row" data-schedule-row="${Number(row.id)}"><input type="checkbox" aria-label="启用 ${escapeSACommunityHTML(row.username)}" data-reviewer-id="${Number(row.id)}" ${row.active?"checked":""}><span>${escapeSACommunityHTML(row.username)} · ${row.role==="superadministrator"?"SA":"管理员"}</span><div class="reviewer-order-controls"><button type="button" data-schedule-move="up" aria-label="上移">↑</button><button type="button" data-schedule-move="down" aria-label="下移">↓</button></div></div>`).join("")||"目前没有可排班的管理员。";
   }catch(error){box.textContent=`加载失败：${error.message}`;}
 }
 
+document.getElementById("reviewerSchedule")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-schedule-move]");if(!button)return;
+  const row=button.closest("[data-schedule-row]"),box=document.getElementById("reviewerSchedule");
+  if(button.dataset.scheduleMove==="up"&&row.previousElementSibling)box.insertBefore(row,row.previousElementSibling);
+  if(button.dataset.scheduleMove==="down"&&row.nextElementSibling)box.insertBefore(row.nextElementSibling,row);
+});
+
 document.getElementById("saveReviewerSchedule")?.addEventListener("click",async event=>{
   const status=document.getElementById("reviewerScheduleStatus"),button=event.currentTarget;
-  const ids=[...document.querySelectorAll("#reviewerSchedule input[data-reviewer-id]:checked")].map(input=>({id:Number(input.dataset.reviewerId),order:Number(document.querySelector(`[data-reviewer-order="${input.dataset.reviewerId}"]`)?.value)||999})).sort((a,b)=>a.order-b.order||a.id-b.id).map(item=>item.id);
+  const ids=[...document.querySelectorAll("#reviewerSchedule [data-schedule-row]")].filter(row=>row.querySelector("input[data-reviewer-id]")?.checked).map(row=>Number(row.dataset.scheduleRow));
   if(!ids.length){status.textContent="至少选择一名审核人。";return;}button.disabled=true;status.textContent="保存中…";
   try{const response=await fetch(`${API}/api/sa/reviewer-schedule`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,reviewer_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");status.textContent="排班已保存。";await loadReviewerSchedule();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
 });
+
+const sitePhotoUrl=value=>{
+  try{const parsed=new URL(String(value||""),location.origin);return [location.origin,"https://images.bpmuseum.org.cn"].includes(parsed.origin)?parsed.href:"/favicon.png";}catch{return "/favicon.png";}
+};
+
+async function loadSitePhotoManager(){
+  const library=document.getElementById("sitePhotoLibrary");if(!library)return;
+  const requestsBox=document.getElementById("sitePhotoRequests"),adminSelect=document.getElementById("sitePhotoInviteAdmins");
+  try{
+    const response=await fetch(`${API}/api/sa/site-photos?sa_id=${user.id}`,{credentials:"include"}),data=await response.json();
+    if(!response.ok)throw Error(data.error||"加载失败");
+    if(adminSelect){const selected=new Set([...adminSelect.selectedOptions].map(option=>option.value));adminSelect.innerHTML=data.admins.map(admin=>`<option value="${Number(admin.id)}" ${selected.has(String(admin.id))?"selected":""}>${escapeSACommunityHTML(admin.username)} · ID ${Number(admin.id)}</option>`).join("")||"<option disabled>目前没有普通管理员</option>";}
+    library.innerHTML=data.photos.map(photo=>`<article class="site-photo-card" data-site-photo="${Number(photo.id)}">
+      <img src="${escapeSACommunityHTML(sitePhotoUrl(photo.image_url))}" alt="主页照片：${escapeSACommunityHTML(photo.credit)}" loading="lazy">
+      <div class="site-photo-card-body"><strong>照片 #${Number(photo.id)}</strong><label>照片署名<input type="text" maxlength="100" data-photo-credit value="${escapeSACommunityHTML(photo.credit)}"></label>
+      <label>轮播顺序<input type="number" min="1" max="1000" data-photo-order value="${Math.max(1,Number(photo.sort_order)||1)}"></label>
+      <div class="site-photo-placements"><label><input type="checkbox" data-photo-home ${photo.show_home?"checked":""}> 首页</label><label><input type="checkbox" data-photo-login ${photo.show_login?"checked":""}> 登录页</label><label><input type="checkbox" data-photo-register ${photo.show_register?"checked":""}> 注册页</label><label><input type="checkbox" data-photo-active ${photo.active?"checked":""}> 启用</label></div>
+      <div class="site-photo-card-actions"><button type="button" data-site-photo-preview="home">预览首页</button><button type="button" data-site-photo-preview="login">预览登录页</button><button type="button" data-site-photo-preview="register">预览注册页</button><button type="button" data-save-site-photo="${Number(photo.id)}">保存设置</button></div></div></article>`).join("")||"<p>还没有排期照片。</p>";
+    requestsBox.innerHTML=data.requests.map(request=>`<article class="site-photo-card site-photo-request" data-photo-request="${Number(request.id)}">
+      <img src="${escapeSACommunityHTML(sitePhotoUrl(request.image_url))}" alt="待审核照片：${escapeSACommunityHTML(request.credit)}" loading="lazy">
+      <div class="site-photo-card-body"><strong>${escapeSACommunityHTML(request.admin_name)} 提交 · #${Number(request.id)}</strong><p>署名：${escapeSACommunityHTML(request.credit)}</p>
+      <div class="site-photo-placements"><label><input type="checkbox" data-photo-home ${Number(request.show_home)?"checked":""}> 首页</label><label><input type="checkbox" data-photo-login ${Number(request.show_login)?"checked":""}> 登录页</label><label><input type="checkbox" data-photo-register ${Number(request.show_register)?"checked":""}> 注册页</label></div>
+      <label>加入轮播的位置<input type="number" min="1" max="1000" data-photo-order value="${Math.max(1,data.photos.length+1)}"></label>
+      <label>审核说明（驳回时展示给投稿管理员）<textarea data-photo-review-note rows="3" maxlength="1000"></textarea></label>
+      <div class="site-photo-card-actions"><button type="button" data-site-photo-preview="home">预览首页</button><button type="button" data-site-photo-preview="login">预览登录页</button><button type="button" data-site-photo-preview="register">预览注册页</button><button type="button" data-photo-request-decision="approved">通过并加入排期</button><button type="button" data-photo-request-decision="rejected">拒绝</button></div></div></article>`).join("")||"<p>目前没有待审核照片。</p>";
+  }catch(error){library.textContent=`照片管理加载失败：${error.message}`;if(requestsBox)requestsBox.textContent="";}
+}
+
+document.getElementById("sendSitePhotoInvites")?.addEventListener("click",async event=>{
+  const button=event.currentTarget,status=document.getElementById("sitePhotoInviteStatus"),select=document.getElementById("sitePhotoInviteAdmins"),ids=[...select.selectedOptions].map(option=>Number(option.value));
+  if(!ids.length){status.textContent="请先选择要邀请的管理员。";return;}button.disabled=true;status.textContent="正在发送邀请…";
+  try{const response=await fetch(`${API}/api/sa/site-photo-invitations`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,admin_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"发送失败");status.textContent=`已邀请 ${result.invited} 位管理员。${result.skipped?.length?` ${result.skipped.length} 位已有待处理邀请。`:""}`;await loadSitePhotoManager();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+});
+
+document.getElementById("heroPhotosPanel")?.addEventListener("click",async event=>{
+  const preview=event.target.closest("[data-site-photo-preview]");
+  if(preview){const card=preview.closest("[data-site-photo],[data-photo-request]"),image=card?.querySelector("img"),credit=card?.querySelector("[data-photo-credit]")?.value||card?.querySelector("p")?.textContent.replace(/^署名：/,"")||"";const dialog=document.getElementById("sitePhotoPreviewDialog"),stage=document.getElementById("sitePhotoPreviewStage"),placement=preview.dataset.sitePhotoPreview;stage.style.backgroundImage=`linear-gradient(180deg,rgba(3,15,29,.12),rgba(3,15,29,.7)),url("${sitePhotoUrl(image?.src)}")`;document.getElementById("sitePhotoPreviewTitle").textContent=placement==="home"?"首页展厅":placement==="login"?"登录页": "注册页";document.getElementById("sitePhotoPreviewCredit").textContent=credit?`Photo by ${credit}`:"";dialog.showModal();return;}
+  const save=event.target.closest("[data-save-site-photo]");
+  if(save){const card=save.closest("[data-site-photo]"),id=Number(save.dataset.saveSitePhoto);save.disabled=true;try{const response=await fetch(`${API}/api/sa/site-photos/${id}`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,credit:card.querySelector("[data-photo-credit]").value,sort_order:Number(card.querySelector("[data-photo-order]").value),show_home:card.querySelector("[data-photo-home]").checked,show_login:card.querySelector("[data-photo-login]").checked,show_register:card.querySelector("[data-photo-register]").checked,active:card.querySelector("[data-photo-active]").checked})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("照片设置已保存");await loadSitePhotoManager();}catch(error){showToast(error.message);save.disabled=false;}return;}
+  const decision=event.target.closest("[data-photo-request-decision]");
+  if(decision){const card=decision.closest("[data-photo-request]"),id=Number(card.dataset.photoRequest),approved=decision.dataset.photoRequestDecision==="approved";if(!approved&&!confirm("拒绝这张主页照片？"))return;decision.disabled=true;try{const body={sa_id:user.id,decision:approved?"approved":"rejected",review_note:approved?"":card.querySelector("[data-photo-review-note]")?.value.trim()||"未通过照片审核",show_home:card.querySelector("[data-photo-home]").checked,show_login:card.querySelector("[data-photo-login]").checked,show_register:card.querySelector("[data-photo-register]").checked,sort_order:Number(card.querySelector("[data-photo-order]").value)};const response=await fetch(`${API}/api/sa/site-photo-requests/${id}/decision`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");await loadSitePhotoManager();showToast(approved?"照片已通过并加入轮播":"照片申请已拒绝");}catch(error){showToast(error.message);decision.disabled=false;}}
+});
+
+document.getElementById("closeSitePhotoPreview")?.addEventListener("click",()=>document.getElementById("sitePhotoPreviewDialog").close());
 
 document.getElementById("flightCorrections")?.addEventListener("click",async event=>{
   const button=event.target.closest("button[data-correction]");if(!button)return;const id=Number(button.dataset.correction),decision=document.querySelector(`[data-correction-decision="${id}"]`)?.value.trim();if(!decision){showToast("请填写处理说明");return;}button.disabled=true;
@@ -789,6 +840,8 @@ loadAppeals();
 loadReviewerSchedule();
 
 loadFlightCorrections();
+
+loadSitePhotoManager();
 
 loadAdminRequests();
 

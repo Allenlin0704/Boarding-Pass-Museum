@@ -312,13 +312,13 @@ function renderMuseum() {
       if(!Array.isArray(specialTags))specialTags=[];
       const english=window.BPM_LANGUAGE==="en";
       const labels=english
-        ? {rail:"Rail ticket",boarding:"Boarding pass",transfer:"Transfer",twoCabin:"Business/first class",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station"}
+        ? {rail:"Rail ticket",boarding:"Boarding pass",transfer:"Transfer",twoCabin:"Business/first class",other:"Other marker",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station"}
         : traditional
-          ? {rail:"火車票",boarding:"登機牌",transfer:"轉機",twoCabin:"兩艙",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站"}
-          : {rail:"火车票",boarding:"登机牌",transfer:"转机",twoCabin:"两舱",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站"};
+          ? {rail:"火車票",boarding:"登機牌",transfer:"轉機",twoCabin:"兩艙",other:"其他標記",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站"}
+          : {rail:"火车票",boarding:"登机牌",transfer:"转机",twoCabin:"两舱",other:"其他标记",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
-      const specialBadges=specialTags.filter(tag=>["transfer","two_cabin"].includes(tag)).map(tag=>badge(tag==="transfer"?"repeat":"armchair",tag==="transfer"?labels.transfer:labels.twoCabin)).join("");
+      const specialBadges=specialTags.filter(tag=>["transfer","two_cabin","other"].includes(tag)).map(tag=>badge(tag==="transfer"?"repeat":tag==="two_cabin"?"armchair":"tag",tag==="transfer"?labels.transfer:tag==="two_cabin"?labels.twoCabin:labels.other)).join("");
 
       let card =
         document.createElement("div");

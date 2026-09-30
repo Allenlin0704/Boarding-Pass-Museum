@@ -54,3 +54,32 @@ button{background:var(--bpm-card);color:var(--bpm-text);border:1px solid var(--b
 .bpm-achievement-dialog{color:var(--bpm-text,#163148);background:var(--bpm-card,#fff);width:min(560px,calc(100% - 32px));box-sizing:border-box}
 .bpm-achievement-dialog h2{margin-top:0}.bpm-achievement-dialog p{line-height:1.7}
 .gallery-type-badge{display:inline-flex;align-items:center;gap:5px}.gallery-type-badge svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-2px}
+.reviewer-schedule-row{display:grid!important;grid-template-columns:24px minmax(0,1fr) auto!important;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bpm-border)}
+.reviewer-order-controls{display:flex;gap:6px}.reviewer-order-controls button{width:38px;min-height:38px;padding:0;border:1px solid var(--bpm-border);border-radius:9px;background:var(--bpm-card);color:var(--bpm-text);font-size:18px}
+.reviewer-schedule-row>span{min-width:0;overflow-wrap:anywhere}
+.site-photo-invite-form{display:grid;gap:10px;max-width:640px;margin:18px 0 26px;padding:18px;border:1px solid var(--bpm-border);border-radius:16px;background:var(--bpm-input)}
+.site-photo-invite-form select{width:100%;min-height:110px;padding:10px;border:1px solid var(--bpm-border);border-radius:10px;background:var(--bpm-card);color:var(--bpm-text);font:inherit}
+.site-photo-invite-form p{margin:0;color:var(--bpm-muted);font-size:13px}
+.site-photo-placements{display:flex;flex-wrap:wrap;gap:10px 16px;margin:12px 0}
+.site-photo-placements label,.site-photo-upload-dialog fieldset label{display:inline-flex;align-items:center;gap:7px}
+.site-photo-card{display:grid;grid-template-columns:minmax(220px,.75fr) minmax(0,1fr);gap:18px;margin:14px 0;padding:16px;border:1px solid var(--bpm-border);border-radius:18px;background:var(--bpm-card);box-shadow:0 8px 24px rgba(12,38,58,.06)}
+.site-photo-card>img{display:block;width:100%;height:100%;max-height:280px;min-height:180px;object-fit:cover;border-radius:12px;background:#10243a}
+.site-photo-card-body{min-width:0;display:grid;align-content:start;gap:10px}
+.site-photo-card-body>label{display:grid;gap:5px;font-size:14px}
+.site-photo-card-body input[type=text],.site-photo-card-body input[type=number]{width:100%;min-height:40px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--bpm-border);border-radius:9px;background:var(--bpm-input);color:var(--bpm-text);font:inherit}
+.site-photo-card-actions{display:flex;flex-wrap:wrap;gap:8px}
+.site-photo-card-actions button{min-height:40px;padding:8px 12px;border-radius:9px}
+.site-photo-preview-dialog,.site-photo-upload-dialog{width:min(720px,calc(100% - 28px));max-height:calc(100dvh - 32px);overflow:auto;box-sizing:border-box;padding:22px;border:1px solid var(--bpm-border);border-radius:20px;background:var(--bpm-card);color:var(--bpm-text)}
+.site-photo-preview-dialog::backdrop,.site-photo-upload-dialog::backdrop{background:rgba(3,15,29,.62);backdrop-filter:blur(3px)}
+.site-photo-preview-stage{display:flex;min-height:clamp(260px,58vh,470px);flex-direction:column;align-items:center;justify-content:center;gap:14px;position:relative;overflow:hidden;padding:24px;border-radius:16px;background-position:center;background-size:cover;color:#fff;text-align:center;text-shadow:0 2px 16px rgba(0,0,0,.75)}
+.site-photo-preview-stage strong{font-size:clamp(24px,5vw,40px)}
+.site-photo-preview-stage p{margin:0;font-size:16px}
+#sitePhotoPreviewTitle{position:absolute;top:14px;left:14px;padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.45);font-size:13px}
+#sitePhotoPreviewCredit{position:absolute;right:14px;bottom:12px;font-size:12px}
+.site-photo-upload-dialog form{display:grid;gap:14px}
+.site-photo-upload-dialog label{display:grid;gap:7px}
+.site-photo-upload-dialog input[type=text],.site-photo-upload-dialog input[type=file]{width:100%;box-sizing:border-box;min-height:44px;padding:9px;border:1px solid var(--bpm-border);border-radius:10px;background:var(--bpm-input);color:var(--bpm-text);font:inherit}
+.site-photo-upload-dialog fieldset{display:flex;flex-wrap:wrap;gap:12px 20px;border:1px solid var(--bpm-border);border-radius:12px}
+.site-photo-upload-dialog .site-photo-license{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:start;line-height:1.65}
+.site-photo-upload-dialog .site-photo-license input{margin-top:5px}
+@media(max-width:700px){.site-photo-card{grid-template-columns:1fr;gap:12px;padding:12px}.site-photo-card>img{height:34vw;min-height:150px;max-height:240px}.site-photo-preview-dialog,.site-photo-upload-dialog{padding:16px}.site-photo-preview-stage{min-height:42svh}.site-photo-card-actions button{flex:1 1 auto}}

@@ -80,7 +80,8 @@ export async function authenticate(request,env,url) {
   if(url.pathname.startsWith('/api/sa/')&&!isSA(user)) return {response:reply({error:'No permission'},403)};
   if(url.pathname.startsWith('/api/admin/')&&!isAdmin(user)) return {response:reply({error:'No permission'},403)};
   if((user?.permanent_ban || (user?.banned_until && new Date(user.banned_until+'Z').getTime()>Date.now())) && (write||protectedRead) && !['/api/logout','/api/community/moderation-appeal',...PUBLIC_WRITES].includes(url.pathname)) return {response:reply({error:'账号已被封禁'},403)};
-  if(write && user && !PUBLIC_WRITES.has(url.pathname) && await limited(env,`write:${user.id}:${url.pathname}`,url.pathname==='/api/upload-image'?10:60,60))return {response:reply({error:'操作过于频繁，请稍后再试'},429)};
+  const imageUploadPath=url.pathname==='/api/upload-image'||/^\/api\/admin\/site-photo-requests\/\d+\/submit$/.test(url.pathname);
+  if(write && user && !PUBLIC_WRITES.has(url.pathname) && await limited(env,`write:${user.id}:${url.pathname}`,imageUploadPath?10:60,60))return {response:reply({error:'操作过于频繁，请稍后再试'},429)};
   if(user?.must_reset_password && (write||protectedRead) && !PUBLIC_WRITES.has(url.pathname) && url.pathname!=='/api/logout') return {response:reply({error:'请先通过邮箱重设密码'},403)};
   if(protectedRead) {
     const actor=url.pathname.startsWith('/api/sa/')?'sa_id':url.pathname.startsWith('/api/admin/')?'admin_id':'user_id';
@@ -237,7 +238,8 @@ export function responseHeaders(request,response) {
 }
 export async function boundedRequest(request) {
   if(['GET','HEAD','OPTIONS'].includes(request.method)||!request.body) return request;
-  const max=new URL(request.url).pathname==='/api/upload-image'?11*1024*1024:64*1024;
+  const path=new URL(request.url).pathname;
+  const max=path==='/api/upload-image'||/^\/api\/admin\/site-photo-requests\/\d+\/submit$/.test(path)?11*1024*1024:64*1024;
   const reader=request.body.getReader(),chunks=[];let length=0;
   while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>max){await reader.cancel();throw new RangeError('请求过大');}chunks.push(value);}
   const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}

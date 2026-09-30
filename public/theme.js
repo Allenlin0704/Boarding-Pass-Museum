@@ -49,6 +49,12 @@
             "authHero.title":"登機牌博物館","authHero.subtitle":"旅客收藏的登機牌、航線與旅程。","community.title":"社群","community.tagline":"航空愛好者的交流空間。","community.publish":"發布貼文","community.sort":"排序","community.latest":"最新發布","community.hot":"熱門討論","community.notice":"請合理使用發文功能；管理員可下架違規內容。","footer.tagline":"以登機牌珍藏每一段旅程。","footer.about":"關於我們","footer.privacy":"隱私說明","footer.rules":"投稿規則","footer.communityRules":"社群規則","submit.back":"返回社群","submit.title":"發布社群貼文","submit.intro":"分享登機牌收藏、航空旅行與機場見聞。","submit.postTitle":"標題","submit.content":"內文","submit.image":"圖片（選填）","submit.publish":"閱讀規則並發布","login.title":"登入","login.email":"電子郵件","login.password":"密碼","login.forgot":"忘記密碼？","login.button":"登入","register.title":"建立帳戶","register.intro":"加入 BoardingPassMuseum，收藏你的飛行回憶。","register.username":"使用者名稱","register.email":"電子郵件","register.code":"電子郵件驗證碼","register.sendCode":"取得驗證碼","register.password":"密碼","register.confirm":"確認密碼","register.button":"建立帳戶","submit.baggageTags":"特殊行李標記（選填）","submit.baggageTagsHint":"轉機行李與兩艙行李都是行李標記，不是投稿類型。","submit.transferBaggage":"轉機行李","submit.twoCabinBaggage":"兩艙行李"
         }
     };
+    translations.en["submit.baggageTagsHint"] = "Choose a marker printed on the baggage tag, such as transfer or premium cabin. A baggage receipt attached to a boarding pass is ticket content, not a baggage marker.";
+    translations["zh-TW"]["submit.baggageTagsHint"] = "此處選擇行李牌上的轉機、兩艙等標記；連在登機牌上的行李提領憑證屬於票面內容，不是行李標記。";
+    translations.en["submit.otherBaggage"] = "Other baggage marker";
+    translations["zh-TW"]["submit.otherBaggage"] = "其他行李標記";
+    translations.en["home.baggageTag.other"] = "Other baggage marker";
+    translations["zh-TW"]["home.baggageTag.other"] = "其他行李標記";
     // Text-node catalog handles both hand-authored pages and labels inserted later by page scripts.
     const phraseRows=[
         ["展厅","Gallery","展廳"],["社区","Community","社群"],["投稿","Submit","投稿"],["我的投稿","My submissions","我的投稿"],["我的收藏","Favorites","我的收藏"],["登录","Log in","登入"],["注册","Sign up","註冊"],["退出","Log out","登出"],["账户设置","Account settings","帳戶設定"],["管理中心","Management center","管理中心"],["查看个人主页","View profile","查看個人主頁"],["检查新版本","Check for updates","檢查更新"],
@@ -225,7 +231,62 @@
         ["等级信息暂时无法加载", "Level information is temporarily unavailable", "暫時無法載入等級資訊"],
         ["升至下一級需", "To reach the next level,", "升至下一級需"],
         ["符合條件的", "matching", "符合條件的"],
-        ["依航班、航空公司、機場或年份查找館藏。", "Find exhibits by flight, airline, airport, or year.", "依航班、航空公司、機場或年份查詢館藏。"]
+        ["依航班、航空公司、機場或年份查找館藏。", "Find exhibits by flight, airline, airport, or year.", "依航班、航空公司、機場或年份查詢館藏。"],
+        ["每日主页照片", "Daily homepage photos", "每日首頁照片"],
+        ["照片按北京时间和排期顺序每日轮换。你可以预览首页、登录页与注册页效果，调整署名和展示位置。访客不能上传；只邀请普通管理员提交，并由 SA 审核后加入轮播。", "Photos rotate daily in Beijing time, following their scheduled order. Preview the gallery, sign-in, and registration layouts, and edit credits and placements. Visitors cannot upload; invited administrators submit photos for SA review.", "照片依北京時間和排程順序每日輪播。你可以預覽首頁、登入頁與註冊頁效果，調整署名和顯示位置。訪客無法上傳；僅受邀管理員可提交，並由 SA 審核後加入輪播。"],
+        ["邀请管理员参与照片征集", "Invite administrators to contribute photos", "邀請管理員參與照片徵集"],
+        ["按住 Command（Mac）或 Ctrl（Windows）可选择多位管理员。", "Hold Command (Mac) or Ctrl (Windows) to select multiple administrators.", "按住 Command（Mac）或 Ctrl（Windows）可選取多位管理員。"],
+        ["发送邀请", "Send invitation", "送出邀請"],
+        ["等待审核", "Awaiting review", "等待審核"],
+        ["已排期照片", "Scheduled photos", "已排程照片"],
+        ["主页照片征集邀请", "Homepage photo invitation", "首頁照片徵集邀請"],
+        ["等待你选择是否参加", "Choose whether to take part", "等待你選擇是否參加"],
+        ["已同意，请上传照片与署名", "Accepted. Upload a photo and its credit.", "已同意，請上傳照片與署名"],
+        ["照片已提交，等待 SA 审核", "Photo submitted and waiting for SA review", "照片已提交，等待 SA 審核"],
+        ["SA 已通过，照片已加入轮播", "Approved by the SA and added to the rotation", "SA 已通過，照片已加入輪播"],
+        ["未通过审核", "Not approved", "未通過審核"],
+        ["你已选择暂不参加", "You declined the invitation", "你已選擇暫不參加"],
+        ["同意并继续", "Accept and continue", "同意並繼續"],
+        ["不同意", "Decline", "不同意"],
+        ["上传照片", "Upload a photo", "上傳照片"],
+        ["同意不同意", "Accept or decline", "同意或不同意"],
+        ["提交主页照片", "Submit a homepage photo", "提交首頁照片"],
+        ["上传照片并填写清楚署名，SA 审核通过后才会加入轮播。", "Upload the photo and add a clear credit. It joins the rotation only after SA approval.", "上傳照片並填寫清楚署名，SA 審核通過後才會加入輪播。"],
+        ["照片署名", "Photo credit", "照片署名"],
+        ["例如：摄影者姓名或账号", "For example, the photographer’s name or account", "例如：攝影者姓名或帳號"],
+        ["希望展示的位置", "Where should the photo appear?", "希望顯示的位置"],
+        ["首页", "Homepage", "首頁"],
+        ["登录页", "Sign-in page", "登入頁"],
+        ["注册页", "Registration page", "註冊頁"],
+        ["我确认拥有此照片版权或已获权利人授权，并同意 BoardingPassMuseum 按所选位置展示、为页面适配而裁切图片，并按我填写的署名公开展示。我已取得照片中可识别人物所需的许可；如授权或隐私许可有问题，我会联系站主。", "I confirm that I own this photo or have permission from its rights holder. I allow BoardingPassMuseum to display and crop it for the selected pages and publish it with the credit I provide. I have permission from identifiable people in the photo where required, and will contact the site owner if a rights or privacy concern arises.", "我確認擁有此照片版權或已獲權利人授權，並同意 BoardingPassMuseum 依所選位置展示、為頁面調整裁切圖片，並依我填寫的署名公開展示。我已取得照片中可識別人物所需的許可；如授權或隱私許可有疑慮，我會聯絡站主。"],
+        ["提交 SA 审核", "Submit for SA review", "送交 SA 審核"],
+        ["正在上传照片并送交 SA 审核…", "Uploading the photo and submitting it to the SA for review…", "正在上傳照片並送交 SA 審核…"],
+        ["照片已送交 SA 审核，通过后才会加入每日轮播。", "The photo was sent to the SA for review. It joins the daily rotation only after approval.", "照片已送交 SA 審核，通過後才會加入每日輪播。"],
+        ["照片管理加载失败：", "Could not load photo management: ", "無法載入照片管理："],
+        ["正在发送邀请…", "Sending invitations…", "正在送出邀請…"],
+        ["照片设置已保存", "Photo settings saved", "照片設定已儲存"],
+        ["照片已通过并加入轮播", "Photo approved and added to the rotation", "照片已通過並加入輪播"],
+        ["照片申请已拒绝", "Photo proposal rejected", "照片提案已拒絕"],
+        ["请先选择要邀请的管理员。", "Choose one or more administrators to invite.", "請先選擇要邀請的管理員。"],
+        ["暂无待审核照片。", "No photos are waiting for review.", "目前沒有待審核照片。"],
+        ["还没有排期照片。", "There are no scheduled photos yet.", "目前沒有排程照片。"],
+        ["预览首页", "Preview homepage", "預覽首頁"],
+        ["预览登录页", "Preview sign-in page", "預覽登入頁"],
+        ["预览注册页", "Preview registration page", "預覽註冊頁"],
+        ["加入轮播的位置", "Rotation order", "加入輪播的位置"],
+        ["通过并加入排期", "Approve and schedule", "通過並加入排程"],
+        ["照片不存在", "Photo not found", "找不到照片"],
+        ["照片申请不存在或已处理", "Photo proposal not found or already handled", "照片提案不存在或已處理"],
+        ["照片已上传，但提交状态发生变化，请联系 SA 检查", "The photo uploaded, but its submission state changed. Please contact the SA.", "照片已上傳，但提交狀態已變更，請聯絡 SA 檢查。"],
+        ["只有受邀管理员可以提交照片；每张照片会先由 SA 审核。", "Only invited administrators can submit photos. Every photo is reviewed by the SA first.", "僅受邀管理員可以提交照片；每張照片都會先由 SA 審核。"],
+        ["SA 邀请你参与主页照片征集。请打开通知与申诉查看并选择是否参加。", "The SA invited you to contribute a homepage photo. Open Notifications and Appeals to accept or decline.", "SA 邀請你參與首頁照片徵集。請開啟通知與申訴查看並選擇是否參加。"],
+        ["管理员已接受主页照片征集邀请。", "An administrator accepted the homepage photo invitation.", "管理員已接受首頁照片徵集邀請。"],
+        ["管理员暂不参加主页照片征集。", "An administrator declined the homepage photo invitation.", "管理員暫不參加首頁照片徵集。"],
+        ["你提交的主页照片未通过审核。", "Your homepage photo did not pass review.", "你提交的首頁照片未通過審核。"],
+        ["你提交的主页照片已通过 SA 审核并加入照片排期。", "Your homepage photo was approved by the SA and added to the schedule.", "你提交的首頁照片已通過 SA 審核並加入照片排程。"],
+        ["照片 #", "Photo #", "照片 #"],
+        ["审核说明（驳回时展示给投稿管理员）", "Review note (shown to the administrator if rejected)", "審核說明（駁回時顯示給投稿管理員）"],
+        ["请填写署名并检查顺序与展示位置", "Add a photo credit and check its order and placements.", "請填寫署名並檢查順序與顯示位置。"]
     ];
     const phraseTranslations=Object.create(null);
     phraseRows.forEach(([source,en,tw])=>{phraseTranslations[source]={en,"zh-TW":tw};});
