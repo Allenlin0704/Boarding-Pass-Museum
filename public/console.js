@@ -9,7 +9,7 @@ const selectPage=button=>{
 controls.forEach(button=>button.addEventListener("click",()=>selectPage(button)));
 (async()=>{
   try{
-    const response=await fetch(`${consoleApi}/api/session`);
+    const response=await fetch(`${consoleApi}/api/session`,{credentials:"include",cache:"no-store"});
     const account=await response.json();
     if(!response.ok||!account.id)throw Error("请先登录");
     welcome.textContent=account.role==="user"?"管理员申请":`${account.username} 的工作区`;

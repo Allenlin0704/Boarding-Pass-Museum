@@ -48,6 +48,7 @@ function updateNavbar(){
     function setupMobileNavigation(){
 
         if(!header) return;
+        if(document.documentElement.classList.contains("bpm-console-embed")) return;
 
         let toggle = header.querySelector("#mobileNavToggle");
 

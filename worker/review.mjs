@@ -13,17 +13,18 @@ export async function reviewRoute(request,env,url,user) {
   }
   if(path==='/api/sa/reviewer-schedule'&&request.method==='GET') {
     if(!isSA(user))return reply({error:'No permission'},403);
-    const rows=await env.DB.prepare(`SELECT u.id,u.username,u.role,COALESCE(s.active,0) AS active,COALESCE(s.sort_order,9999) AS sort_order FROM users u LEFT JOIN reviewer_schedule s ON s.user_id=u.id WHERE u.role='administrator' OR (u.id=1 AND u.role='superadministrator') ORDER BY active DESC,sort_order,u.id`).all();
+    const rows=await env.DB.prepare(`SELECT u.id,u.username,u.role,COALESCE(s.active,0) AS active,COALESCE(s.allocation_percent,0) AS allocation_percent,COALESCE(s.sort_order,9999) AS sort_order FROM users u LEFT JOIN reviewer_schedule s ON s.user_id=u.id WHERE u.role='administrator' OR (u.id=1 AND u.role='superadministrator') ORDER BY active DESC,sort_order,u.id`).all();
     return reply(rows.results||[]);
   }
   if(request.method!=='POST') return null;
   if(path==='/api/sa/reviewer-schedule') {
     if(!isSA(user))return reply({error:'No permission'},403);
-    const body=await request.json(),ids=body.reviewer_ids;
-    if(!Array.isArray(ids)||ids.length>100||ids.some(id=>!Number.isInteger(Number(id)))||new Set(ids.map(Number)).size!==ids.length)return reply({error:'排班名单格式无效'},400);
-    for(const id of ids){const eligible=await env.DB.prepare("SELECT id FROM users WHERE id=? AND (role='administrator' OR (id=1 AND role='superadministrator'))").bind(Number(id)).first();if(!eligible)return reply({error:'排班成员必须是普通管理员或站主账号'},400);}
+    const body=await request.json(),allocations=body.reviewer_allocations;
+    if(!Array.isArray(allocations)||!allocations.length||allocations.length>100||allocations.some(row=>!Number.isSafeInteger(Number(row?.user_id))||!Number.isInteger(row?.percent)||row.percent<0||row.percent>100)||new Set(allocations.map(row=>Number(row.user_id))).size!==allocations.length)return reply({error:'请检查每位审核人的分配比例'},400);
+    if(allocations.reduce((sum,row)=>sum+row.percent,0)!==100)return reply({error:'审核比例总和必须正好为 100%'},400);
+    for(const row of allocations){const eligible=await env.DB.prepare("SELECT id FROM users WHERE id=? AND (role='administrator' OR (id=1 AND role='superadministrator'))").bind(Number(row.user_id)).first();if(!eligible)return reply({error:'排班成员必须是普通管理员或站主账号'},400);}
     const statements=[env.DB.prepare('DELETE FROM reviewer_schedule')];
-    ids.forEach((id,index)=>statements.push(env.DB.prepare('INSERT INTO reviewer_schedule(user_id,active,sort_order,updated_at) VALUES(?,1,?,CURRENT_TIMESTAMP)').bind(Number(id),index)));
+    allocations.forEach((row,index)=>statements.push(env.DB.prepare('INSERT INTO reviewer_schedule(user_id,active,sort_order,allocation_percent,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP)').bind(Number(row.user_id),row.percent>0?1:0,index,row.percent)));
     await env.DB.batch(statements);return reply({success:true});
   }
   if(path==='/api/submit') {
@@ -31,7 +32,7 @@ export async function reviewRoute(request,env,url,user) {
     const rail=body.submission_type==='rail_ticket';
     for(const key of ['airline','flight','airport','date','image']) if(typeof body[key]!=='string'||!body[key].trim())return reply({error:'请完整填写运营公司、班次、出发地点、日期并上传图片'},400);
     if(!['boarding_pass','rail_ticket'].includes(body.submission_type||'boarding_pass')||!['paper','digital'].includes(body.ticket_format||'paper')||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>['transfer','two_cabin','other'].includes(tag))||(rail&&(!body.departure_country||!body.arrival_country||!body.route)))return reply({error:'投稿格式无效'},400);
-    const admins=await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator')) ORDER BY (SELECT COUNT(*) FROM flights WHERE status='screening' AND reviewer_id=u.id),s.sort_order,u.id LIMIT 1`).first();
+    const admins=await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND s.allocation_percent>0 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator')) ORDER BY (SELECT COUNT(*) FROM flights WHERE reviewer_id=u.id AND created_at>=s.updated_at)*1.0/s.allocation_percent,s.sort_order,u.id LIMIT 1`).first();
     const inserted=await env.DB.prepare(`INSERT INTO flights(user_id,airline,flight,route,date,aircraft,airport,issue_airport,image,story,status,reviewer_id,submission_type,ticket_format,departure_country,arrival_country,special_tags) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',String(body.departure_country||''),String(body.arrival_country||''),JSON.stringify(body.special_tags||[])).run();
     return reply({success:true,flight_id:inserted.meta.last_row_id});

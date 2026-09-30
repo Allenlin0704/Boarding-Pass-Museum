@@ -4,18 +4,29 @@ import {fixture} from './helpers.mjs';
 
 test('SA schedule controls eligibility; scheduled SA and admins can receive submissions', async()=>{
   const {call,db}=fixture();
-  let response=await call('/api/sa/reviewer-schedule',{reviewer_ids:[4]},1);
+  let response=await call('/api/sa/reviewer-schedule',{reviewer_allocations:[{user_id:4,percent:100}]},1);
   assert.equal(response.status,400,'invalid role superadmin must not be schedulable');
-  response=await call('/api/sa/reviewer-schedule',{reviewer_ids:[2,1]},1);
+  response=await call('/api/sa/reviewer-schedule',{reviewer_allocations:[{user_id:2,percent:70},{user_id:1,percent:30}]},1);
   assert.equal(response.status,200);
-  const schedule=db.prepare('SELECT user_id FROM reviewer_schedule WHERE active=1 ORDER BY sort_order').all().map(row=>row.user_id);
-  assert.deepEqual(schedule,[2,1]);
+  const schedule=db.prepare('SELECT user_id,allocation_percent FROM reviewer_schedule WHERE active=1 ORDER BY sort_order').all().map(row=>({...row}));
+  assert.deepEqual(schedule,[{user_id:2,allocation_percent:70},{user_id:1,allocation_percent:30}]);
+  response=await call('/api/sa/reviewer-schedule',{reviewer_allocations:[{user_id:2,percent:65},{user_id:1,percent:30}]},1);
+  assert.equal(response.status,400,'allocation percentages must add up to exactly 100');
+  const before=new Map(db.prepare('SELECT reviewer_id,COUNT(*) AS count FROM flights WHERE reviewer_id IN (1,2) GROUP BY reviewer_id').all().map(row=>[row.reviewer_id,row.count]));
   response=await call('/api/submit',{submission_type:'rail_ticket',ticket_format:'digital',departure_country:'CN',arrival_country:'DE',airline:'China Railway CR',flight:'G101',airport:'北京南站',route:'上海虹桥站',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[]},3);
   assert.equal(response.status,200);
   const saved=db.prepare('SELECT * FROM flights WHERE user_id=3 ORDER BY id DESC LIMIT 1').get();
   assert.equal(saved.submission_type,'rail_ticket');
   assert.equal(saved.ticket_format,'digital');
   assert.ok([1,2].includes(saved.reviewer_id));
+  for(let index=0;index<19;index++){
+    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[]},3);
+    assert.equal(response.status,200);
+  }
+  const after=db.prepare('SELECT reviewer_id,COUNT(*) AS count FROM flights WHERE reviewer_id IN (1,2) GROUP BY reviewer_id').all();
+  const delta=new Map(after.map(row=>[row.reviewer_id,row.count-(before.get(row.reviewer_id)||0)]));
+  assert.ok(delta.get(2)>=12&&delta.get(2)<=15,`70% reviewer got ${delta.get(2)} of 20 assignments`);
+  assert.ok(delta.get(1)>=5&&delta.get(1)<=8,`30% reviewer got ${delta.get(1)} of 20 assignments`);
 });
 
 test('profile writes bind to the authenticated user, and owner corrections reach SA', async()=>{

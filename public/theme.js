@@ -55,6 +55,12 @@
     translations["zh-TW"]["submit.otherBaggage"] = "其他行李標記";
     translations.en["home.baggageTag.other"] = "Other baggage marker";
     translations["zh-TW"]["home.baggageTag.other"] = "其他行李標記";
+    translations.en["sa.reviewerScheduleHint"] = "Set the share of new submissions assigned to each reviewer. The total must equal exactly 100%. Set a reviewer to 0% to stop assigning new submissions; the SA may also review.";
+    translations["zh-TW"]["sa.reviewerScheduleHint"] = "請設定分配給每位審核人的新稿比例，總和必須正好為 100%。設為 0% 即不再分配新稿；SA 也可參與審核。";
+    translations.en["sa.reviewerScheduleTotal"] = "Current total: {percent}% (must equal 100%)";
+    translations["zh-TW"]["sa.reviewerScheduleTotal"] = "目前合計：{percent}%（必須等於 100%）";
+    translations.en["sa.saveReviewerSchedule"] = "Save allocation";
+    translations["zh-TW"]["sa.saveReviewerSchedule"] = "儲存分配比例";
     // Text-node catalog handles both hand-authored pages and labels inserted later by page scripts.
     const phraseRows=[
         ["展厅","Gallery","展廳"],["社区","Community","社群"],["投稿","Submit","投稿"],["我的投稿","My submissions","我的投稿"],["我的收藏","Favorites","我的收藏"],["登录","Log in","登入"],["注册","Sign up","註冊"],["退出","Log out","登出"],["账户设置","Account settings","帳戶設定"],["管理中心","Management center","管理中心"],["查看个人主页","View profile","查看個人主頁"],["检查新版本","Check for updates","檢查更新"],

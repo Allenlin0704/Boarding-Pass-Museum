@@ -286,7 +286,24 @@ if (imageInput && canvas) {
     window.bpmImageEditorReady=()=>!cropMode&&!masking&&!cropRect;
     window.bpmGetEditorSource=()=>img.src||"";
     window.bpmLoadEditorSource=source=>{const next=new Image();next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();};next.src=source;};
-    window.bpmExportEditorImage=()=>{if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");drawImageAndMasks();const result=canvas.toDataURL("image/png");draw();return result;};
+    window.bpmExportEditorImage=(options={})=>{
+        if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");
+        drawImageAndMasks();
+        const maxEdge=Number(options.maxEdge)||0;
+        const edge=Math.max(canvas.width,canvas.height);
+        let output=canvas;
+        if(maxEdge>0&&edge>maxEdge){
+            output=document.createElement("canvas");
+            const ratio=maxEdge/edge;
+            output.width=Math.max(1,Math.round(canvas.width*ratio));
+            output.height=Math.max(1,Math.round(canvas.height*ratio));
+            output.getContext("2d",{alpha:false}).drawImage(canvas,0,0,output.width,output.height);
+        }
+        const type=options.type||"image/png";
+        const result=output.toDataURL(type,Number.isFinite(options.quality)?options.quality:undefined);
+        draw();
+        return result;
+    };
     if(location.pathname.endsWith("/image-editor.html")){const source=sessionStorage.getItem("bpmImageEditorSource");if(source){sessionStorage.removeItem("bpmImageEditorSource");window.bpmLoadEditorSource(source);}}
     window.addEventListener("pageshow",()=>{restoreWatermarkSettings();const result=sessionStorage.getItem("bpmImageEditorResult");if(!result)return;sessionStorage.removeItem("bpmImageEditorResult");window.bpmLoadEditorSource(result);});
 

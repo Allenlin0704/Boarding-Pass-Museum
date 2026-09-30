@@ -5,9 +5,9 @@
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=20260930-site-photos">
-  <script src="theme.js?v=20260930-site-photos"></script>
-<link rel="stylesheet" href="features.css?v=20260930-site-photos">
+<link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
+  <script src="theme.js?v=20260930-reviewer-percent"></script>
+<link rel="stylesheet" href="features.css?v=20260930-reviewer-percent">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
 
 <body>
@@ -36,9 +36,10 @@
 
 <section class="sa-panel" id="reviewerSchedulePanel">
 <h2>审核排班</h2>
-<p>先勾选接收新稿的审核人，系统会自动把新稿分给当前待审最少的人。待审量相同时，列表靠前者优先；用上下箭头调整即可。SA 也可勾选加入。</p>
+<p data-i18n="sa.reviewerScheduleHint">为每位审核人填写要分配的新稿比例，总和必须正好为 100%。设为 0% 即不接收新稿；SA 也可以参与审核。</p>
 <div id="reviewerSchedule">加载中…</div>
-<button type="button" id="saveReviewerSchedule">保存排班</button>
+<p id="reviewerScheduleTotal" role="status" data-i18n="sa.reviewerScheduleTotal">当前合计：0%（需要 100%）</p>
+<button type="button" id="saveReviewerSchedule" data-i18n="sa.saveReviewerSchedule" disabled>保存分配比例</button>
 <p id="reviewerScheduleStatus" role="status"></p>
 </section>
 
@@ -188,10 +189,10 @@ onclick="markSelectedRed('noticeContent')"
 </section>
 
 </main>
-<script src="auth.js?v=20260927"></script>
+<script src="auth.js?v=20260930-nav-fix"></script>
 <script src="sa-security.js?v=1"></script>
 <script src="review-rules.js"></script>
-<script src="sa.js?v=20260930-site-photos"></script>
+<script src="sa.js?v=20260930-reviewer-percent"></script>
 
 
 

@@ -104,22 +104,25 @@ async function loadFlightCorrections(){
 async function loadReviewerSchedule(){
   const box=document.getElementById("reviewerSchedule");if(!box)return;
   try{const response=await fetch(`${API}/api/sa/reviewer-schedule?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();if(!response.ok)throw Error(rows.error||"加载失败");
-    box.innerHTML=rows.map(row=>`<div class="reviewer-schedule-row" data-schedule-row="${Number(row.id)}"><input type="checkbox" aria-label="启用 ${escapeSACommunityHTML(row.username)}" data-reviewer-id="${Number(row.id)}" ${row.active?"checked":""}><span>${escapeSACommunityHTML(row.username)} · ${row.role==="superadministrator"?"SA":"管理员"}</span><div class="reviewer-order-controls"><button type="button" data-schedule-move="up" aria-label="上移">↑</button><button type="button" data-schedule-move="down" aria-label="下移">↓</button></div></div>`).join("")||"目前没有可排班的管理员。";
+    box.innerHTML=rows.map(row=>`<label class="reviewer-schedule-row" data-schedule-row="${Number(row.id)}"><span><strong>${escapeSACommunityHTML(row.username)}</strong><small>${row.role==="superadministrator"?"SA":"管理员"}</small></span><span class="reviewer-percent-field"><input type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="${escapeSACommunityHTML(row.username)} 的稿件分配百分比" data-reviewer-id="${Number(row.id)}" value="${Math.max(0,Math.min(100,Number(row.allocation_percent)||0))}"><span>%</span></span></label>`).join("")||"目前没有可排班的管理员。";
+    updateReviewerScheduleTotal();
   }catch(error){box.textContent=`加载失败：${error.message}`;}
 }
 
-document.getElementById("reviewerSchedule")?.addEventListener("click",event=>{
-  const button=event.target.closest("[data-schedule-move]");if(!button)return;
-  const row=button.closest("[data-schedule-row]"),box=document.getElementById("reviewerSchedule");
-  if(button.dataset.scheduleMove==="up"&&row.previousElementSibling)box.insertBefore(row,row.previousElementSibling);
-  if(button.dataset.scheduleMove==="down"&&row.nextElementSibling)box.insertBefore(row.nextElementSibling,row);
-});
+function updateReviewerScheduleTotal(){
+  const inputs=[...document.querySelectorAll("#reviewerSchedule [data-reviewer-id]")];
+  const total=inputs.reduce((sum,input)=>sum+(Number(input.value)||0),0);
+  const totalNode=document.getElementById("reviewerScheduleTotal"),save=document.getElementById("saveReviewerSchedule");
+  if(totalNode)totalNode.textContent=window.bpmT("sa.reviewerScheduleTotal","当前合计：{percent}%（需要 100%）").replace("{percent}",String(total));
+  if(save)save.disabled=total!==100||inputs.length===0;
+}
+document.getElementById("reviewerSchedule")?.addEventListener("input",updateReviewerScheduleTotal);
 
 document.getElementById("saveReviewerSchedule")?.addEventListener("click",async event=>{
   const status=document.getElementById("reviewerScheduleStatus"),button=event.currentTarget;
-  const ids=[...document.querySelectorAll("#reviewerSchedule [data-schedule-row]")].filter(row=>row.querySelector("input[data-reviewer-id]")?.checked).map(row=>Number(row.dataset.scheduleRow));
-  if(!ids.length){status.textContent="至少选择一名审核人。";return;}button.disabled=true;status.textContent="保存中…";
-  try{const response=await fetch(`${API}/api/sa/reviewer-schedule`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,reviewer_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");status.textContent="排班已保存。";await loadReviewerSchedule();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+  const allocations=[...document.querySelectorAll("#reviewerSchedule [data-reviewer-id]")].map(input=>({user_id:Number(input.dataset.reviewerId),percent:Number(input.value)}));
+  if(allocations.reduce((sum,row)=>sum+row.percent,0)!==100){updateReviewerScheduleTotal();status.textContent=window.bpmLocaleText("总分配比例必须正好为 100%。");return;}button.disabled=true;status.textContent=window.bpmLocaleText("保存中…");
+  try{const response=await fetch(`${API}/api/sa/reviewer-schedule`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({reviewer_allocations:allocations})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");status.textContent=window.bpmLocaleText("分配比例已保存。");await loadReviewerSchedule();}catch(error){status.textContent=window.bpmLocaleText(error.message);}finally{updateReviewerScheduleTotal();}
 });
 
 const sitePhotoUrl=value=>{

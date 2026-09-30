@@ -79,7 +79,9 @@ async function loadNotice(){
 
         const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
         const today=`${parts.find(x=>x.type==='year').value}-${parts.find(x=>x.type==='month').value}-${parts.find(x=>x.type==='day').value}`;
-        if(localStorage.getItem('bpmLastAnnouncementDay')===today)return;
+        const latest=data[0];
+        const fingerprint=latest?`${latest.source||'announcement'}:${latest.id||''}:${latest.created_at||''}`:'';
+        if(localStorage.getItem('bpmLastAnnouncementDay')===today&&localStorage.getItem('bpmLastAnnouncementFingerprint')===fingerprint)return;
 
 
         // ==============================
@@ -129,6 +131,7 @@ async function loadNotice(){
         function(){
 
             localStorage.setItem('bpmLastAnnouncementDay',today);
+            localStorage.setItem('bpmLastAnnouncementFingerprint',fingerprint);
 
             overlay.remove();
 
