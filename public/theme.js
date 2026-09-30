@@ -61,6 +61,15 @@
     translations["zh-TW"]["sa.reviewerScheduleTotal"] = "目前合計：{percent}%（必須等於 100%）";
     translations.en["sa.saveReviewerSchedule"] = "Save allocation";
     translations["zh-TW"]["sa.saveReviewerSchedule"] = "儲存分配比例";
+    translations.en["sa.photoWeekdayLabel"] = "Display weekday";
+    translations["zh-TW"]["sa.photoWeekdayLabel"] = "顯示星期";
+    [
+        [1,"Monday","星期一"],[2,"Tuesday","星期二"],[3,"Wednesday","星期三"],
+        [4,"Thursday","星期四"],[5,"Friday","星期五"],[6,"Saturday","星期六"],[7,"Sunday","星期日"]
+    ].forEach(([weekday,en,tw])=>{
+        translations.en[`sa.photoWeekday.${weekday}`]=en;
+        translations["zh-TW"][`sa.photoWeekday.${weekday}`]=tw;
+    });
     // Text-node catalog handles both hand-authored pages and labels inserted later by page scripts.
     const phraseRows=[
         ["展厅","Gallery","展廳"],["社区","Community","社群"],["投稿","Submit","投稿"],["我的投稿","My submissions","我的投稿"],["我的收藏","Favorites","我的收藏"],["登录","Log in","登入"],["注册","Sign up","註冊"],["退出","Log out","登出"],["账户设置","Account settings","帳戶設定"],["管理中心","Management center","管理中心"],["查看个人主页","View profile","查看個人主頁"],["检查新版本","Check for updates","檢查更新"],
@@ -239,7 +248,7 @@
         ["符合條件的", "matching", "符合條件的"],
         ["依航班、航空公司、機場或年份查找館藏。", "Find exhibits by flight, airline, airport, or year.", "依航班、航空公司、機場或年份查詢館藏。"],
         ["每日主页照片", "Daily homepage photos", "每日首頁照片"],
-        ["照片按北京时间和排期顺序每日轮换。你可以预览首页、登录页与注册页效果，调整署名和展示位置。访客不能上传；只邀请普通管理员提交，并由 SA 审核后加入轮播。", "Photos rotate daily in Beijing time, following their scheduled order. Preview the gallery, sign-in, and registration layouts, and edit credits and placements. Visitors cannot upload; invited administrators submit photos for SA review.", "照片依北京時間和排程順序每日輪播。你可以預覽首頁、登入頁與註冊頁效果，調整署名和顯示位置。訪客無法上傳；僅受邀管理員可提交，並由 SA 審核後加入輪播。"],
+        ["照片按东八区（北京时间）星期一至星期日固定排期，每周循环。同一星期、同一展示位置只允许一张启用照片；替换时请先停用旧照片。你可以预览首页、登录页与注册页效果，调整署名和展示位置。访客不能上传；只邀请普通管理员提交，并由 SA 审核后加入轮播。", "Photos follow a fixed Monday-to-Sunday schedule in Beijing time and repeat weekly. Each placement can have one active photo per weekday; deactivate the current photo before replacing it. Preview the gallery, sign-in, and registration layouts, and edit credits and placements. Visitors cannot upload; invited administrators submit photos for SA review.", "照片依東八區（北京時間）星期一至星期日固定排程，每週循環。同一星期、同一展示位置僅能啟用一張照片；替換前請先停用舊照片。你可以預覽首頁、登入頁與註冊頁效果，調整署名和顯示位置。訪客無法上傳；僅受邀管理員可提交，並由 SA 審核後加入輪播。"],
         ["邀请管理员参与照片征集", "Invite administrators to contribute photos", "邀請管理員參與照片徵集"],
         ["按住 Command（Mac）或 Ctrl（Windows）可选择多位管理员。", "Hold Command (Mac) or Ctrl (Windows) to select multiple administrators.", "按住 Command（Mac）或 Ctrl（Windows）可選取多位管理員。"],
         ["发送邀请", "Send invitation", "送出邀請"],

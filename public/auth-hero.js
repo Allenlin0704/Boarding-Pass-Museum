@@ -3,13 +3,14 @@
   if (!heroes.length) return;
 
   const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit'
+    timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short'
   }).formatToParts(new Date());
   const part = key => Number(parts.find(item => item.type === key)?.value);
   const year = part('year'), month = part('month'), dateNumber = part('day');
-  const day = Math.floor(Date.UTC(year, month - 1, dateNumber) / 86400000);
+  const weekdayName = parts.find(item => item.type === 'weekday')?.value;
+  const weekday = ({ Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 })[weekdayName] || 1;
   const date = `${year}-${String(month).padStart(2, '0')}-${String(dateNumber).padStart(2, '0')}`;
-  const slot = ((day % 7) + 7) % 7;
+  const slot = weekday - 1;
   const safeUrl = value => {
     try {
       const url = new URL(String(value || ''), location.origin);
@@ -58,7 +59,7 @@
     for (const placement of placements) {
       const rows = lists.get(placement);
       if (!rows?.length) continue;
-      const photo = rows[slot % rows.length];
+      const photo = rows[0];
       heroes.filter(hero => placementFor(hero) === placement).forEach(hero => apply(hero, photo, placement));
     }
   });

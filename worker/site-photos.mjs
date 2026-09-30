@@ -7,6 +7,36 @@ const placementFields = {
   register: 'show_register'
 };
 
+const weekdayNumbers = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
+export function beijingWeekday(date = new Date()) {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', weekday: 'short' }).format(date);
+  return weekdayNumbers[name] || 1;
+}
+
+function weekdayFromOrder(value) {
+  const order = Number(value);
+  if (!Number.isInteger(order) || order < 1) return null;
+  return ((order - 1) % 7) + 1;
+}
+
+function requestedWeekday(body) {
+  if (body.weekday !== undefined) {
+    const weekday = Number(body.weekday);
+    return Number.isInteger(weekday) && weekday >= 1 && weekday <= 7 ? weekday : null;
+  }
+  // Accept the former 1..1000 order field during cache/deployment overlap.
+  return weekdayFromOrder(body.sort_order);
+}
+
+async function weekdayConflict(env, weekday, flags, excludeId = null) {
+  const result = await env.DB.prepare('SELECT id,sort_order,show_home,show_login,show_register FROM site_cover_photos WHERE active=1').all();
+  return (result.results || []).some(photo => {
+    if (excludeId !== null && Number(photo.id) === excludeId) return false;
+    if (weekdayFromOrder(photo.sort_order) !== weekday) return false;
+    return flags.some((enabled, index) => enabled && Number([photo.show_home, photo.show_login, photo.show_register][index]) === 1);
+  });
+}
+
 function photoRow(row) {
   return {
     id: Number(row.id),
@@ -16,6 +46,7 @@ function photoRow(row) {
     show_login: Number(row.show_login) === 1,
     show_register: Number(row.show_register) === 1,
     sort_order: Number(row.sort_order),
+    weekday: weekdayFromOrder(row.sort_order),
     active: Number(row.active) === 1,
     created_at: row.created_at
   };
@@ -31,7 +62,9 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
     const field = placementFields[url.searchParams.get('placement') || 'home'];
     if (!field) return reply({ error: '照片位置无效' }, 400);
     const result = await env.DB.prepare(`SELECT id,image_url,credit,show_home,show_login,show_register,sort_order,active,created_at FROM site_cover_photos WHERE active=1 AND ${field}=1 ORDER BY sort_order,id`).all();
-    return reply((result.results || []).map(photoRow));
+    const today = beijingWeekday();
+    const photo = (result.results || []).find(row => weekdayFromOrder(row.sort_order) === today);
+    return reply(photo ? [photoRow(photo)] : []);
   }
 
   if (path === '/api/sa/site-photos' && method === 'GET') {
@@ -123,11 +156,13 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
     if (!isSA(user)) return reply({ error: 'No permission' }, 403);
     const body = await request.json();
     const credit = String(body.credit || '').trim();
-    const sortOrder = Number(body.sort_order);
+    const weekday = requestedWeekday(body);
     const flags = ['show_home', 'show_login', 'show_register'].map(key => body[key] === true || body[key] === 1);
-    if (!credit || credit.length > 100 || !Number.isInteger(sortOrder) || sortOrder < 1 || sortOrder > 1000 || (body.active !== false && body.active !== 0 && !flags.some(Boolean))) return reply({ error: '请填写署名并检查顺序与展示位置' }, 400);
+    const active = body.active !== false && body.active !== 0;
+    if (!credit || credit.length > 100 || !weekday || (active && !flags.some(Boolean))) return reply({ error: '请填写署名、展示星期和展示位置' }, 400);
+    if (active && await weekdayConflict(env, weekday, flags, Number(photoSaveMatch[1]))) return reply({ error: '该星期的所选展示位置已有启用照片，请选择其他星期或先调整原照片' }, 409);
     const result = await env.DB.prepare('UPDATE site_cover_photos SET credit=?,show_home=?,show_login=?,show_register=?,sort_order=?,active=? WHERE id=?')
-      .bind(credit, Number(flags[0]), Number(flags[1]), Number(flags[2]), sortOrder, Number(body.active !== false && body.active !== 0), Number(photoSaveMatch[1])).run();
+      .bind(credit, Number(flags[0]), Number(flags[1]), Number(flags[2]), weekday, Number(active), Number(photoSaveMatch[1])).run();
     return result.meta.changes ? reply({ success: true }) : reply({ error: '照片不存在' }, 404);
   }
 
@@ -148,10 +183,12 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
       const showHome = body.show_home === true || body.show_home === 1;
       const showLogin = body.show_login === true || body.show_login === 1;
       const showRegister = body.show_register === true || body.show_register === 1;
-      const sortOrder = Number(body.sort_order);
-      if ((!showHome && !showLogin && !showRegister) || !Number.isInteger(sortOrder) || sortOrder < 1 || sortOrder > 1000) return reply({ error: '至少选择一个位置，并填写 1 到 1000 的排期顺序' }, 400);
+      const weekday = requestedWeekday(body);
+      const flags = [showHome, showLogin, showRegister];
+      if ((!showHome && !showLogin && !showRegister) || !weekday) return reply({ error: '请选择展示位置和星期几' }, 400);
+      if (await weekdayConflict(env, weekday, flags)) return reply({ error: '该星期的所选展示位置已有启用照片，请先调整原照片' }, 409);
       const statements = [
-        env.DB.prepare("UPDATE site_photo_requests SET status='approved',show_home=?,show_login=?,show_register=?,sort_order=?,reviewer_id=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending_review'").bind(Number(showHome), Number(showLogin), Number(showRegister), sortOrder, user.id, id),
+        env.DB.prepare("UPDATE site_photo_requests SET status='approved',show_home=?,show_login=?,show_register=?,sort_order=?,reviewer_id=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending_review'").bind(Number(showHome), Number(showLogin), Number(showRegister), weekday, user.id, id),
         env.DB.prepare(`INSERT OR IGNORE INTO site_cover_photos(image_url,credit,show_home,show_login,show_register,sort_order,active,submitted_by,request_id)
           SELECT image_url,credit,show_home,show_login,show_register,sort_order,1,admin_id,id FROM site_photo_requests WHERE id=? AND status='approved' AND reviewer_id=?`)
           .bind(id, user.id),

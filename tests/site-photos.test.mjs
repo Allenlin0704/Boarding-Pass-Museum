@@ -1,18 +1,25 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture} from './helpers.mjs';
+import {beijingWeekday} from '../worker/site-photos.mjs';
 
-test('public daily-photo API only returns active photos for a valid placement',async()=>{
+test('weekday selection switches at midnight in Beijing time',()=>{
+  assert.equal(beijingWeekday(new Date('2026-10-01T15:59:00.000Z')),4);
+  assert.equal(beijingWeekday(new Date('2026-10-01T16:00:00.000Z')),5);
+});
+
+test('public daily-photo API returns the scheduled weekday photo for a valid placement',async()=>{
   const {worker,env}=fixture();
   const response=await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=login'),env);
   assert.equal(response.status,200);
   const photos=await response.json();
-  assert.equal(photos.length,7);
-  assert.equal(photos[0].image_url,'/assets/auth-covers/01.jpg');
-  assert.equal(photos[6].sort_order,7);
+  const today=beijingWeekday();
+  assert.equal(photos.length,1);
+  assert.equal(photos[0].image_url,`/assets/auth-covers/${String(today).padStart(2,'0')}.jpg`);
+  assert.equal(photos[0].weekday,today);
   assert.equal((await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=secret'),env)).status,400);
-  env.DB.prepare('UPDATE site_cover_photos SET active=0 WHERE sort_order=1').run();
-  assert.equal((await (await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=home'),env)).json()).length,6);
+  env.DB.prepare('UPDATE site_cover_photos SET active=0 WHERE sort_order=?').bind(today).run();
+  assert.equal((await (await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=home'),env)).json()).length,0);
 });
 
 test('photo invitations, rights-confirmed upload, SA approval, and placement updates work end to end',async()=>{
@@ -50,20 +57,28 @@ test('photo invitations, rights-confirmed upload, SA approval, and placement upd
   assert.match(stored[0].key,/^tickets\/[a-f0-9-]+\.jpg$/);
   assert.equal(db.prepare('SELECT status FROM site_photo_requests WHERE id=?').get(invitation.id).status,'pending_review');
 
-  const deniedReview=await call(`/api/sa/site-photo-requests/${invitation.id}/decision`,{decision:'approved',show_home:true,sort_order:8},2);
+  const deniedReview=await call(`/api/sa/site-photo-requests/${invitation.id}/decision`,{decision:'approved',show_home:true,weekday:1},2);
   assert.equal(deniedReview.status,403);
-  const approved=await call(`/api/sa/site-photo-requests/${invitation.id}/decision`,{decision:'approved',show_home:true,show_login:false,show_register:true,sort_order:8},1);
+  const collision=await call(`/api/sa/site-photo-requests/${invitation.id}/decision`,{decision:'approved',show_home:true,show_login:false,show_register:true,weekday:1},1);
+  assert.equal(collision.status,409);
+  const mondayPhoto=db.prepare('SELECT id FROM site_cover_photos WHERE sort_order=1').get();
+  const disabled=await call(`/api/sa/site-photos/${mondayPhoto.id}`,{credit:'旧照片',weekday:1,show_home:false,show_login:false,show_register:false,active:false},1);
+  assert.equal(disabled.status,200);
+  const approved=await call(`/api/sa/site-photo-requests/${invitation.id}/decision`,{decision:'approved',show_home:true,show_login:false,show_register:true,weekday:1},1);
   assert.equal(approved.status,200);
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM site_cover_photos WHERE credit=?').get('测试摄影者').count,1);
-  const home=await (await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=home'),env)).json();
-  assert.equal(home.at(-1).credit,'测试摄影者');
-  const login=await (await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=login'),env)).json();
-  assert.equal(login.some(photo=>photo.credit==='测试摄影者'),false);
+  let managed=(await (await call('/api/sa/site-photos',undefined,1)).json()).photos;
+  let submitted=managed.find(photo=>photo.credit==='测试摄影者');
+  assert.equal(submitted.weekday,1);
+  assert.equal(submitted.show_home,true);
+  assert.equal(submitted.show_login,false);
 
-  const saved=await call(`/api/sa/site-photos/${home.at(-1).id}`,{credit:'更新署名',show_home:true,show_login:true,show_register:false,sort_order:1,active:true},1);
+  const saved=await call(`/api/sa/site-photos/${submitted.id}`,{credit:'更新署名',show_home:true,show_login:true,show_register:false,weekday:1,active:true},1);
   assert.equal(saved.status,200);
-  const loginAfter=await (await worker.fetch(new Request('https://test.invalid/api/site-photos?placement=login'),env)).json();
-  assert.equal(loginAfter.some(photo=>photo.credit==='更新署名'),true);
+  managed=(await (await call('/api/sa/site-photos',undefined,1)).json()).photos;
+  submitted=managed.find(photo=>photo.credit==='更新署名');
+  assert.equal(submitted.weekday,1);
+  assert.equal(submitted.show_login,true);
   assert.equal(db.prepare('SELECT status FROM site_photo_requests WHERE id=?').get(invitation.id).status,'approved');
 });
 
