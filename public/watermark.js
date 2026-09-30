@@ -285,7 +285,17 @@ if (imageInput && canvas) {
     updateCropControls();
     window.bpmImageEditorReady=()=>!cropMode&&!masking&&!cropRect;
     window.bpmGetEditorSource=()=>img.src||"";
-    window.bpmLoadEditorSource=source=>{const next=new Image();next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();};next.src=source;};
+    window.bpmLoadEditorSource=source=>{const next=new Image(),objectUrl=source instanceof Blob?URL.createObjectURL(source):"";next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();if(objectUrl)URL.revokeObjectURL(objectUrl);};next.onerror=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);};next.src=objectUrl||source;};
+    window.bpmExportEditorBlob=async(options={})=>{
+        if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");
+        drawImageAndMasks();
+        const maxEdge=Number(options.maxEdge)||0,edge=Math.max(canvas.width,canvas.height);
+        let output=canvas;
+        if(maxEdge>0&&edge>maxEdge){output=document.createElement("canvas");const ratio=maxEdge/edge;output.width=Math.max(1,Math.round(canvas.width*ratio));output.height=Math.max(1,Math.round(canvas.height*ratio));output.getContext("2d",{alpha:false}).drawImage(canvas,0,0,output.width,output.height);}
+        const blob=await new Promise((resolve,reject)=>output.toBlob(value=>value?resolve(value):reject(Error("图片导出失败")),options.type||"image/jpeg",Number.isFinite(options.quality)?options.quality:.9));
+        draw();
+        return blob;
+    };
     window.bpmExportEditorImage=(options={})=>{
         if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");
         drawImageAndMasks();
@@ -304,8 +314,13 @@ if (imageInput && canvas) {
         draw();
         return result;
     };
-    if(location.pathname.endsWith("/image-editor.html")){const source=sessionStorage.getItem("bpmImageEditorSource");if(source){sessionStorage.removeItem("bpmImageEditorSource");window.bpmLoadEditorSource(source);}}
-    window.addEventListener("pageshow",()=>{restoreWatermarkSettings();const result=sessionStorage.getItem("bpmImageEditorResult");if(!result)return;sessionStorage.removeItem("bpmImageEditorResult");window.bpmLoadEditorSource(result);});
+    async function takeEditorImage(key,legacyKey){
+        try{const blob=await window.bpmImageHandoff?.take(key);if(blob instanceof Blob)return blob;}catch{}
+        try{const legacy=sessionStorage.getItem(legacyKey);if(legacy){sessionStorage.removeItem(legacyKey);return legacy;}}catch{}
+        return null;
+    }
+    if(location.pathname.endsWith("/image-editor.html")){takeEditorImage("source","bpmImageEditorSource").then(source=>{if(source)window.bpmLoadEditorSource(source);});}
+    window.addEventListener("pageshow",()=>{restoreWatermarkSettings();takeEditorImage("result","bpmImageEditorResult").then(result=>{if(result)window.bpmLoadEditorSource(result);});});
 
 
 

@@ -17,7 +17,27 @@
     position: document.getElementById("watermarkPosition")?.value || "bottom-right"
   });
   const saveWatermarkSettings = () => {
-    sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify(watermarkSettings()));
+    try { sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify(watermarkSettings())); } catch {}
+  };
+  const persistImage = async (key, legacyKey, options) => {
+    const blob = await window.bpmExportEditorBlob?.(options);
+    if (!blob) throw Error("无法导出图片，请重新选择图片后重试");
+    try {
+      if (!window.bpmImageHandoff) throw Error("IndexedDB unavailable");
+      await window.bpmImageHandoff.set(key, blob);
+      sessionStorage.removeItem(legacyKey);
+      return;
+    } catch {
+      // Older/private browsing modes may disable IndexedDB. Keep a smaller
+      // JPEG fallback for browsers that still support sessionStorage.
+      const fallback = window.bpmExportEditorImage?.({
+        maxEdge: Math.min(Number(options.maxEdge) || 1600, 1600),
+        type: "image/jpeg",
+        quality: 0.78
+      });
+      if (!fallback) throw Error("当前浏览器无法暂存图片，请改用较小的图片后重试");
+      sessionStorage.setItem(legacyKey, fallback);
+    }
   };
 
   openButton?.addEventListener("click", async () => {
@@ -29,14 +49,13 @@
     try {
       const source = window.bpmGetEditorSource?.();
       if (!source) throw Error("请先选择一张图片");
-      // Flatten at a phone-friendly resolution before serializing. Exporting
-      // a full-size PNG first can exceed iOS Safari's memory/storage limits.
-      const image = window.bpmExportEditorImage?.({ maxEdge: 2200, type: "image/jpeg", quality: 0.92 });
-      if (!image) throw Error("读取图片失败");
-      sessionStorage.removeItem("bpmImageEditorSource");
-      sessionStorage.setItem("bpmImageEditorSource", image);
-      sessionStorage.setItem("bpmImageEditorReturn", location.href);
+      // A Blob avoids base64's size overhead and the small sessionStorage
+      // quota that used to keep large phone photos from opening the editor.
+      try { sessionStorage.removeItem("bpmImageEditorSource"); } catch {}
+      await window.bpmImageHandoff?.remove("source").catch(() => {});
+      try { sessionStorage.setItem("bpmImageEditorReturn", location.href); } catch {}
       saveWatermarkSettings();
+      await persistImage("source", "bpmImageEditorSource", { maxEdge: 2400, type: "image/jpeg", quality: 0.92 });
       location.href = "image-editor.html";
     } catch (error) {
       notify(error.name === "QuotaExceededError" ? "图片仍过大，请先缩小图片后再打开编辑器" : error.message);
@@ -51,12 +70,13 @@
       try {
         if (!window.bpmGetEditorSource?.()) throw Error("没有收到投稿图片，请返回投稿页重新打开编辑器");
         if (!window.bpmImageEditorReady?.()) throw Error("请先应用或取消裁剪框");
-        const image = window.bpmExportEditorImage({ maxEdge: 2600, type: "image/jpeg", quality: 0.94 });
-        const returnTo = sessionStorage.getItem("bpmImageEditorReturn") || "submit.html";
+        let returnTo = "submit.html";
+        try { returnTo = sessionStorage.getItem("bpmImageEditorReturn") || returnTo; } catch {}
         saveWatermarkSettings();
-        sessionStorage.removeItem("bpmImageEditorReturn");
-        sessionStorage.removeItem("bpmImageEditorResult");
-        sessionStorage.setItem("bpmImageEditorResult", image);
+        try { sessionStorage.removeItem("bpmImageEditorResult"); } catch {}
+        await window.bpmImageHandoff?.remove("result").catch(() => {});
+        await persistImage("result", "bpmImageEditorResult", { maxEdge: 2600, type: "image/jpeg", quality: 0.94 });
+        try { sessionStorage.removeItem("bpmImageEditorReturn"); } catch {}
         location.replace(returnTo);
       } catch (error) {
         notify(error.message);
