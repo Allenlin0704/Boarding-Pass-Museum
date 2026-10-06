@@ -1,4 +1,5 @@
 const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/api/oauth/apple/start','/api/oauth/microsoft/start','/api/oauth/github/start','/api/oauth/apple/callback','/wechat']);
+export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
@@ -18,7 +19,7 @@ const turnstileAction=(path)=>{
   return 'profile_edit';
 };
 export async function verifyTurnstile(request,env,url) {
-  if(url.pathname==='/wechat'||url.pathname==='/api/oauth/apple/callback')return null;
+  if(url.pathname==='/wechat'||url.pathname==='/api/oauth/apple/callback'||url.pathname==='/api/staff-chat')return null;
   if(['GET','HEAD','OPTIONS'].includes(request.method)||url.pathname==='/api/logout')return null;
   // This binding only exists in the isolated in-memory test fixture.
   if(env.TURNSTILE_TEST_BYPASS===true)return null;
@@ -80,7 +81,7 @@ export async function authenticate(request,env,url) {
   if(url.pathname.startsWith('/api/sa/')&&!isSA(user)) return {response:reply({error:'No permission'},403)};
   if(url.pathname.startsWith('/api/admin/')&&!isAdmin(user)) return {response:reply({error:'No permission'},403)};
   if((user?.permanent_ban || (user?.banned_until && new Date(user.banned_until+'Z').getTime()>Date.now())) && (write||protectedRead) && !['/api/logout','/api/community/moderation-appeal',...PUBLIC_WRITES].includes(url.pathname)) return {response:reply({error:'账号已被封禁'},403)};
-  const imageUploadPath=url.pathname==='/api/upload-image'||/^\/api\/admin\/site-photo-requests\/\d+\/submit$/.test(url.pathname);
+  const imageUploadPath=url.pathname==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(url.pathname);
   if(write && user && !PUBLIC_WRITES.has(url.pathname) && await limited(env,`write:${user.id}:${url.pathname}`,imageUploadPath?10:60,60))return {response:reply({error:'操作过于频繁，请稍后再试'},429)};
   if(user?.must_reset_password && (write||protectedRead) && !PUBLIC_WRITES.has(url.pathname) && url.pathname!=='/api/logout') return {response:reply({error:'请先通过邮箱重设密码'},403)};
   if(protectedRead) {
@@ -239,7 +240,7 @@ export function responseHeaders(request,response) {
 export async function boundedRequest(request) {
   if(['GET','HEAD','OPTIONS'].includes(request.method)||!request.body) return request;
   const path=new URL(request.url).pathname;
-  const max=path==='/api/upload-image'||/^\/api\/admin\/site-photo-requests\/\d+\/submit$/.test(path)?11*1024*1024:64*1024;
+  const max=path==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path)?6*1024*1024:64*1024;
   const reader=request.body.getReader(),chunks=[];let length=0;
   while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>max){await reader.cancel();throw new RangeError('请求过大');}chunks.push(value);}
   const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
@@ -247,7 +248,7 @@ export async function boundedRequest(request) {
 }
 export async function uploadImage(request,env) {
   const form=await request.formData(),file=form.get('image');
-  if(!file || typeof file.arrayBuffer!=='function'||file.size>10*1024*1024) return reply({error:'请选择10 MB以内的图片'},400);
+  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>IMAGE_UPLOAD_MAX_BYTES) return reply({error:'请选择5 MB以内的图片'},400);
   const bytes=new Uint8Array(await file.arrayBuffer());
   const png=bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71;
   const jpeg=bytes[0]===255&&bytes[1]===216&&bytes[2]===255;

@@ -100,12 +100,12 @@ function renderPost(post) {
             data-post-id="${Number(post.id)}"
         >
 
-            <h2>
+            <h2 data-user-content>
                 ${escapeHTML(post.title)}
             </h2>
 
             <div class="community-post-meta">
-                ${escapeHTML(post.username || "用户")}
+                <span data-user-content>${escapeHTML(post.username || "用户")}</span>
                 ·
                 ${escapeHTML(post.created_at || "")}
             </div>
@@ -272,7 +272,7 @@ async function loadComments(postId) {
                 <div class="community-comment">
                     <button type="button" data-report-type="comment" data-report-id="${Number(comment.id)}">举报</button>
 
-                    <strong>
+                    <strong data-user-content>
                         ${escapeHTML(
                             comment.username || "用户"
                         )}
@@ -284,7 +284,7 @@ async function loadComments(postId) {
                         )}
                     </span>
 
-                    <p>
+                    <p data-user-content>
                         ${escapeHTML(
                             comment.content
                         )}

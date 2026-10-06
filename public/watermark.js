@@ -289,6 +289,7 @@ if (imageInput && canvas) {
     window.bpmExportEditorBlob=async(options={})=>{
         if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");
         drawImageAndMasks();
+        if(window.bpmCompressCanvas&&Number(options.maxBytes)>0){try{return await window.bpmCompressCanvas(canvas,options);}finally{draw();}}
         const maxEdge=Number(options.maxEdge)||0,edge=Math.max(canvas.width,canvas.height);
         let output=canvas;
         if(maxEdge>0&&edge>maxEdge){output=document.createElement("canvas");const ratio=maxEdge/edge;output.width=Math.max(1,Math.round(canvas.width*ratio));output.height=Math.max(1,Math.round(canvas.height*ratio));output.getContext("2d",{alpha:false}).drawImage(canvas,0,0,output.width,output.height);}

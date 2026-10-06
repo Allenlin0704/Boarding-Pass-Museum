@@ -6,9 +6,9 @@
   <title>管理中心 · BoardingPassMuseum</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
-  <link rel="stylesheet" href="features.css?v=20260930-mobile-polish">
-  <script src="theme.js?v=20260930-reviewer-percent"></script>
-  <script src="security.js?v=4"></script>
+  <link rel="stylesheet" href="features.css?v=20261006-multilingual">
+  <script src="theme.js?v=20261006-multilingual"></script>
+  <script src="security.js?v=5"></script>
 </head>
 <body class="bpm-console-body">
   <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum</div><nav><a href="index.html">返回展厅</a></nav></header>
@@ -16,8 +16,10 @@
     <aside class="bpm-console-sidebar" aria-label="管理功能">
       <p class="bpm-console-kicker">管理中心</p>
       <h1 id="consoleWelcome">正在验证权限…</h1>
-      <button class="bpm-console-nav active" data-page="admin.html?embed=1">审核工作台</button>
+      <button class="bpm-console-nav active" data-page="admin.html?embed=1#pending">待我审核</button>
       <button class="bpm-console-nav" data-page="admin.html?embed=1#approved">审核记录</button>
+      <button class="bpm-console-nav" data-page="admin.html?embed=1#admin-rules-panel">审核规则</button>
+      <button class="bpm-console-chat" id="consoleChatButton" type="button">管理员工作聊天</button>
       <a class="bpm-console-exit" href="index.html">退出管理中心</a>
     </aside>
     <section class="bpm-console-content">

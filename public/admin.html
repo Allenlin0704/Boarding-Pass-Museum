@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=4"></script>
+<script src="security.js?v=5"></script>
 <script>if(!new URLSearchParams(location.search).has('embed'))location.replace('console.html');else document.documentElement.classList.add('bpm-console-embed');</script>
 
 <meta charset="UTF-8">
@@ -15,10 +15,10 @@ Admin Console - BoardingPassMuseum
 
 
 <link rel="stylesheet" href="style.css?v=20260930-admin-mobile-fix">
-  <script src="theme.js?v=20260930-reviewer-percent"></script>
+  <script src="theme.js?v=20261006-multilingual"></script>
 
 
-<link rel="stylesheet" href="features.css?v=20260930-admin-mobile-fix">
+<link rel="stylesheet" href="features.css?v=20261006-multilingual">
 </head>
 
 
@@ -197,7 +197,7 @@ Admin Console
      Review Rules
 ===================== -->
 
-<section class="admin-review-layout">
+<section class="admin-review-layout" id="pending">
 
 <div class="admin-review-main">
 
@@ -212,7 +212,7 @@ class="admin-grid">
 </div>
 
 
-<aside class="admin-rules-panel">
+<aside class="admin-rules-panel" id="admin-rules-panel">
 
 <div class="admin-rules-header">
 
@@ -324,7 +324,7 @@ class="rules-full-link"
 ===================== -->
 
 
-<section class="admin-section">
+<section class="admin-section" id="approved">
 
 
 <h2>
@@ -678,13 +678,15 @@ min-height:58px;
 </style>
 
 
-<script src="app.js?v=20260927-galleryfix1"></script>
+<script src="app.js?v=20261006-multilingual"></script>
 <script src="auth.js?v=20260930-nav-fix"></script>
 <script src="image-preview.js"></script>
 <script src="image-preview.js"></script>
 <script src="review-rules.js"></script>
 <script src="notice.js?v=20260930-popup-fix"></script>
 <script src="admin.js?v=4"></script>
+<script src="image-compression.js?v=20261006-upload-cap"></script>
+<script src="staff-chat.js?v=20261006-staff-tools"></script>
 
 
 

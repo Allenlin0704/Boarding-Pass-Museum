@@ -35,6 +35,10 @@ await fetch(
 
 const data =
 bpmSafeRecord(await res.json());
+const storySource=document.createElement("textarea");
+storySource.innerHTML=data.story||"";
+const storyForTranslate=storySource.value;
+const storyTranslateControls=storyForTranslate.trim()?`<div class="story-translate-links"><span>${window.BPM_LANGUAGE==="en"?"Google Translate (story text is sent to Google)":window.BPM_LANGUAGE==="zh-TW"?"Google 翻譯（故事文字將傳送至 Google）":"Google 翻译（故事文本将发送至 Google）"}</span><a href="${(window.bpmGoogleTranslateUrl?.(storyForTranslate,"en")||"https://translate.google.com/").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer">${window.BPM_LANGUAGE==="zh-TW"?"英文":"English"}</a><a href="${(window.bpmGoogleTranslateUrl?.(storyForTranslate,"zh-TW")||"https://translate.google.com/").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer">${window.BPM_LANGUAGE==="en"?"Traditional Chinese":window.BPM_LANGUAGE==="zh-TW"?"繁體中文":"繁体中文"}</a></div>`:"";
 
 
 console.log("DETAIL DATA:",data);
@@ -65,20 +69,20 @@ class="detail-image"
 >
 
 
-<p><strong>航司：</strong>${data.airline || ""}</p>
+<p><strong>航司：</strong><span data-user-content>${data.airline || ""}</span></p>
 
-<p><strong>航班：</strong>${data.flight || ""}</p>
+<p><strong>航班：</strong><span data-user-content>${data.flight || ""}</span></p>
 
-<p><strong>机场：</strong>${data.airport || ""}</p>
+<p><strong>机场：</strong><span data-user-content>${data.airport || ""}</span></p>
 
-<p><strong>登机牌签发机场：</strong>${data.issue_airport || "无"}</p>
+<p><strong>登机牌签发机场：</strong><span data-user-content>${data.issue_airport || "无"}</span></p>
 
 <p><strong>日期：</strong>${data.date || ""}</p>
 
 <p>
 <strong>投稿人：</strong>
 <a href="profile.html?id=${data.user_id}">
-${data.username || ""}
+<span data-user-content>${data.username || ""}</span>
 </a>
 </p>
 
@@ -88,7 +92,7 @@ ${data.username || ""}
 ${
 data.reject_reason
 ?
-`<p><strong>拒绝理由：</strong>${data.reject_reason}</p>`
+`<p><strong>拒绝理由：</strong><span data-user-content>${data.reject_reason}</span></p>`
 :
 ""
 }
@@ -97,7 +101,7 @@ data.reject_reason
 ${
 data.appeal_reason
 ?
-`<p><strong>申诉理由：</strong>${data.appeal_reason}</p>`
+`<p><strong>申诉理由：</strong><span data-user-content>${data.appeal_reason}</span></p>`
 :
 ""
 }
@@ -114,9 +118,10 @@ data.appeal_status
 
 <h2>展品故事</h2>
 
-<p>
+<p class="detail-story-text" data-user-content>
 ${data.story || ""}
 </p>
+${storyTranslateControls}
 
 ${(()=>{const current=JSON.parse(localStorage.getItem("currentUser")||"null");return data.status==="approved"&&current&&Number(current.id)===Number(data.user_id)?`<section class="bpm-panel"><h2>展品信息有误？</h2><p>提交后会送交站主核对，不会直接改动公开展品。</p><form id="flightCorrectionForm"><label for="flightCorrectionMessage">纠错说明</label><textarea id="flightCorrectionMessage" rows="4" maxlength="2000" required></textarea><button type="submit">提交纠错给站主</button><p id="flightCorrectionStatus" role="status"></p></form></section>`:"";})()}
 

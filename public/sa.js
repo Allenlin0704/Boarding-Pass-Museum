@@ -14,7 +14,7 @@ if(!user || user.role !== "superadministrator"){
 const welcome = document.getElementById("welcome");
 
 if(welcome){
-    welcome.textContent=`欢迎 ${user.username}`;
+    welcome.innerHTML=`${window.bpmLocaleText("欢迎")} <span data-user-content>${String(user.username||"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}</span>`;
 }
 
 
@@ -162,6 +162,30 @@ document.getElementById("sendSitePhotoInvites")?.addEventListener("click",async 
   const button=event.currentTarget,status=document.getElementById("sitePhotoInviteStatus"),select=document.getElementById("sitePhotoInviteAdmins"),ids=[...select.selectedOptions].map(option=>Number(option.value));
   if(!ids.length){status.textContent="请先选择要邀请的管理员。";return;}button.disabled=true;status.textContent="正在发送邀请…";
   try{const response=await fetch(`${API}/api/sa/site-photo-invitations`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,admin_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"发送失败");status.textContent=`已邀请 ${result.invited} 位管理员。${result.skipped?.length?` ${result.skipped.length} 位已有待处理邀请。`:""}`;await loadSitePhotoManager();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+});
+
+document.getElementById("sitePhotoDirectUploadForm")?.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,button=document.getElementById("sitePhotoDirectUploadButton"),status=document.getElementById("sitePhotoDirectUploadStatus"),file=form.elements.image.files[0];
+  if(!file)return;
+  if(![form.elements.show_home,form.elements.show_login,form.elements.show_register].some(input=>input.checked)){status.textContent="至少选择一个展示位置。";return;}
+  button.disabled=true;status.textContent="正在压缩并上传照片…";
+  try{
+    const compressed=await window.bpmCompressImageFile(file,{maxBytes:4*1024*1024,maxEdge:2600,quality:.9}),data=new FormData(form);
+    data.set("image",compressed,"homepage-photo.jpg");data.set("sa_id",String(user.id));
+    const response=await fetch(`${API}/api/sa/site-photos/upload`,{method:"POST",credentials:"include",body:data}),result=await response.json();
+    if(!response.ok)throw Error(result.error||"照片上传失败");
+    form.reset();status.textContent=`已压缩至 ${(compressed.size/1024/1024).toFixed(2)} MB，并加入排期。`;
+    await loadSitePhotoManager();
+  }catch(error){status.textContent=error.message||"照片上传失败";}
+  finally{button.disabled=false;}
+});
+
+document.getElementById("users")?.addEventListener("click",async event=>{
+  const button=event.target.closest("[data-save-staff-social]");if(!button)return;
+  const card=button.closest("[data-staff-user]"),url=card.querySelector("[data-staff-social-url]").value.trim();button.disabled=true;
+  try{const response=await fetch(`${API}/api/sa/admin-social`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:Number(button.dataset.saveStaffSocial),url})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("公开社交主页已保存");await loadUsers();}
+  catch(error){showToast(error.message||"保存失败");button.disabled=false;}
 });
 
 document.getElementById("heroPhotosPanel")?.addEventListener("click",async event=>{
@@ -726,31 +750,12 @@ async function loadUsers(){
 
 
             box.innerHTML+=`
-
-            <div class="card">
-
-            <h3>${x.username}</h3>
-
-            <p>${x.email}</p>
-
-            <p>角色:${x.role}</p>
-
-            ${
-                x.role==="administrator"
-                ?
-                `<button
-                    class="demote-admin-btn"
-                    onclick="openDemoteModal(${x.id}, '${String(x.username).replace(/'/g,"\\'")}')"
-                >
-                    移除管理员
-                </button>`
-                :
-                ""
-            }
-
-            </div>
-
-            `;
+            <article class="card sa-staff-card" data-staff-user="${Number(x.id)}">
+              <div><h3>${x.username}</h3><p>账号 ID ${Number(x.id)} · ${x.role==="superadministrator"?"站主 SA":"普通管理员"}</p></div>
+              <label>公开社交主页（HTTPS 链接）<input type="url" maxlength="500" data-staff-social-url value="${x.social_media||""}" placeholder="https://…"></label>
+              <div class="site-photo-card-actions"><button type="button" data-save-staff-social="${Number(x.id)}">保存社交链接</button>
+              ${x.role==="administrator"?`<button type="button" class="demote-admin-btn" onclick="openDemoteModal(${Number(x.id)}, '${String(x.username).replace(/'/g,"\\'")}')">移除管理员</button>`:""}</div>
+            </article>`;
 
 
         });
@@ -763,6 +768,23 @@ async function loadUsers(){
     }
 
 }
+
+function activateSAConsolePanel(panelId){
+  const panels=[...document.querySelectorAll(".bpm-sa-page .sa-panel, .bpm-sa-page > #appeals")];
+  const selected=panels.some(panel=>panel.id===panelId)?panelId:"saSecurityPanel";
+  panels.forEach(panel=>{panel.hidden=panel.id!==selected;});
+  document.querySelectorAll(".bpm-sa-section-nav a[href^='#']").forEach(link=>{
+    const active=link.hash.slice(1)===selected;
+    if(active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
+  });
+}
+document.querySelector(".bpm-sa-section-nav")?.addEventListener("click",event=>{
+  const link=event.target.closest("a[href^='#']");if(!link)return;
+  const panelId=link.hash.slice(1);if(!document.getElementById(panelId))return;
+  event.preventDefault();history.replaceState(null,"",`#${panelId}`);activateSAConsolePanel(panelId);
+});
+window.addEventListener("hashchange",()=>activateSAConsolePanel(location.hash.slice(1)));
+activateSAConsolePanel(location.hash.slice(1)||"saSecurityPanel");
 
 // ==========================
 // 账户注销申请（SA 审核）

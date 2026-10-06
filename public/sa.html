@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="security.js?v=4"></script>
+<script src="security.js?v=5"></script>
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
-  <script src="theme.js?v=20261001-photo-weekdays"></script>
-<link rel="stylesheet" href="features.css?v=20261001-photo-weekdays">
+  <script src="theme.js?v=20261006-multilingual"></script>
+<link rel="stylesheet" href="features.css?v=20261006-multilingual">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
 
 <body>
@@ -45,7 +45,16 @@
 
 <section class="sa-panel" id="heroPhotosPanel">
 <h2><span data-bpm-icon="image"></span> 每日主页照片</h2>
-<p>照片按东八区（北京时间）星期一至星期日固定排期，每周循环。同一星期、同一展示位置只允许一张启用照片；替换时请先停用旧照片。你可以预览首页、登录页与注册页效果，调整署名和展示位置。访客不能上传；只邀请普通管理员提交，并由 SA 审核后加入轮播。</p>
+<p>照片按东八区（北京时间）星期一至星期日固定排期，每周循环。同一星期、同一展示位置只允许一张启用照片；替换时请先停用旧照片。SA 可以直接上传并安排照片，也可以邀请普通管理员投稿后审核。</p>
+<form id="sitePhotoDirectUploadForm" class="site-photo-invite-form">
+  <h3>SA 直接添加照片</h3>
+  <label for="sitePhotoDirectImage">照片（单张不超过 5 MB）</label><input id="sitePhotoDirectImage" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+  <label for="sitePhotoDirectCredit">署名</label><input id="sitePhotoDirectCredit" type="text" name="credit" maxlength="100" placeholder="例如 allenlin" required>
+  <label for="sitePhotoDirectWeekday">展示星期</label><select id="sitePhotoDirectWeekday" name="weekday"><option value="1">星期一</option><option value="2">星期二</option><option value="3">星期三</option><option value="4">星期四</option><option value="5">星期五</option><option value="6">星期六</option><option value="7">星期日</option></select>
+  <fieldset class="site-photo-direct-placements"><legend>展示位置</legend><label><input type="checkbox" name="show_home" value="1" checked> 首页</label><label><input type="checkbox" name="show_login" value="1"> 登录页</label><label><input type="checkbox" name="show_register" value="1"> 注册页</label></fieldset>
+  <label class="site-photo-license"><input type="checkbox" name="license_confirmed" value="1" required> 我确认拥有照片版权或已获授权，并同意本站按所选位置展示、裁切适配并公开显示署名。</label>
+  <button type="submit" id="sitePhotoDirectUploadButton">压缩并添加到排期</button><p id="sitePhotoDirectUploadStatus" role="status"></p>
+</form>
 <div class="site-photo-invite-form">
   <label for="sitePhotoInviteAdmins">邀请管理员参与照片征集</label>
   <select id="sitePhotoInviteAdmins" multiple size="4" aria-describedby="sitePhotoInviteHelp"></select>
@@ -190,9 +199,11 @@ onclick="markSelectedRed('noticeContent')"
 
 </main>
 <script src="auth.js?v=20260930-nav-fix"></script>
-<script src="sa-security.js?v=1"></script>
+<script src="sa-security.js?v=5"></script>
 <script src="review-rules.js"></script>
-<script src="sa.js?v=20261001-photo-weekdays"></script>
+<script src="image-compression.js?v=20261006-upload-cap"></script>
+<script src="staff-chat.js?v=20261006-staff-tools"></script>
+<script src="sa.js?v=20261006-multilingual"></script>
 
 
 

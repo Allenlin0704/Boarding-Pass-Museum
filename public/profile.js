@@ -507,7 +507,7 @@ function renderProfilePost(post){
 
         <div class="profile-post-header">
 
-            <h3>
+            <h3 data-user-content>
             ${escapeHTML(post.title)}
             </h3>
 

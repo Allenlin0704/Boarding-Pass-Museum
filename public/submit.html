@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=4"></script>
+<script src="security.js?v=5"></script>
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 
@@ -13,10 +13,10 @@
 </title>
 
 <link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
-<link rel="stylesheet" href="features.css?v=20260930-mobile-polish">
+<link rel="stylesheet" href="features.css?v=20261006-multilingual">
 <link rel="stylesheet" href="submit-page.css?v=20260930-mobile-polish">
 <link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
-  <script src="theme.js?v=20260930-reviewer-percent"></script>
+  <script src="theme.js?v=20261006-multilingual"></script>
 
 
 
@@ -124,6 +124,7 @@ Admin
   <div class="image-editor-preview-column">
     <label class="submit-upload-label" for="ticketImage">选择票据图片</label>
     <input id="ticketImage" type="file" accept="image/*">
+    <p>单张图片上传上限 5 MB；最终图片会先压缩，目标为 4 MB 内。</p>
     <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开图片编辑器</button><canvas id="watermarkCanvas"></canvas></div>
   </div>
   <div class="image-editor-controls-column">
@@ -150,6 +151,7 @@ Admin
 <section class="submit-final-card">
 <div class="submit-card-heading"><span class="submit-section-index">03</span><div><h2>检查并提交</h2><p>确认票据信息准确，图片已处理，再提交审核。</p></div></div>
 <p class="submission-rules-notice">投稿即代表您接受本站的 <a href="rules.html" target="_blank" rel="noopener"><strong>《投稿及审核条例》</strong></a></p>
+<label class="social-share-consent"><input id="socialShareConsent" type="checkbox"> <span>允许 BoardingPassMuseum 在官方社交媒体分享这件展品。分享前会遮挡个人信息并标注投稿者；你可以不勾选，不影响投稿审核。</span></label>
 <button id="submitBtn" type="button">提交审核</button>
 <div class="submit-draft-actions"><button id="saveDraftBtn" type="button">保存草稿</button><button id="clearDraftBtn" type="button">清除草稿</button><p id="draftStatus" role="status" aria-live="polite"></p></div>
 </section>
@@ -173,15 +175,16 @@ BoardingPassMuseum © 2026
 <script src="auth.js?v=20260930-nav-fix"></script>
 
 <script src="image-handoff.js?v=20261001-mobile-editor"></script>
+<script src="image-compression.js?v=20261006-upload-cap"></script>
 <script src="watermark.js?v=20261001-mobile-editor"></script>
-<script src="image-editor.js?v=20261001-mobile-editor"></script>
+<script src="image-editor.js?v=20261006-upload-cap"></script>
 
 <script src="display.js"></script>
 
 <script src="config.js"></script>
 
 <script src="notice.js?v=20260930-popup-fix"></script>
-<script src="submit.js?v=20260930-mobile-polish"></script>
+<script src="submit.js?v=20261006-multilingual"></script>
 
 <footer class="bpm-footer">
 

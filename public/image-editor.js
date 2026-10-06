@@ -17,7 +17,7 @@
     position: document.getElementById("watermarkPosition")?.value || "bottom-right"
   });
   const saveWatermarkSettings = () => {
-    try { sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify(watermarkSettings())); } catch {}
+    try { sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify({...watermarkSettings(), maxImageMB: document.getElementById("imageCompressionLimit")?.value || "4"})); } catch {}
   };
   const persistImage = async (key, legacyKey, options) => {
     const blob = await window.bpmExportEditorBlob?.(options);
@@ -64,6 +64,15 @@
   });
 
   if (path.endsWith("/image-editor.html")) {
+    const limitInput=document.getElementById("imageCompressionLimit"),compressionStatus=document.getElementById("imageCompressionStatus");
+    try{const saved=JSON.parse(sessionStorage.getItem("bpmImageEditorWatermarkSettings")||"{}");if(["2","3","4"].includes(saved.maxImageMB))limitInput.value=saved.maxImageMB;}catch{}
+    limitInput?.addEventListener("change",saveWatermarkSettings);
+    document.getElementById("previewImageCompression")?.addEventListener("click",async event=>{
+      const button=event.currentTarget;button.disabled=true;
+      try{const maxBytes=Number(limitInput?.value||4)*1024*1024,blob=await window.bpmExportEditorBlob?.({maxEdge:2600,type:"image/jpeg",quality:.9,maxBytes});if(!blob)throw Error("请先选择图片");compressionStatus.textContent=`压缩预览：${(blob.size/1024/1024).toFixed(2)} MB，符合 ${limitInput.value} MB 上限。`;}
+      catch(error){compressionStatus.textContent=error.message;}
+      finally{button.disabled=false;}
+    });
     document.getElementById("applyImageEditorResult")?.addEventListener("click", async event => {
       const button = event.currentTarget;
       button.disabled = true;
@@ -75,7 +84,7 @@
         saveWatermarkSettings();
         try { sessionStorage.removeItem("bpmImageEditorResult"); } catch {}
         await window.bpmImageHandoff?.remove("result").catch(() => {});
-        await persistImage("result", "bpmImageEditorResult", { maxEdge: 2600, type: "image/jpeg", quality: 0.94 });
+        await persistImage("result", "bpmImageEditorResult", { maxEdge: 2600, type: "image/jpeg", quality: 0.9, maxBytes: Number(limitInput?.value||4)*1024*1024 });
         try { sessionStorage.removeItem("bpmImageEditorReturn"); } catch {}
         location.replace(returnTo);
       } catch (error) {

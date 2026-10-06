@@ -1,6 +1,6 @@
-const CACHE = 'bpmuseum-shell-v18';
+const CACHE = 'bpmuseum-shell-v20';
 const SHELL = [
-  '/', '/index.html', '/style.css', '/auth-hero.js', '/assets/auth-covers/01.jpg', '/assets/auth-covers/02.jpg', '/assets/auth-covers/03.jpg', '/assets/auth-covers/04.jpg', '/assets/auth-covers/05.jpg', '/assets/auth-covers/06.jpg', '/assets/auth-covers/07.jpg', '/features.css', '/submit-page.css', '/watermark-fonts.css', '/theme.js', '/community-rules-i18n.js', '/pwa.js', '/watermark.js', '/image-editor.js',
+  '/', '/index.html', '/style.css', '/auth-hero.js', '/assets/auth-covers/01.jpg', '/assets/auth-covers/02.jpg', '/assets/auth-covers/03.jpg', '/assets/auth-covers/04.jpg', '/assets/auth-covers/05.jpg', '/assets/auth-covers/06.jpg', '/assets/auth-covers/07.jpg', '/features.css', '/submit-page.css', '/watermark-fonts.css', '/theme.js', '/community-rules-i18n.js', '/rules-i18n.js', '/entity-aliases.json', '/pwa.js', '/watermark.js', '/image-editor.js', '/image-compression.js', '/about.js', '/staff-chat.js',
   '/image-handoff.js', '/fonts/inter-boardingpass-600.woff2', '/fonts/ibm-plex-sans-boardingpass-600.woff2', '/fonts/playfair-display-boardingpass-600.woff2',
   '/manifest.webmanifest', '/favicon.png', '/offline.html'
 ];

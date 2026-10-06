@@ -19,9 +19,8 @@ if (!currentUser) {
 }
 
 if (welcome) {
-  welcome.textContent = `
-    你好，${currentUser.username}
-  `;
+  const username=String(currentUser.username||"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  welcome.innerHTML = `${window.bpmLocaleText("你好，")}<span data-user-content>${username}</span>`;
 }
 
 

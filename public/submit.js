@@ -272,7 +272,8 @@ fetch(
         const countries=new Map();
         data.forEach(item=>{
           const code=String(item.country||"").trim();
-          const name=String(item.country_cn||item.country_en||code).trim();
+          let name=String(item.country_cn||item.country_en||code).trim();
+          try{const locale=window.BPM_LANGUAGE==="en"?"en":window.BPM_LANGUAGE==="zh-TW"?"zh-TW":"zh-CN";if(/^[A-Z]{2}$/.test(code))name=new Intl.DisplayNames([locale],{type:"region"}).of(code)||name;}catch{}
           if(code&&name&&!countries.has(code))countries.set(code,name);
         });
         const countryOptions=document.getElementById("countryOptions");
@@ -537,7 +538,7 @@ div.innerHTML = `
 
 <strong>
 
-${item.name_cn || item.name_en || ""}
+${displayName(item)}
 
 </strong>
 
@@ -547,7 +548,7 @@ ${item.name_cn || item.name_en || ""}
 
 <span>
 
-${item.name_en || ""}
+${window.BPM_LANGUAGE==="zh-CN"?item.name_en||"":window.BPM_LANGUAGE==="zh-TW"?"":item.name_cn||""}
 
 </span>
 
@@ -625,7 +626,7 @@ displayName(item);
 
 if(type==="rail_operator"){
   selectedRailOperator=item;
-  railOperatorInput.value=item.name_cn;
+  railOperatorInput.value=displayName(item);
 }
 
 
@@ -671,13 +672,9 @@ return "";
 
 
 
-let name =
-
-item.name_cn
-||
-item.name_en
-||
-"";
+let name=window.BPM_LANGUAGE==="zh-CN"
+  ? item.name_cn||item.name_en||""
+  : item.name_en||item.name_cn||"";
 
 
 
@@ -696,6 +693,12 @@ return name;
 
 
 
+}
+
+function canonicalDisplayName(item){
+  if(!item)return "";
+  const name=item.name_cn||item.name_en||"";
+  return item.iata?`${name} (${item.iata})`:name;
 }
 
 const flightAssistBtn=document.getElementById("flightAssistBtn");
@@ -942,21 +945,10 @@ return;
 
 
 
-const blob =
-
-await new Promise(resolve =>
-
-canvas.toBlob(
-
-resolve,
-
-"image/jpeg",
-
-0.9
-
-)
-
-);
+const blob = await (window.bpmCompressCanvas
+  ? window.bpmCompressCanvas(canvas, { maxBytes: 4 * 1024 * 1024, maxEdge: 2600, quality: 0.9 })
+  : new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.82)));
+if(!blob || blob.size > 5 * 1024 * 1024) throw new Error("图片仍超过 5 MB，请打开图片编辑器压缩后重试");
 
 
 
@@ -1026,7 +1018,7 @@ uploadResult.url;
 
 
 const rail=isRail;
-const originStation=rail?document.getElementById("railDepartureStation").value.trim():displayName(selectedAirport);
+const originStation=rail?document.getElementById("railDepartureStation").value.trim():canonicalDisplayName(selectedAirport);
 const destStation=rail?document.getElementById("railArrivalStation").value.trim():"";
 const operator=rail?selectedRailOperator:selectedAirline;
 let flightData = {
@@ -1040,7 +1032,7 @@ special_tags:rail?[]:[...document.querySelectorAll('input[name="specialTag"]:che
 
 airline:
 
-rail?operator.name_cn:displayName(operator),
+rail?operator.name_cn:canonicalDisplayName(operator),
 
 
 
@@ -1088,7 +1080,7 @@ issue_airport:
 
 selectedIssueAirport
 ?
-displayName(selectedIssueAirport)
+canonicalDisplayName(selectedIssueAirport)
 :
 "",
 
@@ -1125,7 +1117,9 @@ image,
 
 status:
 
-"screening"
+"screening",
+
+social_share_consent:document.getElementById("socialShareConsent")?.checked===true
 
 
 

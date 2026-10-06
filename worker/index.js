@@ -5,6 +5,7 @@ import { userPasskeyRoute } from "./user-passkey.mjs";
 import { oauthRoute } from "./oauth.mjs";
 import { reviewRoute } from "./review.mjs";
 import { sitePhotoRoute } from "./site-photos.mjs";
+import { staffRoute } from "./staff.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
@@ -2073,10 +2074,11 @@ await env.DB.prepare(
 SELECT
 id,
 username,
-email,
 role,
-created_at
+created_at,
+social_media
 FROM users
+WHERE role='administrator' OR (id=1 AND role='superadministrator')
 ORDER BY id ASC
 `
 )
@@ -2418,7 +2420,7 @@ export default {
           return responseHeaders(original,reply({error:"来源不受信任"},403));
         }
         const type=request.headers.get("Content-Type")||"";
-        const sitePhotoUpload=/^\/api\/admin\/site-photo-requests\/\d+\/submit$/.test(url.pathname);
+        const sitePhotoUpload=/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(url.pathname);
         if (!type.includes("application/json") && !((url.pathname==="/api/upload-image"||sitePhotoUpload)&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml')) && !(url.pathname==='/api/oauth/apple/callback'&&type.includes('application/x-www-form-urlencoded'))) {
           return responseHeaders(original,reply({error:"请求格式不支持"},415));
         }
@@ -2464,6 +2466,8 @@ export default {
       if(progress) return responseHeaders(original,progress);
       const sitePhotos = await sitePhotoRoute(request.clone(),env,url,auth.user,uploadImage);
       if(sitePhotos) return responseHeaders(original,sitePhotos);
+      const staff = await staffRoute(request.clone(),env,url,auth.user);
+      if(staff) return responseHeaders(original,staff);
       const community = await communityRoute(request.clone(),env,url,auth.user);
       if(community) return responseHeaders(original,community);
       const reviewed = await reviewRoute(request.clone(),env,url,auth.user);

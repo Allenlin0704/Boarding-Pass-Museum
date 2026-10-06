@@ -1,6 +1,53 @@
 let flights = [];
 let displayFlights = [];
 let favoriteIds = [];
+let entityIndex={airlinesByCode:new Map(),airportsByCode:new Map(),airlinesByAlias:new Map(),airportsByAlias:new Map()};
+const normalizeEntity=value=>String(value||"").normalize("NFKC").trim().toLocaleLowerCase("en").replace(/[\s\p{P}\p{S}]/gu,"");
+const cleanEntityName=value=>String(value||"").trim().replace(/^[\s"'“”‘’《》]+|[\s"'“”‘’《》]+$/gu,"");
+function addEntityRows(kind,rows){
+  const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
+  const byAlias=kind==="airline"?entityIndex.airlinesByAlias:entityIndex.airportsByAlias;
+  for(const [rawCode,nameCn,nameEn,rawIcao] of rows||[]){
+    const code=String(rawCode||"").trim().toUpperCase(),icao=String(rawIcao||"").trim().toUpperCase();
+    if(!code)continue;
+    const entry={code,nameCn:cleanEntityName(nameCn),nameEn:cleanEntityName(nameEn)};
+    byCode.set(code,entry);if(icao)byCode.set(icao,entry);
+    for(const alias of [code,icao,nameCn,nameEn]){const key=normalizeEntity(alias);if(key&&!byAlias.has(key))byAlias.set(key,entry);}
+  }
+}
+const entityIndexReady=fetch("/data/entity-aliases.json",{cache:"force-cache"}).then(response=>response.ok?response.json():null).then(data=>{
+  if(data){addEntityRows("airline",data.airlines);addEntityRows("airport",data.airports);}
+  return data;
+}).catch(()=>null);
+function entityIdentity(kind,record){
+  const isAirline=kind==="airline",raw=String(record?.[kind]||"").trim();
+  const iata=String(record?.[isAirline?"airline_iata":"airport_iata"]||"").trim().toUpperCase();
+  const icao=String(record?.[isAirline?"airline_icao":"airport_icao"]||"").trim().toUpperCase();
+  const byCode=isAirline?entityIndex.airlinesByCode:entityIndex.airportsByCode;
+  const byAlias=isAirline?entityIndex.airlinesByAlias:entityIndex.airportsByAlias;
+  if(iata&&byCode.has(iata))return `${kind}:${iata}`;
+  if(icao&&byCode.has(icao))return `${kind}:${icao}`;
+  const alias=byAlias.get(normalizeEntity(raw));if(alias)return `${kind}:${alias.code}`;
+  const codes=raw.toUpperCase().match(/\b[A-Z0-9]{2,6}\b/g)||[];
+  for(const code of codes)if(byCode.has(code))return `${kind}:${byCode.get(code).code}`;
+  const special={"china railway cr":"rail:CR","中国国家铁路cr":"rail:CR","deutsche bahn":"rail:DB","德国铁路db":"rail:DB","amtrak":"rail:AM","acela":"rail:AC","eurostar":"rail:ES","欧洲之星eurostar":"rail:ES","sncf":"rail:SN","法国国家铁路sncf":"rail:SN","japan railways":"rail:JR","日本铁路jr":"rail:JR","swiss federal railways":"rail:SBB","瑞士联邦铁路sbb":"rail:SBB"};
+  const simplified=normalizeEntity(raw.replace(/\([^)]*\)/g,""));
+  return `raw:${special[simplified]||kind+":"+simplified}`;
+}
+function entityLabel(kind,record){
+  const identity=entityIdentity(kind,record),code=identity.split(":").at(-1);
+  const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
+  const entry=byCode.get(code);
+  if(!entry)return String(record?.[kind]||"").trim();
+  const localized=window.BPM_LANGUAGE==="zh-CN"?entry.nameCn:entry.nameEn;
+  return `${localized||entry.nameCn||entry.nameEn||record?.[kind]||code} (${entry.code})`;
+}
+function entitySearchNames(kind,record){
+  const identity=entityIdentity(kind,record),code=identity.split(":").at(-1);
+  const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
+  const entry=byCode.get(code);
+  return [record?.[kind],entry?.nameCn,entry?.nameEn,entry?.code].filter(Boolean).join(" ");
+}
 
 // =====================
 // 从 API 读取审核通过的展品
@@ -10,9 +57,10 @@ async function loadFlights() {
 
   try {
 
-    const res = await fetch(
-      "https://api.bpmuseum.org.cn/api/flights"
-    );
+    const [res] = await Promise.all([
+      fetch("https://api.bpmuseum.org.cn/api/flights"),
+      entityIndexReady
+    ]);
 
     if (!res.ok) {
       throw new Error(
@@ -109,9 +157,9 @@ function applyMuseumFilter(){
 
     const text =
     `
-    ${f.airline || ""}
+    ${entitySearchNames("airline",f)}
     ${f.flight || ""}
-    ${f.airport || ""}
+    ${entitySearchNames("airport",f)}
     ${f.route || ""}
     `
     .toLowerCase();
@@ -126,11 +174,11 @@ function applyMuseumFilter(){
       || (category === "boarding_pass" && (f.submission_type || "boarding_pass") === "boarding_pass")
       || (category === "rail_ticket" && f.submission_type === "rail_ticket");
     return text.includes(keyword)
-      && (!airline || String(f.airline || "").trim() === airline)
+      && (!airline || entityIdentity("airline",f) === airline)
       && categoryMatches
       && (!baggageTag || tags.includes(baggageTag))
       && (!format || (f.submission_type !== "rail_ticket" && (f.ticket_format || "paper") === format))
-      && (!airport || String(f.airport || "").trim() === airport)
+      && (!airport || entityIdentity("airport",f) === airport)
       && (!year || String(f.date || "").startsWith(year));
 
   });
@@ -219,10 +267,13 @@ function populateMuseumFilters(){
     if(!select) return;
     const current = select.value;
     if(!field) return;
-    const values = [...new Set(flights.map(f => field === "year" ? String(f.date || "").slice(0,4) : String(f[field] || "").trim()).filter(Boolean))]
-      .sort((a,b) => field === "year" ? b.localeCompare(a) : a.localeCompare(b, "zh-CN"));
-    select.replaceChildren(new Option(fallback, ""), ...values.map(value => new Option(value, value)));
-    select.value = values.includes(current) ? current : "";
+    const values = field === "year"
+      ? [...new Set(flights.map(f=>String(f.date||"").slice(0,4)).filter(Boolean))].map(value=>[value,value])
+      : [...new Map(flights.map(f=>[entityIdentity(field,f),entityLabel(field,f)])).entries()];
+    const locale=window.BPM_LANGUAGE==="en"?"en":window.BPM_LANGUAGE==="zh-TW"?"zh-TW":"zh-CN";
+    values.sort((a,b)=>field==="year"?b[0].localeCompare(a[0]):a[1].localeCompare(b[1],locale));
+    select.replaceChildren(new Option(fallback, ""), ...values.map(([value,label])=>new Option(label,value)));
+    select.value = values.some(([value])=>value===current) ? current : "";
   });
 }
 
@@ -303,6 +354,13 @@ function renderMuseum() {
 
   displayFlights.forEach(
     (flight, index) => {
+      const rawStory=String(flight.story||"");
+      const english=window.BPM_LANGUAGE==="en";
+      const airlineLabel=bpmSafeRecord({value:entityLabel("airline",flight)}).value;
+      const airportLabel=bpmSafeRecord({value:entityLabel("airport",flight)}).value;
+      const translateUrl=(target)=>window.bpmGoogleTranslateUrl?.(rawStory,target)||"https://translate.google.com/";
+      const translateLabels=english?["English","Traditional Chinese"]:traditional?["英文","繁體中文"]:["English","繁体中文"];
+      const storyTranslationLinks=rawStory.trim()?`<div class="story-translate-links"><span>${english?"Google Translate (story text is sent to Google)":traditional?"Google 翻譯（故事文字將傳送至 Google）":"Google 翻译（故事文本将发送至 Google）"}</span><a href="${translateUrl("en").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${translateLabels[0]}</a><a href="${translateUrl("zh-TW").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${translateLabels[1]}</a></div>`:"";
       flight=bpmSafeRecord(flight);
       const isRail=flight.submission_type==="rail_ticket";
       let specialTags=flight.special_tags||[];
@@ -310,7 +368,6 @@ function renderMuseum() {
         try{specialTags=JSON.parse(specialTags);}catch{specialTags=[];}
       }
       if(!Array.isArray(specialTags))specialTags=[];
-      const english=window.BPM_LANGUAGE==="en";
       const labels=english
         ? {rail:"Rail ticket",boarding:"Boarding pass",transfer:"Transfer",twoCabin:"Business/first class",other:"Other marker",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station"}
         : traditional
@@ -344,8 +401,8 @@ function renderMuseum() {
 
         ${badge(isRail?"train":"plane",isRail?labels.rail:labels.boarding)}
 
-        <span class="tag">
-          ${flight.airline || labels.operator}
+          <span class="tag" data-user-content>
+          ${airlineLabel || labels.operator}
         </span>
 
         ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${specialBadges}`:``}
@@ -355,7 +412,7 @@ function renderMuseum() {
         </h3>
 
         <p>
-          ${inlineIcon("pin")} ${isRail?labels.departureStation:labels.departureAirport}：${flight.airport || ""}
+          ${inlineIcon("pin")} <span>${isRail?labels.departureStation:labels.departureAirport}：</span><span data-user-content>${airportLabel || ""}</span>
         </p>
 
         ${isRail&&flight.route?`<p>${inlineIcon("pin")} ${labels.arrivalStation}：${flight.route}</p>`:""}
@@ -378,15 +435,16 @@ src="${flight.avatar || 'logo.png'}"
 class="creator-avatar"
 >
 
-<span>
+<span data-user-content>
 ${flight.username || "匿名用户"}
 </span>
 
 </div>
 
-        <p class="story">
+        <p class="story" data-user-content>
           ${flight.story || ""}
         </p>
+        ${storyTranslationLinks}
 
 
         <button

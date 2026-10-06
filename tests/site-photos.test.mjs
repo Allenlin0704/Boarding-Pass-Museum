@@ -103,3 +103,15 @@ test('photo submission requires explicit rights consent and an accepted invitati
   assert.equal(notAccepted.status,409);
   assert.equal(db.prepare('SELECT status FROM site_photo_requests WHERE id=1').get().status,'invited');
 });
+
+test('SA can directly upload a compressed homepage photo; regular admins cannot',async()=>{
+  const {worker,env,db}=fixture();
+  const stored=[];env.IMAGES={async put(key,bytes){stored.push({key,bytes});}};
+  db.prepare('UPDATE site_cover_photos SET active=0,show_home=0,show_login=0,show_register=0 WHERE sort_order=1').run();
+  const makeRequest=identity=>{const form=new FormData();form.set('image',new Blob([new Uint8Array([0xff,0xd8,0xff,0xd9])],{type:'image/jpeg'}),'homepage.jpg');form.set('credit','站主照片');form.set('weekday','1');form.set('show_home','1');form.set('license_confirmed','1');return worker.fetch(new Request('https://test.invalid/api/sa/site-photos/upload',{method:'POST',headers:{Cookie:`bpm_session=${String(identity).repeat(64)}`},body:form}),env);};
+  assert.equal((await makeRequest(2)).status,403);
+  const response=await makeRequest(1);assert.equal(response.status,200,await response.clone().text());
+  const result=await response.json();assert.ok(result.id);assert.equal(stored.length,1);
+  const row=db.prepare('SELECT image_url,credit,sort_order,active FROM site_cover_photos WHERE id=?').get(result.id);
+  assert.equal(row.credit,'站主照片');assert.equal(row.sort_order,1);assert.equal(row.active,1);
+});

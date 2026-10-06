@@ -1,4 +1,4 @@
-import { isAdmin, isSA, reply } from './security.mjs';
+import { IMAGE_UPLOAD_MAX_BYTES, isAdmin, isSA, reply } from './security.mjs';
 
 const LICENSE_VERSION = 'bpm-cover-photo-2026-09';
 const placementFields = {
@@ -57,6 +57,29 @@ const boolField = (form, key) => ['1', 'true', 'on'].includes(String(form.get(ke
 export async function sitePhotoRoute(request, env, url, user, uploadImage) {
   const path = url.pathname;
   const method = request.method;
+
+  if (path === '/api/sa/site-photos/upload' && method === 'POST') {
+    if (!isSA(user)) return reply({ error: 'No permission' }, 403);
+    const form = await request.formData();
+    const file = form.get('image');
+    const credit = String(form.get('credit') || '').trim();
+    const weekday = requestedWeekday({ weekday: form.get('weekday') });
+    const flags = ['show_home', 'show_login', 'show_register'].map(key => boolField(form, key));
+    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > IMAGE_UPLOAD_MAX_BYTES) return reply({ error: '请选择 5 MB 以内的主页照片' }, 400);
+    if (!credit || credit.length > 100 || !weekday || !flags.some(Boolean)) return reply({ error: '请填写署名、展示星期和展示位置' }, 400);
+    if (!boolField(form, 'license_confirmed')) return reply({ error: '请先确认照片版权与展示授权' }, 400);
+    if (await weekdayConflict(env, weekday, flags)) return reply({ error: '该星期的所选展示位置已有启用照片，请先调整原照片' }, 409);
+
+    const imageForm = new FormData();
+    imageForm.set('image', file, file.name || 'homepage-photo.jpg');
+    const uploaded = await uploadImage(new Request(request.url, { method: 'POST', body: imageForm }), env);
+    const result = await uploaded.json();
+    if (!uploaded.ok || !result.success || !result.url) return reply({ error: result.error || '照片上传失败' }, uploaded.status || 400);
+    const inserted = await env.DB.prepare(`INSERT INTO site_cover_photos
+      (image_url,credit,show_home,show_login,show_register,sort_order,active,submitted_by)
+      VALUES(?,?,?,?,?,?,1,?) RETURNING id`).bind(result.url, credit, Number(flags[0]), Number(flags[1]), Number(flags[2]), weekday, user.id).first();
+    return reply({ success: true, id: Number(inserted.id), image_url: result.url });
+  }
 
   if (path === '/api/site-photos' && method === 'GET') {
     const field = placementFields[url.searchParams.get('placement') || 'home'];
@@ -126,7 +149,7 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
     const file = form.get('image');
     const credit = String(form.get('credit') || '').trim();
     const placements = Object.fromEntries(Object.entries(placementFields).map(([key, field]) => [field, boolField(form, field)]));
-    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > 10 * 1024 * 1024) return reply({ error: '请选择 10 MB 以内的照片' }, 400);
+    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > IMAGE_UPLOAD_MAX_BYTES) return reply({ error: '请选择 5 MB 以内的照片' }, 400);
     if (!credit || credit.length > 100) return reply({ error: '请填写照片署名（不超过 100 字）' }, 400);
     if (!Object.values(placements).some(Boolean)) return reply({ error: '至少选择一个展示位置' }, 400);
     if (!boolField(form, 'license_confirmed')) return reply({ error: '请先阅读并同意照片使用授权' }, 400);
