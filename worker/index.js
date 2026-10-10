@@ -2083,7 +2083,8 @@ id,
 username,
 role,
 created_at,
-social_media
+social_media,
+admin_social_links
 FROM users
 WHERE role='administrator' OR (id=1 AND role='superadministrator')
 ORDER BY id ASC

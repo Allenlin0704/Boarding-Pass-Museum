@@ -34,8 +34,8 @@
   fetch('https://api.bpmuseum.org.cn/api/public/staff', { cache: 'no-store' })
     .then(response => response.ok ? response.json() : [])
     .then(rows => {
-      const visible = Array.isArray(rows) ? rows.filter(row => /^https:\/\//i.test(row.social_url || '')) : [];
-      list.innerHTML = visible.length ? visible.map(row => `<a class="public-staff-link" href="${escapeHTML(row.social_url)}" target="_blank" rel="noopener noreferrer"><strong data-user-content>${escapeHTML(row.username)}</strong><span>查看社交主页 ↗</span></a>`).join('') : '<p>暂无公开的管理员社交主页。</p>';
+      const visible = Array.isArray(rows) ? rows.map(row => ({...row, links:Array.isArray(row.social_links)?row.social_links.filter(link=>/^https:\/\//i.test(link.url||'')):[]})).filter(row=>row.links.length) : [];
+      list.innerHTML = visible.length ? visible.map(row => `<article class="public-staff-person"><strong data-user-content>${escapeHTML(row.username)}</strong><div class="public-staff-person-links">${row.links.map(link=>`<a class="public-staff-link" href="${escapeHTML(link.url)}" target="_blank" rel="noopener noreferrer"><span>${escapeHTML(link.platform||'社交主页')}</span><span aria-hidden="true">↗</span></a>`).join('')}</div></article>`).join('') : '<p>暂无公开的管理员社交主页。</p>';
     })
     .catch(() => {});
   fetch('https://api.bpmuseum.org.cn/api/public/site-links', { cache: 'no-store' })

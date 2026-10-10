@@ -182,11 +182,25 @@ document.getElementById("sitePhotoDirectUploadForm")?.addEventListener("submit",
 });
 
 document.getElementById("users")?.addEventListener("click",async event=>{
+  const add=event.target.closest("[data-add-staff-social]");
+  if(add){add.closest("[data-staff-user]").querySelector("[data-staff-social-links]").insertAdjacentHTML("beforeend",staffSocialRow());return;}
+  const remove=event.target.closest("[data-remove-staff-social]");
+  if(remove){remove.closest("[data-staff-social-row]").remove();return;}
   const button=event.target.closest("[data-save-staff-social]");if(!button)return;
-  const card=button.closest("[data-staff-user]"),url=card.querySelector("[data-staff-social-url]").value.trim();button.disabled=true;
-  try{const response=await fetch(`${API}/api/sa/admin-social`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:Number(button.dataset.saveStaffSocial),url})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("公开社交主页已保存");await loadUsers();}
+  const card=button.closest("[data-staff-user]"),links=[...card.querySelectorAll("[data-staff-social-row]")].map(row=>({platform:row.querySelector("[data-staff-social-platform]").value.trim(),url:row.querySelector("[data-staff-social-url]").value.trim()})).filter(link=>link.platform||link.url);button.disabled=true;
+  if(links.some(link=>!link.platform||!link.url)){showToast("请为每条链接填写平台名称和 URL，或删除空行");button.disabled=false;return;}
+  try{const response=await fetch(`${API}/api/sa/admin-social`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:Number(button.dataset.saveStaffSocial),links})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("管理员社交链接已保存");await loadUsers();}
   catch(error){showToast(error.message||"保存失败");button.disabled=false;}
 });
+
+function staffSocialRow(link={}){
+  return `<div class="sa-staff-social-row" data-staff-social-row><label>平台名称<input type="text" maxlength="40" data-staff-social-platform value="${escapeSACommunityHTML(link.platform||"")}" placeholder="例如：小红书、B站、Facebook"></label><label>公开链接<input type="url" maxlength="500" data-staff-social-url value="${escapeSACommunityHTML(link.url||"")}" placeholder="https://…"></label><button type="button" class="secondary-button" data-remove-staff-social aria-label="删除此社交链接">删除</button></div>`;
+}
+
+function parseStaffSocialLinks(record){
+  if(record.admin_social_links!==null&&record.admin_social_links!==undefined){try{const links=JSON.parse(record.admin_social_links);return Array.isArray(links)?links:[];}catch{return[];}}
+  return /^https:\/\//i.test(record.social_media||"")?[{platform:"社交主页",url:record.social_media}]:[];
+}
 
 document.getElementById("heroPhotosPanel")?.addEventListener("click",async event=>{
   const preview=event.target.closest("[data-site-photo-preview]");
@@ -751,9 +765,10 @@ async function loadUsers(){
 
             box.innerHTML+=`
             <article class="card sa-staff-card" data-staff-user="${Number(x.id)}">
-              <div><h3>${x.username}</h3><p>账号 ID ${Number(x.id)} · ${x.role==="superadministrator"?"站主 SA":"普通管理员"}</p></div>
-              <label>公开社交主页（HTTPS 链接）<input type="url" maxlength="500" data-staff-social-url value="${x.social_media||""}" placeholder="https://…"></label>
-              <div class="site-photo-card-actions"><button type="button" data-save-staff-social="${Number(x.id)}">保存社交链接</button>
+              <div><h3>${escapeSACommunityHTML(x.username)}</h3><p>账号 ID ${Number(x.id)} · ${x.role==="superadministrator"?"站主 SA":"普通管理员"}</p></div>
+              <p>填写平台名称和 HTTPS 链接；可添加多条，公开页面会分别显示平台名称与对应链接。</p>
+              <div class="sa-staff-social-links" data-staff-social-links>${parseStaffSocialLinks(x).map(staffSocialRow).join("")}</div>
+              <div class="site-photo-card-actions"><button type="button" data-add-staff-social>添加社交链接</button><button type="button" data-save-staff-social="${Number(x.id)}">保存社交链接</button>
               ${x.role==="administrator"?`<button type="button" class="demote-admin-btn" onclick="openDemoteModal(${Number(x.id)}, '${String(x.username).replace(/'/g,"\\'")}')">移除管理员</button>`:""}</div>
             </article>`;
 

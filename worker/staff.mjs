@@ -11,16 +11,43 @@ function safeSocialUrl(value) {
   } catch { return null; }
 }
 
+function cleanSocialLinks(value) {
+  if (!Array.isArray(value) || value.length > 12) return null;
+  const links = [];
+  for (const item of value) {
+    if (!item || typeof item !== 'object') return null;
+    const platform = String(item.platform || '').trim();
+    const url = safeSocialUrl(item.url);
+    if (!platform || platform.length > 40 || url === null || !url) return null;
+    links.push({ platform, url });
+  }
+  return links;
+}
+
+function storedSocialLinks(raw, legacyUrl) {
+  if (raw === null || raw === undefined) {
+    const legacy = safeSocialUrl(legacyUrl);
+    return legacy ? [{ platform: '社交主页', url: legacy }] : [];
+  }
+  try {
+    const parsed = JSON.parse(raw || '[]');
+    const links = cleanSocialLinks(parsed);
+    if (links) return links;
+  } catch { /* Fall through to the legacy single-link field. */ }
+  return [];
+}
+
 export async function staffRoute(request, env, url, user) {
   const path = url.pathname;
   const method = request.method;
 
   if (path === '/api/public/staff' && method === 'GET') {
-    const rows = await env.DB.prepare(`SELECT id,username,role,social_media FROM users
+    const rows = await env.DB.prepare(`SELECT id,username,role,social_media,admin_social_links FROM users
       WHERE deleted_at IS NULL AND (role='administrator' OR (id=1 AND role='superadministrator'))
       ORDER BY CASE WHEN id=1 THEN 0 ELSE 1 END,username,id`).all();
     return reply((rows.results || []).map(row => ({
       id: Number(row.id), username: row.username, role: row.role,
+      social_links: storedSocialLinks(row.admin_social_links, row.social_media),
       social_url: safeSocialUrl(row.social_media) || null
     })));
   }
@@ -51,13 +78,15 @@ export async function staffRoute(request, env, url, user) {
     if (!isSA(user)) return reply({ error: 'No permission' }, 403);
     const body = await request.json();
     const targetId = Number(body.user_id);
-    const socialUrl = safeSocialUrl(body.url);
-    if (!Number.isSafeInteger(targetId) || targetId < 1 || socialUrl === null) return reply({ error: '请输入有效的 HTTPS 社交主页链接' }, 400);
+    const links = body.links === undefined
+      ? (() => { const url = safeSocialUrl(body.url); return url === null ? null : url ? [{ platform: '社交主页', url }] : []; })()
+      : cleanSocialLinks(body.links);
+    if (!Number.isSafeInteger(targetId) || targetId < 1 || links === null) return reply({ error: '请为每个社交平台填写名称和有效的 HTTPS 链接（最多 12 个）' }, 400);
     const target = await env.DB.prepare(`SELECT id FROM users WHERE id=? AND
       ((id=1 AND role='superadministrator') OR (id<>1 AND role='administrator'))`).bind(targetId).first();
     if (!target) return reply({ error: '只能修改站主或普通管理员的公开链接' }, 404);
-    const updated = await env.DB.prepare(`UPDATE users SET social_media=? WHERE id=? AND
-      ((id=1 AND role='superadministrator') OR (id<>1 AND role='administrator'))`).bind(socialUrl || null, targetId).run();
+    const updated = await env.DB.prepare(`UPDATE users SET admin_social_links=? WHERE id=? AND
+      ((id=1 AND role='superadministrator') OR (id<>1 AND role='administrator'))`).bind(JSON.stringify(links), targetId).run();
     return updated.meta.changes ? reply({ success: true }) : reply({ error: '管理员资料已变化，请刷新后重试' }, 409);
   }
 

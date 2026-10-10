@@ -31,13 +31,25 @@ test('staff social links and the shared admin-SA chat enforce role and URL rules
   assert.equal((await call('/api/sa/admin-social',{user_id:2,url:'javascript:alert(1)'},1)).status,400);
   assert.equal((await call('/api/sa/admin-social',{user_id:3,url:'https://example.com/user'},1)).status,404);
   assert.equal((await call('/api/sa/admin-social',{user_id:2,url:'https://example.com/admin'},1)).status,200);
-  assert.equal(db.prepare('SELECT social_media FROM users WHERE id=2').get().social_media,'https://example.com/admin');
+  assert.equal(db.prepare('SELECT admin_social_links FROM users WHERE id=2').get().admin_social_links,'[{"platform":"社交主页","url":"https://example.com/admin"}]');
   assert.equal((await call('/api/staff-chat',{message:'管理员测试消息'},3)).status,403);
   assert.equal((await call('/api/staff-chat',{message:'   '},2)).status,400);
   assert.equal((await call('/api/staff-chat',{message:'管理员测试消息'},2)).status,200);
   const messages=await (await call('/api/staff-chat',null,1)).json();
   assert.equal(messages.length,1);assert.equal(messages[0].username,'Admin');assert.equal(messages[0].message,'管理员测试消息');
   assert.equal((await call('/api/staff-chat',{message:'<script>bad</script>'},1)).status,200);
+});
+
+test('SA can save multiple platform-labelled HTTPS links and public staff directory exposes each safely',async()=>{
+  const {call,db,worker,env}=fixture();
+  const links=[{platform:'小红书',url:'https://www.xiaohongshu.com/user/profile'},{platform:'B站',url:'https://space.bilibili.com/123'}];
+  assert.equal((await call('/api/sa/admin-social',{user_id:2,links},1)).status,200);
+  assert.equal((await call('/api/sa/admin-social',{user_id:2,links:[...links,{platform:'恶意',url:'javascript:alert(1)'}]},1)).status,400);
+  const stored=JSON.parse(db.prepare('SELECT admin_social_links FROM users WHERE id=2').get().admin_social_links);
+  assert.deepEqual(stored,links.map(link=>({...link,url:new URL(link.url).href})));
+  const response=await worker.fetch(new Request('https://test.invalid/api/public/staff'),env);
+  const rows=await response.json();
+  assert.deepEqual(rows.find(row=>row.id===2).social_links,stored);
 });
 
 test('only SA can manage the public WeChat link and the public directory exposes only its URL',async()=>{
