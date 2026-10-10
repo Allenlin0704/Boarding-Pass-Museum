@@ -1,6 +1,11 @@
 const consoleApi="https://api.bpmuseum.org.cn";
 const welcome=document.getElementById("consoleWelcome");
 const frame=document.getElementById("consoleFrame");
+window.addEventListener("message",event=>{
+  if(event.origin!==location.origin||event.source!==frame?.contentWindow||event.data?.type!=="bpm-admin-frame-height")return;
+  const height=Number(event.data.height);
+  if(Number.isFinite(height))frame.style.height=Math.max(560,Math.min(7000,height))+"px";
+});
 const controls=[...document.querySelectorAll(".bpm-console-nav[data-page]")];
 const selectPage=button=>{
   controls.forEach(control=>control.classList.toggle("active",control===button));

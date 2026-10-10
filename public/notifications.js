@@ -1,5 +1,16 @@
 const noticeAPI='https://api.bpmuseum.org.cn';
 const text=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function announcementContent(value){return text(value).replace(/\[\[RED\]\]([\s\S]*?)\[\[\/RED\]\]/g,'<span class="announcement-red">$1</span>');}
+async function loadAnnouncementHistory(){
+  const box=document.createElement('div');box.id='announcementHistory';box.className='bpm-list-grid';box.textContent=window.bpmLocaleText?.('正在加载公告…')||'正在加载公告…';
+  const details=document.createElement('details');details.className='announcement-history-details';details.innerHTML=`<summary>${text(window.bpmLocaleText?.('查看历次公告')||'查看历次公告')}</summary>`;details.append(box);
+  const actions=document.getElementById('actions')?.closest('section');actions?.parentNode.insertBefore(details,actions);
+  try{
+    const response=await fetch(`${noticeAPI}/api/announcements`,{cache:'no-store'}),rows=await response.json();
+    if(!response.ok||!Array.isArray(rows))throw Error('公告暂时无法加载');
+    box.innerHTML=rows.map(item=>`<article class="bpm-panel bpm-announcement-history-item"><h3>${text(item.title||item.version||'公告')}</h3><small>${text(item.created_at||'')}</small><p data-user-content>${announcementContent(item.content||'')}</p></article>`).join('')||'暂无历史公告';
+  }catch(error){box.textContent=error.message||'公告暂时无法加载';}
+}
 async function load(){try{
   const res=await fetch(noticeAPI+'/api/notifications');const data=await res.json();if(!res.ok)throw Error(data.error);
   document.getElementById('notifications').innerHTML=data.notifications.map(n=>`<article class="bpm-panel"><p data-user-content>${text(n.content)}</p><small>${text(n.created_at)}</small></article>`).join('')||'暂无通知';
@@ -33,6 +44,7 @@ document.addEventListener('click',event=>{const button=event.target.closest('[da
 appealForm.addEventListener('click',event=>{if(event.target.value==='cancel')appealDialog.close();});
 appealForm.addEventListener('submit',async event=>{event.preventDefault();const submit=event.submitter,reason=new FormData(appealForm).get('reason').trim();if(!reason)return;submit.disabled=true;try{const res=await fetch(noticeAPI+'/api/community/moderation-appeal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action_id:appealActionId,reason})});const data=await res.json();if(!res.ok)throw Error(data.error);appealDialog.close();await load();}catch(error){document.getElementById('appealError').textContent=error.message||'提交失败';}finally{submit.disabled=false;}});
 load();
+loadAnnouncementHistory();
 loadPhotoInvitations();
 
 photoInviteBox?.addEventListener('click',async event=>{

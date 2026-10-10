@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="security.js?v=5"></script>
+<script src="security.js?v=20261006-ai"></script>
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
-  <script src="theme.js?v=20261006-multilingual"></script>
-<link rel="stylesheet" href="features.css?v=20261006-multilingual">
+  <script src="theme.js?v=20261006-assist-tags"></script>
+<link rel="stylesheet" href="features.css?v=20261006-assist-tags">
 <meta name="viewport" content="width=device-width,initial-scale=1"></head>
 
 <body>
@@ -173,6 +173,10 @@ onclick="markSelectedRed('noticeContent')"
 <button id="publishNotice">
 发布公告
 </button>
+<details class="sa-announcement-history-details">
+<summary>查看历史公告</summary>
+<div id="saAnnouncementHistory" class="bpm-list-grid">正在加载历史公告…</div>
+</details>
 
 </section>
 <section class="sa-panel" id="saStaff">
@@ -183,6 +187,15 @@ onclick="markSelectedRed('noticeContent')"
 
 <div id="users">
 加载中...
+</div>
+
+<div class="site-photo-invite-form" id="publicLinksManager">
+  <h3>公众号与站点公开链接</h3>
+  <p>保存公众号文章、主页或二维码落地页的 HTTPS 链接；这里的链接会与公开管理员社交主页一起显示在“关于我们”和页脚。</p>
+  <label for="officialWechatUrl">微信公众号链接</label>
+  <input id="officialWechatUrl" type="url" maxlength="500" placeholder="https://…">
+  <button id="saveOfficialWechatUrl" type="button">保存公众号链接</button>
+  <p id="officialWechatUrlStatus" role="status"></p>
 </div>
 
 </section>
@@ -199,11 +212,11 @@ onclick="markSelectedRed('noticeContent')"
 
 </main>
 <script src="auth.js?v=20260930-nav-fix"></script>
-<script src="sa-security.js?v=5"></script>
+<script src="sa-security.js?v=20261006-ai"></script>
 <script src="review-rules.js"></script>
 <script src="image-compression.js?v=20261006-upload-cap"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
-<script src="sa.js?v=20261006-multilingual"></script>
+<script src="sa.js?v=20261006-announcement-history"></script>
 
 
 

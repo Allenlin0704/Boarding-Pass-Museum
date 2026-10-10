@@ -25,6 +25,28 @@ export async function staffRoute(request, env, url, user) {
     })));
   }
 
+  if (path === '/api/public/site-links' && method === 'GET') {
+    const row = await env.DB.prepare("SELECT url FROM site_public_links WHERE key='wechat'").first();
+    return reply({ wechat: safeSocialUrl(row?.url) || '' });
+  }
+
+  if (path === '/api/sa/public-links' && method === 'GET') {
+    if (!isSA(user)) return reply({ error: 'No permission' }, 403);
+    const row = await env.DB.prepare("SELECT url FROM site_public_links WHERE key='wechat'").first();
+    return reply({ wechat: row?.url || '' });
+  }
+
+  if (path === '/api/sa/public-links' && method === 'POST') {
+    if (!isSA(user)) return reply({ error: 'No permission' }, 403);
+    const body = await request.json();
+    const wechat = safeSocialUrl(body.wechat);
+    if (wechat === null) return reply({ error: '请输入有效的 HTTPS 公众号链接' }, 400);
+    await env.DB.prepare(`INSERT INTO site_public_links(key,url,updated_by,updated_at) VALUES('wechat',?,?,CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET url=excluded.url,updated_by=excluded.updated_by,updated_at=CURRENT_TIMESTAMP`)
+      .bind(wechat, user.id).run();
+    return reply({ success: true });
+  }
+
   if (path === '/api/sa/admin-social' && method === 'POST') {
     if (!isSA(user)) return reply({ error: 'No permission' }, 403);
     const body = await request.json();

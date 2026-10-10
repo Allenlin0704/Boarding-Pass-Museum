@@ -81,6 +81,8 @@ document.getElementById(
     "departureResults"
 );
 
+const routeScopeInput=document.getElementById("routeScope");
+
 
 const issueAirportInput =
 document.getElementById(
@@ -113,6 +115,8 @@ function updateSubmissionType(){
   const rail=submissionTypeInput?.value==="rail_ticket";
   if(airSubmissionFields)airSubmissionFields.hidden=rail;
   if(railSubmissionFields)railSubmissionFields.hidden=!rail;
+  const recognition=document.querySelector(".deepseek-recognition-controls");
+  if(recognition)recognition.hidden=rail;
 }
 submissionTypeInput?.addEventListener("change",updateSubmissionType);
 updateSubmissionType();
@@ -133,6 +137,7 @@ function draftValue(){
     issue_airport_text: issueAirportInput?.value || "",
     airline_code: selectedCode(selectedAirline),
     airport_code: selectedCode(selectedAirport),
+    route_scope:routeScopeInput?.value||"",
     issue_airport_code: selectedCode(selectedIssueAirport),
     flight: document.getElementById("flight")?.value || "",
     date: document.getElementById("date")?.value || "",
@@ -190,7 +195,7 @@ function restoreDraft(){
     document.getElementById("story").value = draft.story || "";
     if(submissionTypeInput)submissionTypeInput.value=draft.submission_type||"boarding_pass";
     updateSubmissionType();
-    for(const [id,value] of [["ticketFormat",draft.ticket_format],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value)input.value=value;}
+    for(const [id,value] of [["ticketFormat",draft.ticket_format],["routeScope",draft.route_scope],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value!==undefined&&value!=="")input.value=value;}
     document.querySelectorAll('input[name="specialTag"]').forEach(input=>input.checked=(draft.special_tags||[]).includes(input.value));
     window.bpmSubmitDraft = draft;
     setDraftStatus("已恢复未提交草稿；图片需重新选择。");
@@ -718,7 +723,54 @@ async function assistFlight(){
     queueDraftSave();
   }catch{flightAssistStatus.textContent="自动补全暂不可用，请手动填写";}finally{flightAssistBtn.disabled=false;}
 }
-flightAssistBtn?.addEventListener("click",assistFlight);
+flightAssistBtn?.addEventListener("click",()=>startAIRecognition());
+
+const recognizeTicketBtn=document.getElementById("recognizeTicketBtn");
+const recognizeTicketStatus=document.getElementById("recognizeTicketStatus");
+const deepseekPrivacyConsent=document.getElementById("deepseekPrivacyConsent");
+const localizedChoiceText=(zh,en,tw)=>window.BPM_LANGUAGE==="en"?en:window.BPM_LANGUAGE==="zh-TW"?tw:zh;
+const setRecognitionStatus=message=>{if(recognizeTicketStatus)recognizeTicketStatus.textContent=message;if(flightAssistStatus)flightAssistStatus.textContent=message;};
+function startAIRecognition(){
+  const canvas=document.getElementById("watermarkCanvas");
+  if(!deepseekPrivacyConsent?.checked||!canvas?.width){
+    document.querySelector(".submit-image-card")?.scrollIntoView({behavior:"smooth",block:"center"});
+    setRecognitionStatus(localizedChoiceText("先选择图片、在本机遮挡隐私并勾选发送处理后图片的授权。","Choose an image, redact private details locally, and consent to sending the edited image first.","請先選擇圖片、在本機遮蔽個人資料，並勾選傳送處理後圖片的授權。"));
+    deepseekPrivacyConsent?.focus({preventScroll:true});
+    return;
+  }
+  recognizeTicket();
+}
+const findCatalogItem=(list,code,name)=>{
+  const normalized=String(name||"").trim().toLocaleLowerCase(),upper=String(code||"").trim().toUpperCase();
+  return list.find(item=>upper&&[item.iata,item.icao].some(value=>String(value||"").toUpperCase()===upper))
+    ||list.find(item=>normalized&&[item.name_cn,item.name_en].some(value=>String(value||"").trim().toLocaleLowerCase()===normalized))||null;
+};
+async function recognizeTicket(){
+  if(!deepseekPrivacyConsent?.checked){setRecognitionStatus(localizedChoiceText("请先确认已遮挡隐私并同意发送处理后的图片。","Confirm that private details are redacted and that you agree to send the edited image.","請先確認已遮蔽個人資料，並同意傳送處理後的圖片。"));return;}
+  if(window.bpmImageEditorReady&&!window.bpmImageEditorReady()){setRecognitionStatus(localizedChoiceText("请先应用或取消当前裁剪框。","Apply or cancel the current crop first.","請先套用或取消目前的裁切框。"));return;}
+  const canvas=document.getElementById("watermarkCanvas");
+  if(!canvas||!canvas.width||!canvas.height){setRecognitionStatus(localizedChoiceText("请先选择并处理票据图片。","Choose and edit a ticket image first.","請先選擇並處理票據圖片。"));return;}
+  if(recognizeTicketBtn)recognizeTicketBtn.disabled=true;setRecognitionStatus(localizedChoiceText("正在识别已处理的票面…","Reading the edited ticket…","正在辨識已處理的票面…"));
+  try{
+    const blob=await (window.bpmCompressCanvas?window.bpmCompressCanvas(canvas,{maxBytes:2*1024*1024,maxEdge:1800,quality:.82}):new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",.78)));
+    if(!blob||blob.size>2*1024*1024)throw Error(localizedChoiceText("处理后的图片仍超过 2 MB，请先压缩。","The edited image is still larger than 2 MB. Compress it first.","處理後的圖片仍超過 2 MB，請先壓縮。"));
+    const form=new FormData();form.append("image",blob,"edited-ticket.jpg");form.append("consent","1");
+    const response=await fetch("https://api.bpmuseum.org.cn/api/flight-assist/recognize",{method:"POST",body:form}),data=await response.json();
+    if(!response.ok)throw Error(data.error||localizedChoiceText("识别失败，请稍后重试。","Recognition failed. Try again later.","辨識失敗，請稍後重試。"));
+    const fields=data.fields||{};
+    const airline=findCatalogItem(airlines,fields.airline_iata||fields.airline_icao,fields.airline_name),departure=findCatalogItem(airports,fields.departure_airport_iata||fields.departure_airport_icao,fields.departure_airport_name),issue=findCatalogItem(airports,fields.issue_airport_iata||fields.issue_airport_icao,fields.issue_airport_name);
+    if(airline){selectedAirline=airline;airlineInput.value=displayName(airline);}
+    if(departure){selectedAirport=departure;airportInput.value=displayName(departure);}
+    if(issue){selectedIssueAirport=issue;issueAirportInput.value=displayName(issue);}
+    const flight=String(fields.flight_number||"").trim().toUpperCase();if(/^[A-Z0-9][A-Z0-9 -]{1,11}$/.test(flight))document.getElementById("flight").value=flight;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(String(fields.flight_date||"")))document.getElementById("date").value=fields.flight_date;
+    if(["domestic","international","regional"].includes(fields.route_scope)&&routeScopeInput)routeScopeInput.value=fields.route_scope;
+    queueDraftSave();
+    setRecognitionStatus(localizedChoiceText("识别完成。请逐项核对票面；AI 结果可能有误，未能确认的字段请手动填写。","Recognition is ready. Verify every field against the ticket; AI may be wrong. Fill unresolved fields manually.","辨識完成。請逐項核對票面；AI 結果可能有誤，未確認的欄位請手動填寫。"));
+  }catch(error){setRecognitionStatus(error.message||localizedChoiceText("识别暂不可用，请手动填写。","Recognition is unavailable. Fill the fields manually.","辨識暫不可用，請手動填寫。"));}
+  finally{if(recognizeTicketBtn)recognizeTicketBtn.disabled=false;}
+}
+recognizeTicketBtn?.addEventListener("click",recognizeTicket);
 // =====================================
 // BoardingPassMuseum
 // submit.js P2
@@ -749,7 +801,7 @@ clearDraftBtn?.addEventListener("click", () => {
 
 [airlineInput, airportInput, issueAirportInput, document.getElementById("flight"), document.getElementById("date"), document.getElementById("story"), railOperatorInput, document.getElementById("railTrainNumber"), document.getElementById("railDate"), document.getElementById("railDepartureStation"), document.getElementById("railArrivalStation"), document.getElementById("departureCountry"), document.getElementById("arrivalCountry")]
   .filter(Boolean).forEach(field => field.addEventListener("input", queueDraftSave));
-for(const field of [submissionTypeInput,document.getElementById("ticketFormat"),document.getElementById("railTicketFormat"),...document.querySelectorAll('input[name="specialTag"]')].filter(Boolean))field.addEventListener("change",queueDraftSave);
+for(const field of [submissionTypeInput,document.getElementById("ticketFormat"),routeScopeInput,document.getElementById("railTicketFormat"),...document.querySelectorAll('input[name="specialTag"]')].filter(Boolean))field.addEventListener("change",queueDraftSave);
 
 window.addEventListener("pagehide", () => saveDraft(false));
 
@@ -777,9 +829,14 @@ if(!currentUser || !currentUser.id){
     return;
 }
 
+if(!document.getElementById("rulesConsent")?.checked){showToast(localizedChoiceText("请先阅读并同意投稿条例。","Read and accept the submission rules first.","請先閱讀並同意投稿規則。"));document.getElementById("rulesConsent")?.focus();return;}
+if(!document.getElementById("socialShareConsent")?.checked){showToast(localizedChoiceText("请先勾选展品社交媒体分享授权。","Authorize official social-media sharing to submit.","請先勾選展品社群媒體分享授權。"));document.getElementById("socialShareConsent")?.focus();return;}
+
 try{
 
 const isRail=submissionTypeInput?.value==="rail_ticket";
+
+if(!isRail&&!routeScopeInput?.value){showToast(localizedChoiceText("请选择国内、国际或地区航线","Choose domestic, international, or regional route.","請選擇國內、國際或地區航線。"));return;}
 
 
 
@@ -1028,6 +1085,7 @@ ticket_format:rail?document.getElementById("railTicketFormat").value:document.ge
 departure_country:rail?document.getElementById("departureCountry").value.trim():(selectedAirport?.country_cn||""),
 arrival_country:rail?document.getElementById("arrivalCountry").value.trim():(selectedAirport?.country_cn||""),
 special_tags:rail?[]:[...document.querySelectorAll('input[name="specialTag"]:checked')].map(input=>input.value),
+route_scope:rail?"":(routeScopeInput?.value||""),
 
 
 airline:
@@ -1119,6 +1177,7 @@ status:
 
 "screening",
 
+rules_consent:document.getElementById("rulesConsent")?.checked===true,
 social_share_consent:document.getElementById("socialShareConsent")?.checked===true
 
 
@@ -1253,6 +1312,10 @@ airportInput.value="";
 if(issueAirportInput)
 
 issueAirportInput.value="";
+
+if(routeScopeInput)routeScopeInput.value="";
+document.querySelectorAll('input[name="specialTag"]').forEach(input=>input.checked=false);
+if(deepseekPrivacyConsent)deepseekPrivacyConsent.checked=false;
 
 
 

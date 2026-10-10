@@ -1,0 +1,64 @@
+import { reply } from './security.mjs';
+
+const API_URL='https://api.deepseek.com/chat/completions';
+const MAX_IMAGE_BYTES=2*1024*1024;
+const clean=(value,max=120)=>typeof value==='string'?value.trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,max):'';
+const code=value=>clean(value,8).toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+async function dailyLimit(env,userId){
+  const chinaNow=Date.now()+8*60*60*1000;
+  const bucket=Math.floor(chinaNow/86400000)*86400-8*3600;
+  const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(`deepseek-recognition:${userId}`))),byte=>byte.toString(16).padStart(2,'0')).join('');
+  const row=await env.DB.prepare(`INSERT INTO auth_limits(key,bucket,count) VALUES(?,?,1)
+    ON CONFLICT(key,bucket) DO UPDATE SET count=count+1 RETURNING count`).bind(hash,bucket).first();
+  return Number(row?.count||0)>6;
+}
+
+function normalizedFields(value){
+  const source=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+  const flightDate=clean(source.flight_date,10);
+  return {
+    airline_name:clean(source.airline_name),
+    airline_iata:code(source.airline_iata),
+    airline_icao:code(source.airline_icao),
+    flight_number:clean(source.flight_number,16).toUpperCase().replace(/[^A-Z0-9 -]/g,''),
+    flight_date:/^\d{4}-\d{2}-\d{2}$/.test(flightDate)&&Number.isFinite(Date.parse(`${flightDate}T00:00:00Z`))&&new Date(`${flightDate}T00:00:00Z`).toISOString().slice(0,10)===flightDate?flightDate:'',
+    departure_airport_name:clean(source.departure_airport_name),
+    departure_airport_iata:code(source.departure_airport_iata),
+    departure_airport_icao:code(source.departure_airport_icao),
+    issue_airport_name:clean(source.issue_airport_name),
+    issue_airport_iata:code(source.issue_airport_iata),
+    issue_airport_icao:code(source.issue_airport_icao),
+    route_scope:['domestic','international','regional'].includes(source.route_scope)?source.route_scope:''
+  };
+}
+
+export async function flightAssistRoute(request,env,url,user){
+  if(url.pathname!=='/api/flight-assist/recognize'||request.method!=='POST')return null;
+  if(!user?.id)return reply({error:'请重新登录'},401);
+  if(!env.DEEPSEEK_API_KEY)return reply({error:'AI 识别尚未启用，请稍后再试'},503);
+  let form;
+  try{form=await request.formData();}catch{return reply({error:'图片请求格式无效'},400);}
+  if(form.get('consent')!=='1')return reply({error:'请先确认图片已遮挡隐私，并同意发送给 DeepSeek'},400);
+  const image=form.get('image');
+  if(!image||typeof image.arrayBuffer!=='function'||image.size<1||image.size>MAX_IMAGE_BYTES)return reply({error:'请选择已压缩至 2 MB 以内的图片'},400);
+  const bytes=new Uint8Array(await image.arrayBuffer());
+  if(!(bytes[0]===255&&bytes[1]===216&&bytes[2]===255))return reply({error:'识别仅接受编辑器生成的 JPEG 图片'},415);
+  if(await dailyLimit(env,user.id))return reply({error:'今天的 AI 识别次数已用完（每日最多 6 次）'},429);
+  let binary='';
+  for(let offset=0;offset<bytes.length;offset+=0x8000)binary+=String.fromCharCode(...bytes.subarray(offset,offset+0x8000));
+  const base64=btoa(binary);
+  const prompt='读取这张已由用户裁剪、旋转、遮挡并压缩的登机牌。只识别填写表单所需的航司名称及 IATA/ICAO 代码、航班号、航班日期（统一 YYYY-MM-DD）、出发机场名称及 IATA/ICAO 代码、打印机场名称及代码、航线范围（domestic/international/regional）。看不清或不能确定时返回空字符串，严禁猜测。不要输出、转录或解释乘客姓名、票号、订单号、PNR、会员号、二维码、条形码或其他个人信息。只返回 JSON 对象，字段为 airline_name, airline_iata, airline_icao, flight_number, flight_date, departure_airport_name, departure_airport_iata, departure_airport_icao, issue_airport_name, issue_airport_iata, issue_airport_icao, route_scope。';
+  let response;
+  try{
+    response=await fetch(API_URL,{method:'POST',headers:{Authorization:`Bearer ${env.DEEPSEEK_API_KEY}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(18000),body:JSON.stringify({model:'deepseek-flash',temperature:0,max_tokens:450,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${base64}`}}]}]})});
+  }catch{return reply({error:'AI 识别暂时不可用，请稍后重试'},503);}
+  if(!response.ok)return reply({error:response.status===429?'AI 服务繁忙，请稍后再试':'AI 识别暂时不可用，请手动填写'},503);
+  let payload;
+  try{payload=await response.json();}catch{return reply({error:'AI 返回结果无法读取，请手动填写'},502);}
+  const content=payload?.choices?.[0]?.message?.content;
+  if(typeof content!=='string'||content.length>5000)return reply({error:'AI 未能读取票面，请手动填写'},502);
+  let parsed;
+  try{parsed=JSON.parse(content);}catch{return reply({error:'AI 返回结果格式无效，请手动填写'},502);}
+  return reply({success:true,fields:normalizedFields(parsed)});
+}

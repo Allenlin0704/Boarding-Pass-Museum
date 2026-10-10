@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=5"></script>
+<script src="security.js?v=20261006-ai"></script>
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 
@@ -13,10 +13,10 @@
 </title>
 
 <link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
-<link rel="stylesheet" href="features.css?v=20261006-multilingual">
+<link rel="stylesheet" href="features.css?v=20261006-assist-tags">
 <link rel="stylesheet" href="submit-page.css?v=20260930-mobile-polish">
 <link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
-  <script src="theme.js?v=20261006-multilingual"></script>
+  <script src="theme.js?v=20261006-assist-tags"></script>
 
 
 
@@ -98,9 +98,10 @@ Admin
   <div class="submit-field"><label for="issueAirportSearch">登机牌打印机场 <span class="submit-optional">可选</span></label><input id="issueAirportSearch" placeholder="搜索机场 / IATA / ICAO"><div id="issueAirportResults"></div></div>
   <div class="submit-field"><label for="flight">航班号</label><input id="flight" placeholder="例如 MU5309"></div>
   <div class="submit-field"><label for="date">飞行日期</label><input id="date" type="date"></div>
-  <div class="submit-field submit-assist-field"><span class="submit-field-label">信息补全</span><button id="flightAssistBtn" type="button">自动补全航班信息</button><p id="flightAssistStatus" role="status"></p></div>
+  <div class="submit-field submit-assist-field"><span class="submit-field-label">AI 信息识别</span><button id="flightAssistBtn" type="button">识别处理后的票面并补全</button><p id="flightAssistStatus" role="status">请先在图片编辑器遮挡隐私，并勾选图片识别授权。</p></div>
   <div class="submit-field"><label for="ticketFormat">登机牌形式</label><select id="ticketFormat"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select></div>
-  <fieldset class="special-tags"><legend data-i18n="submit.baggageTags">特殊行李标记（可选）</legend><p data-i18n="submit.baggageTagsHint">这是行李牌上的转机、两舱等标记；登机牌上连在一起的行李提取凭证属于票面内容，不是此处的行李标记。</p><label><input type="checkbox" name="specialTag" value="transfer"> <span data-i18n="submit.transferBaggage">转机行李</span></label><label><input type="checkbox" name="specialTag" value="two_cabin"> <span data-i18n="submit.twoCabinBaggage">两舱行李</span></label><label><input type="checkbox" name="specialTag" value="other"> <span data-i18n="submit.otherBaggage">其他行李标记</span></label></fieldset>
+  <div class="submit-field"><label for="routeScope" data-i18n="submit.routeScope">航线范围</label><select id="routeScope"><option value="" selected data-i18n="submit.route.choose">请选择</option><option value="domestic" data-i18n="submit.route.domestic">国内</option><option value="international" data-i18n="submit.route.international">国际</option><option value="regional" data-i18n="submit.route.regional">地区</option></select></div>
+  <fieldset class="special-tags"><legend data-i18n="submit.baggageTags">行李及服务标记（可选）</legend><p data-i18n="submit.baggageTagsHint">按票面或行李牌实际标记选择；登机牌上连在一起的行李提取凭证属于票面内容，不是此处的标记。</p><label><input type="checkbox" name="specialTag" value="business"> <span data-i18n="submit.tag.business">公务舱</span></label><label><input type="checkbox" name="specialTag" value="premium_economy"> <span data-i18n="submit.tag.premiumEconomy">超级经济舱</span></label><label><input type="checkbox" name="specialTag" value="first_class"> <span data-i18n="submit.tag.first">头等舱</span></label><label><input type="checkbox" name="specialTag" value="silver"> <span data-i18n="submit.tag.silver">银卡</span></label><label><input type="checkbox" name="specialTag" value="gold"> <span data-i18n="submit.tag.gold">金卡</span></label><label><input type="checkbox" name="specialTag" value="platinum"> <span data-i18n="submit.tag.platinum">白金卡</span></label><label><input type="checkbox" name="specialTag" value="special_assistance"> <span data-i18n="submit.tag.assistance">特殊保障</span></label><label><input type="checkbox" name="specialTag" value="transfer"> <span data-i18n="submit.tag.transfer">转机</span></label><label><input type="checkbox" name="specialTag" value="other"> <span data-i18n="submit.tag.other">其他</span></label></fieldset>
 </div>
 <div id="railSubmissionFields" class="submit-fields-grid" hidden>
   <h2 class="submit-field-wide">火车票信息</h2>
@@ -126,6 +127,12 @@ Admin
     <input id="ticketImage" type="file" accept="image/*">
     <p>单张图片上传上限 5 MB；最终图片会先压缩，目标为 4 MB 内。</p>
     <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开图片编辑器</button><canvas id="watermarkCanvas"></canvas></div>
+    <div class="deepseek-recognition-controls">
+      <label class="deepseek-privacy-consent"><input id="deepseekPrivacyConsent" type="checkbox"> <span data-i18n="submit.deepseekConsent">我已在本机处理并遮挡个人信息，并同意将处理后的图片发送给 DeepSeek 识别。</span></label>
+      <p data-i18n="submit.deepseekPrivacy">只会在你点击识别时发送当前编辑画布；图片不会保存到本站。请先遮住姓名、票号、订单号、二维码和条形码。</p>
+      <button type="button" id="recognizeTicketBtn" data-i18n="submit.deepseekButton">识别并填写票面信息</button>
+      <p id="recognizeTicketStatus" role="status" aria-live="polite"></p>
+    </div>
   </div>
   <div class="image-editor-controls-column">
     <h3>整理图片</h3>
@@ -150,8 +157,8 @@ Admin
 
 <section class="submit-final-card">
 <div class="submit-card-heading"><span class="submit-section-index">03</span><div><h2>检查并提交</h2><p>确认票据信息准确，图片已处理，再提交审核。</p></div></div>
-<p class="submission-rules-notice">投稿即代表您接受本站的 <a href="rules.html" target="_blank" rel="noopener"><strong>《投稿及审核条例》</strong></a></p>
-<label class="social-share-consent"><input id="socialShareConsent" type="checkbox"> <span>允许 BoardingPassMuseum 在官方社交媒体分享这件展品。分享前会遮挡个人信息并标注投稿者；你可以不勾选，不影响投稿审核。</span></label>
+<p class="submission-rules-notice"><label class="required-submission-consent"><input id="rulesConsent" type="checkbox" required> <span>我已阅读并同意本站<a href="rules.html" target="_blank" rel="noopener"><strong>《投稿及审核条例》</strong></a>。</span></label></p>
+<label class="social-share-consent"><input id="socialShareConsent" type="checkbox" required> <span>我授权 BoardingPassMuseum 将这件展品用于官方社交媒体展示；发布前会遮挡个人信息并注明投稿者。此授权为投稿必需项。</span></label>
 <button id="submitBtn" type="button">提交审核</button>
 <div class="submit-draft-actions"><button id="saveDraftBtn" type="button">保存草稿</button><button id="clearDraftBtn" type="button">清除草稿</button><p id="draftStatus" role="status" aria-live="polite"></p></div>
 </section>
@@ -184,7 +191,7 @@ BoardingPassMuseum © 2026
 <script src="config.js"></script>
 
 <script src="notice.js?v=20260930-popup-fix"></script>
-<script src="submit.js?v=20261006-multilingual"></script>
+<script src="submit.js?v=20261006-ai-tags"></script>
 
 <footer class="bpm-footer">
 

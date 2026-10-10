@@ -13,7 +13,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   response=await call('/api/sa/reviewer-schedule',{reviewer_allocations:[{user_id:2,percent:65},{user_id:1,percent:30}]},1);
   assert.equal(response.status,400,'allocation percentages must add up to exactly 100');
   const before=new Map(db.prepare('SELECT reviewer_id,COUNT(*) AS count FROM flights WHERE reviewer_id IN (1,2) GROUP BY reviewer_id').all().map(row=>[row.reviewer_id,row.count]));
-  response=await call('/api/submit',{submission_type:'rail_ticket',ticket_format:'digital',departure_country:'CN',arrival_country:'DE',airline:'China Railway CR',airline_iata:'CR',flight:'G101',airport:'北京南站',airport_iata:'BJP',route:'上海虹桥站',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],social_share_consent:true},3);
+  response=await call('/api/submit',{submission_type:'rail_ticket',ticket_format:'digital',departure_country:'CN',arrival_country:'DE',airline:'China Railway CR',airline_iata:'CR',flight:'G101',airport:'北京南站',airport_iata:'BJP',route:'上海虹桥站',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
   assert.equal(response.status,200);
   const saved=db.prepare('SELECT * FROM flights WHERE user_id=3 ORDER BY id DESC LIMIT 1').get();
   assert.equal(saved.submission_type,'rail_ticket');
@@ -23,14 +23,28 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   assert.equal(saved.airport_iata,'BJP');
   assert.ok([1,2].includes(saved.reviewer_id));
   for(let index=0;index<19;index++){
-    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[]},3);
+    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
     assert.equal(response.status,200);
   }
-  assert.equal(db.prepare('SELECT social_share_consent FROM flights WHERE flight=?').get('EA0').social_share_consent,0);
+  assert.equal(db.prepare('SELECT social_share_consent FROM flights WHERE flight=?').get('EA0').social_share_consent,1);
   const after=db.prepare('SELECT reviewer_id,COUNT(*) AS count FROM flights WHERE reviewer_id IN (1,2) GROUP BY reviewer_id').all();
   const delta=new Map(after.map(row=>[row.reviewer_id,row.count-(before.get(row.reviewer_id)||0)]));
   assert.ok(delta.get(2)>=12&&delta.get(2)<=15,`70% reviewer got ${delta.get(2)} of 20 assignments`);
   assert.ok(delta.get(1)>=5&&delta.get(1)<=8,`30% reviewer got ${delta.get(1)} of 20 assignments`);
+});
+
+test('submission requires both rules acceptance and social-share authorization',async()=>{
+  const {call,db}=fixture();
+  const payload={airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true};
+  let response=await call('/api/submit',{...payload,rules_consent:false},3);
+  assert.equal(response.status,400);
+  response=await call('/api/submit',{...payload,social_share_consent:false},3);
+  assert.equal(response.status,400);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM flights WHERE flight=?').get('EA42').n,0);
+  response=await call('/api/submit',payload,3);
+  assert.equal(response.status,200);
+  const saved=db.prepare('SELECT rules_consent,social_share_consent FROM flights WHERE flight=?').get('EA42');
+  assert.deepEqual({...saved},{rules_consent:1,social_share_consent:1});
 });
 
 test('profile writes bind to the authenticated user, and owner corrections reach SA', async()=>{

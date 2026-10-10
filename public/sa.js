@@ -769,6 +769,19 @@ async function loadUsers(){
 
 }
 
+async function loadPublicLinks(){
+  const input=document.getElementById('officialWechatUrl');if(!input)return;
+  try{const response=await fetch(`${API}/api/sa/public-links`,{credentials:'include',cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'加载失败');input.value=data.wechat||'';}
+  catch(error){const status=document.getElementById('officialWechatUrlStatus');if(status)status.textContent=`公众号链接加载失败：${error.message}`;}
+}
+document.getElementById('saveOfficialWechatUrl')?.addEventListener('click',async event=>{
+  const button=event.currentTarget,input=document.getElementById('officialWechatUrl'),status=document.getElementById('officialWechatUrlStatus');button.disabled=true;
+  try{const response=await fetch(`${API}/api/sa/public-links`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({wechat:input.value.trim()})}),data=await response.json();if(!response.ok)throw Error(data.error||'保存失败');status.textContent='公众号链接已保存';}
+  catch(error){status.textContent=error.message||'保存失败';}
+  finally{button.disabled=false;}
+});
+loadPublicLinks();
+
 function activateSAConsolePanel(panelId){
   const panels=[...document.querySelectorAll(".bpm-sa-page .sa-panel, .bpm-sa-page > #appeals")];
   const selected=panels.some(panel=>panel.id===panelId)?panelId:"saSecurityPanel";
@@ -1180,6 +1193,21 @@ document.addEventListener("DOMContentLoaded", function(){
     const publishUpdate =
         document.getElementById("publishUpdate");
 
+    const noticeVersionInput=document.getElementById("noticeVersion");
+    const noticeContentInput=document.getElementById("noticeContent");
+    let announcementRequestKey=null;
+    const loadAnnouncementHistory=async()=>{
+        const box=document.getElementById("saAnnouncementHistory");if(!box)return;
+        try{
+            const response=await fetch(`${API}/api/announcements`,{cache:"no-store"}),rows=await response.json();
+            if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"公告加载失败");
+            const escape=value=>String(value??"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+            box.innerHTML=rows.map(item=>`<article class="bpm-panel bpm-announcement-history-item"><h3>${escape(item.title||item.version||"公告")}</h3><small>${escape(item.created_at||"")}</small><p>${escape(item.content||"").replace(/\[\[RED\]\]([\s\S]*?)\[\[\/RED\]\]/g,'<span class="announcement-red">$1</span>')}</p></article>`).join("")||"暂无历史公告";
+        }catch(error){box.textContent=error.message||"公告加载失败";}
+    };
+    loadAnnouncementHistory();
+    [noticeVersionInput,noticeContentInput].filter(Boolean).forEach(input=>input.addEventListener("input",()=>{if(!publishNotice?.disabled)announcementRequestKey=null;}));
+
 
     // --------------------------
     // 发布更新日志
@@ -1190,10 +1218,10 @@ document.addEventListener("DOMContentLoaded", function(){
         publishNotice.addEventListener("click", async function(){
 
             const version =
-                document.getElementById("noticeVersion").value.trim();
+                noticeVersionInput.value.trim();
 
             const content =
-                document.getElementById("noticeContent").value.trim();
+                noticeContentInput.value.trim();
 
 
             if(!version){
@@ -1214,6 +1242,9 @@ document.addEventListener("DOMContentLoaded", function(){
 
             publishNotice.disabled=true;
             publishNotice.innerText="发布中...";
+            noticeVersionInput.disabled=true;
+            noticeContentInput.disabled=true;
+            announcementRequestKey ||= crypto.randomUUID().replaceAll("-","");
 
 
             try{
@@ -1228,7 +1259,8 @@ document.addEventListener("DOMContentLoaded", function(){
                         body:JSON.stringify({
                             sa_id:user.id,
                             version:version,
-                            content:content
+                            content:content,
+                            idempotency_key:announcementRequestKey
                         })
                     }
                 );
@@ -1248,6 +1280,8 @@ document.addEventListener("DOMContentLoaded", function(){
                     document.getElementById(
                         "noticeContent"
                     ).value="";
+                    announcementRequestKey=null;
+                    await loadAnnouncementHistory();
 
                 }else{
 
@@ -1271,6 +1305,8 @@ document.addEventListener("DOMContentLoaded", function(){
 
                 publishNotice.disabled=false;
                 publishNotice.innerText="发布更新";
+                noticeVersionInput.disabled=false;
+                noticeContentInput.disabled=false;
 
             }
 

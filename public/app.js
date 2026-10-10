@@ -1,9 +1,27 @@
 let flights = [];
 let displayFlights = [];
 let favoriteIds = [];
+let flightsLoading = true;
+let flightLoadFailed = false;
 let entityIndex={airlinesByCode:new Map(),airportsByCode:new Map(),airlinesByAlias:new Map(),airportsByAlias:new Map()};
 const normalizeEntity=value=>String(value||"").normalize("NFKC").trim().toLocaleLowerCase("en").replace(/[\s\p{P}\p{S}]/gu,"");
 const cleanEntityName=value=>String(value||"").trim().replace(/^[\s"'“”‘’《》]+|[\s"'“”‘’《》]+$/gu,"");
+const railEntities=[
+  {code:"CR",zhCN:"中国国家铁路",zhTW:"中國國家鐵路",en:"China Railway",aliases:["CR","中国国家铁路","中国国家铁路 CR","China Railway"]},
+  {code:"DB",zhCN:"德国铁路",zhTW:"德國鐵路",en:"Deutsche Bahn",aliases:["DB","德国铁路","德国铁路 DB","Deutsche Bahn"]},
+  {code:"AM",zhCN:"美国国家铁路客运公司",zhTW:"美國國家鐵路客運公司",en:"Amtrak",aliases:["AM","Amtrak"]},
+  {code:"AC",zhCN:"Amtrak Acela",zhTW:"Amtrak Acela",en:"Amtrak Acela",aliases:["AC","Acela","Amtrak Acela"]},
+  {code:"ES",zhCN:"欧洲之星",zhTW:"歐洲之星",en:"Eurostar",aliases:["ES","欧洲之星","欧洲之星 Eurostar","Eurostar"]},
+  {code:"SN",zhCN:"法国国家铁路",zhTW:"法國國家鐵路",en:"SNCF",aliases:["SN","SNCF","法国国家铁路","法国国家铁路 SNCF"]},
+  {code:"JR",zhCN:"日本铁路",zhTW:"日本鐵路",en:"Japan Railways",aliases:["JR","日本铁路","Japan Railways"]},
+  {code:"SBB",zhCN:"瑞士联邦铁路",zhTW:"瑞士聯邦鐵路",en:"Swiss Federal Railways",aliases:["SBB","瑞士联邦铁路","Swiss Federal Railways"]},
+];
+const railEntityByCode=new Map(railEntities.map(entry=>[entry.code,entry]));
+const railEntityByAlias=new Map(railEntities.flatMap(entry=>entry.aliases.map(alias=>[normalizeEntity(alias),entry])));
+function railEntity(record){
+  if(record?.submission_type!=="rail_ticket")return null;
+  return railEntityByCode.get(String(record?.airline_iata||"").trim().toUpperCase())||railEntityByAlias.get(normalizeEntity(record?.airline));
+}
 function addEntityRows(kind,rows){
   const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
   const byAlias=kind==="airline"?entityIndex.airlinesByAlias:entityIndex.airportsByAlias;
@@ -21,6 +39,7 @@ const entityIndexReady=fetch("/data/entity-aliases.json",{cache:"force-cache"}).
 }).catch(()=>null);
 function entityIdentity(kind,record){
   const isAirline=kind==="airline",raw=String(record?.[kind]||"").trim();
+  const rail=kind==="airline"?railEntity(record):null;if(rail)return `rail:${rail.code}`;
   const iata=String(record?.[isAirline?"airline_iata":"airport_iata"]||"").trim().toUpperCase();
   const icao=String(record?.[isAirline?"airline_icao":"airport_icao"]||"").trim().toUpperCase();
   const byCode=isAirline?entityIndex.airlinesByCode:entityIndex.airportsByCode;
@@ -30,20 +49,28 @@ function entityIdentity(kind,record){
   const alias=byAlias.get(normalizeEntity(raw));if(alias)return `${kind}:${alias.code}`;
   const codes=raw.toUpperCase().match(/\b[A-Z0-9]{2,6}\b/g)||[];
   for(const code of codes)if(byCode.has(code))return `${kind}:${byCode.get(code).code}`;
-  const special={"china railway cr":"rail:CR","中国国家铁路cr":"rail:CR","deutsche bahn":"rail:DB","德国铁路db":"rail:DB","amtrak":"rail:AM","acela":"rail:AC","eurostar":"rail:ES","欧洲之星eurostar":"rail:ES","sncf":"rail:SN","法国国家铁路sncf":"rail:SN","japan railways":"rail:JR","日本铁路jr":"rail:JR","swiss federal railways":"rail:SBB","瑞士联邦铁路sbb":"rail:SBB"};
   const simplified=normalizeEntity(raw.replace(/\([^)]*\)/g,""));
-  return `raw:${special[simplified]||kind+":"+simplified}`;
+  return `raw:${kind+":"+simplified}`;
 }
 function entityLabel(kind,record){
   const identity=entityIdentity(kind,record),code=identity.split(":").at(-1);
+  const rail=identity.startsWith("rail:")?railEntityByCode.get(code):null;
+  if(rail){const locale=window.BPM_LANGUAGE==="zh-CN"?rail.zhCN:window.BPM_LANGUAGE==="zh-TW"?rail.zhTW:rail.en;return `${locale} (${rail.code})`;}
   const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
   const entry=byCode.get(code);
-  if(!entry)return String(record?.[kind]||"").trim();
+  if(!entry){
+    const raw=String(record?.[kind]||"").trim();
+    if(!raw)return "";
+    if(/^[A-Z0-9]{2,5}$/i.test(raw))return window.BPM_LANGUAGE==="en"?`Unlisted ${kind==="airline"?"airline":"airport"} (${raw.toUpperCase()})`:window.BPM_LANGUAGE==="zh-TW"?`未收錄${kind==="airline"?"航空公司":"機場"}（${raw.toUpperCase()}）`:`未收录${kind==="airline"?"航司":"机场"}（${raw.toUpperCase()}）`;
+    return raw;
+  }
   const localized=window.BPM_LANGUAGE==="zh-CN"?entry.nameCn:entry.nameEn;
   return `${localized||entry.nameCn||entry.nameEn||record?.[kind]||code} (${entry.code})`;
 }
 function entitySearchNames(kind,record){
   const identity=entityIdentity(kind,record),code=identity.split(":").at(-1);
+  const rail=identity.startsWith("rail:")?railEntityByCode.get(code):null;
+  if(rail)return [record?.[kind],rail.zhCN,rail.zhTW,rail.en,rail.code].filter(Boolean).join(" ");
   const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
   const entry=byCode.get(code);
   return [record?.[kind],entry?.nameCn,entry?.nameEn,entry?.code].filter(Boolean).join(" ");
@@ -54,28 +81,33 @@ function entitySearchNames(kind,record){
 // =====================
 
 async function loadFlights() {
-
+  flightsLoading = true;
+  flightLoadFailed = false;
   try {
-
-    const [res] = await Promise.all([
-      fetch("https://api.bpmuseum.org.cn/api/flights"),
-      entityIndexReady
-    ]);
-
-    if (!res.ok) {
-      throw new Error(
-        `API request failed: ${res.status}`
-      );
+    renderMuseum();
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    const requestTimeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+    let res;
+    let data;
+    try {
+      res = await fetch("https://api.bpmuseum.org.cn/api/flights", { cache: "no-store", ...(controller ? { signal: controller.signal } : {}) });
+      if (!res.ok) {
+        throw new Error(`API request failed: ${res.status}`);
+      }
+      data = await res.json();
+    } finally {
+      if(requestTimeout)clearTimeout(requestTimeout);
     }
-
-    const data = await res.json();
 
     flights =
       Array.isArray(data)
         ? data
         : [];
+    flightsLoading = false;
 
     populateMuseumFilters();
+    applyMuseumFilter();
+    entityIndexReady.then(()=>{if(!flightsLoading&&!flightLoadFailed){populateMuseumFilters();applyMuseumFilter();}});
 
 
     const user =
@@ -117,7 +149,8 @@ async function loadFlights() {
       error
     );
 
-    flights = [];
+    flightsLoading = false;
+    flightLoadFailed = flights.length===0;
 
     applyMuseumFilter();
 
@@ -283,6 +316,10 @@ document.addEventListener(
 "DOMContentLoaded",
 ()=>{
 
+  document.getElementById("museum")?.addEventListener("click",event=>{
+    if(event.target.closest("[data-gallery-retry]"))loadFlights();
+  });
+
   document
   .getElementById("museumSearch")
   ?.addEventListener(
@@ -329,6 +366,26 @@ function renderMuseum() {
   if (!museum)
     return;
 
+  const english=window.BPM_LANGUAGE==="en";
+  const resultCount=document.getElementById("museumResultCount");
+  if(typeof museum.setAttribute==="function")museum.setAttribute("aria-busy",String(flightsLoading));
+  if(flightsLoading){
+    const title=english?"Opening the collection":traditional?"正在開啟館藏":"正在打开线上展厅";
+    const detail=english?"The exhibits are on their way. Some connections take a little longer.":traditional?"展品正在載入，部分網路連線可能需要多一點時間。":"正在连接展品目录；部分网络连接需要多一点时间。";
+    museum.innerHTML=`<div class="gallery-loading-state"><div class="gallery-loading-copy"><span class="gallery-loading-mark" aria-hidden="true">✈</span><div><strong>${title}</strong><p>${detail}</p></div></div><div class="gallery-skeleton-grid" aria-hidden="true">${Array.from({length:3},()=>'<article class="gallery-skeleton-card"><span class="gallery-skeleton-image"></span><span class="gallery-skeleton-line short"></span><span class="gallery-skeleton-line"></span><span class="gallery-skeleton-line medium"></span></article>').join("")}</div></div>`;
+    if(resultCount)resultCount.textContent=english?"Connecting to the collection…":traditional?"正在連線至館藏…":"正在连接馆藏…";
+    return;
+  }
+  if(typeof museum.setAttribute==="function")museum.setAttribute("aria-busy","false");
+  if(flightLoadFailed){
+    const title=english?"The collection is taking longer to load":traditional?"館藏暫時載入較慢":"展品暂时连接较慢";
+    const detail=english?"Your exhibits have not disappeared. Try again in a moment.":traditional?"展品並沒有消失，請稍後重試。":"展品没有消失，稍后再试就好。";
+    const retry=english?"Try again":traditional?"重新載入":"重新加载";
+    museum.innerHTML=`<div class="gallery-load-error"><div><strong>${title}</strong><p>${detail}</p><button type="button" data-gallery-retry>${retry}</button></div></div>`;
+    if(resultCount)resultCount.textContent=english?"Waiting for a connection":traditional?"等待網路連線":"等待网络连接";
+    return;
+  }
+
   museum.innerHTML = "";
 
   if (
@@ -358,9 +415,9 @@ function renderMuseum() {
       const english=window.BPM_LANGUAGE==="en";
       const airlineLabel=bpmSafeRecord({value:entityLabel("airline",flight)}).value;
       const airportLabel=bpmSafeRecord({value:entityLabel("airport",flight)}).value;
-      const translateUrl=(target)=>window.bpmGoogleTranslateUrl?.(rawStory,target)||"https://translate.google.com/";
       const translateLabels=english?["English","Traditional Chinese"]:traditional?["英文","繁體中文"]:["English","繁体中文"];
-      const storyTranslationLinks=rawStory.trim()?`<div class="story-translate-links"><span>${english?"Google Translate (story text is sent to Google)":traditional?"Google 翻譯（故事文字將傳送至 Google）":"Google 翻译（故事文本将发送至 Google）"}</span><a href="${translateUrl("en").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${translateLabels[0]}</a><a href="${translateUrl("zh-TW").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${translateLabels[1]}</a></div>`:"";
+      const storyForAttribute=bpmSafeRecord({value:rawStory}).value;
+      const storyTranslationLinks=rawStory.trim()?`<div class="story-translate-links" data-bpm-story="${storyForAttribute}"><span>${english?"Translate with DeepSeek (public story text is sent after you click)":traditional?"使用 DeepSeek 翻譯（點擊後會傳送公開故事文字）":"使用 DeepSeek 翻译（点击后会发送公开故事文本）"}</span><button type="button" data-bpm-translate="en">${translateLabels[0]}</button><button type="button" data-bpm-translate="zh-TW">${translateLabels[1]}</button><p class="story-translation-output" hidden aria-live="polite"></p></div>`:"";
       flight=bpmSafeRecord(flight);
       const isRail=flight.submission_type==="rail_ticket";
       let specialTags=flight.special_tags||[];
@@ -369,13 +426,15 @@ function renderMuseum() {
       }
       if(!Array.isArray(specialTags))specialTags=[];
       const labels=english
-        ? {rail:"Rail ticket",boarding:"Boarding pass",transfer:"Transfer",twoCabin:"Business/first class",other:"Other marker",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station"}
+        ? {rail:"Rail ticket",boarding:"Boarding pass",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station",domestic:"Domestic route",international:"International route",regional:"Regional route",business:"Business class",premium_economy:"Premium economy",first_class:"First class",silver:"Silver",gold:"Gold",platinum:"Platinum",special_assistance:"Special assistance",transfer:"Transfer",other:"Other",legacyTwoCabin:"Two-cabin baggage"}
         : traditional
-          ? {rail:"火車票",boarding:"登機牌",transfer:"轉機",twoCabin:"兩艙",other:"其他標記",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站"}
-          : {rail:"火车票",boarding:"登机牌",transfer:"转机",twoCabin:"两舱",other:"其他标记",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站"};
+          ? {rail:"火車票",boarding:"登機牌",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站",domestic:"國內航線",international:"國際航線",regional:"地區航線",business:"商務艙",premium_economy:"超級經濟艙",first_class:"頭等艙",silver:"銀卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"轉機",other:"其他",legacyTwoCabin:"兩艙行李"}
+          : {rail:"火车票",boarding:"登机牌",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站",domestic:"国内航线",international:"国际航线",regional:"地区航线",business:"公务舱",premium_economy:"超级经济舱",first_class:"头等舱",silver:"银卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"转机",other:"其他",legacyTwoCabin:"两舱行李"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
-      const specialBadges=specialTags.filter(tag=>["transfer","two_cabin","other"].includes(tag)).map(tag=>badge(tag==="transfer"?"repeat":tag==="two_cabin"?"armchair":"tag",tag==="transfer"?labels.transfer:tag==="two_cabin"?labels.twoCabin:labels.other)).join("");
+      const tagIcons={business:"armchair",premium_economy:"armchair",first_class:"armchair",silver:"circle",gold:"circle",platinum:"circle",special_assistance:"alert",transfer:"repeat",other:"file",two_cabin:"armchair"};
+      const specialBadges=specialTags.filter(tag=>tagIcons[tag]).map(tag=>badge(tagIcons[tag],labels[tag]||labels.legacyTwoCabin)).join("");
+      const routeScopeBadge=!isRail&&labels[flight.route_scope]?badge("globe",labels[flight.route_scope]):"";
 
       let card =
         document.createElement("div");
@@ -405,7 +464,7 @@ function renderMuseum() {
           ${airlineLabel || labels.operator}
         </span>
 
-        ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${specialBadges}`:``}
+        ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${specialBadges}`:``}
 
         <h3>
           ${flight.flight || ""}

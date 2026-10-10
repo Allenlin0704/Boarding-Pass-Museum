@@ -6,6 +6,8 @@ import { oauthRoute } from "./oauth.mjs";
 import { reviewRoute } from "./review.mjs";
 import { sitePhotoRoute } from "./site-photos.mjs";
 import { staffRoute } from "./staff.mjs";
+import { flightAssistRoute } from "./flight-assist.mjs";
+import { translationRoute } from "./translation.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
@@ -1888,7 +1890,8 @@ request.method==="POST"
 const {
 sa_id,
 version,
-content
+content,
+idempotency_key:idempotencyKey
 }=await request.json();
 
 const sa =
@@ -1911,10 +1914,8 @@ headers
 
 }
 
-if(
-!version ||
-!content
-){
+const title=String(version||'').trim(),bodyText=String(content||'').trim();
+if(!title||!bodyText||title.length>120||bodyText.length>10000){
 
 return Response.json(
 {
@@ -1928,23 +1929,29 @@ headers
 
 }
 
-await env.DB.prepare(
+if(idempotencyKey!==undefined&&(typeof idempotencyKey!=='string'||! /^[A-Za-z0-9_-]{16,80}$/.test(idempotencyKey))){
+return Response.json({error:"发布标识无效，请刷新后重试"},{status:400,headers});
+}
+
+const announcementWrite=await env.DB.prepare(
 `
-INSERT INTO announcements
-(title,version,content)
-VALUES (?,?,?)
+INSERT OR IGNORE INTO announcements
+(title,version,content,idempotency_key)
+VALUES (?,?,?,?)
 `
 )
 .bind(
-version.trim(),
-version.trim(),
-content.trim()
+title,
+title,
+bodyText,
+idempotencyKey||null
 )
 .run();
 
 return Response.json(
 {
-success:true
+success:true,
+duplicate:Number(announcementWrite.meta?.changes||0)===0
 },
 {
 headers
@@ -2421,7 +2428,7 @@ export default {
         }
         const type=request.headers.get("Content-Type")||"";
         const sitePhotoUpload=/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(url.pathname);
-        if (!type.includes("application/json") && !((url.pathname==="/api/upload-image"||sitePhotoUpload)&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml')) && !(url.pathname==='/api/oauth/apple/callback'&&type.includes('application/x-www-form-urlencoded'))) {
+        if (!type.includes("application/json") && !((url.pathname==="/api/upload-image"||url.pathname==='/api/flight-assist/recognize'||sitePhotoUpload)&&type.includes("multipart/form-data")) && !(url.pathname==='/wechat'&&type.includes('xml')) && !(url.pathname==='/api/oauth/apple/callback'&&type.includes('application/x-www-form-urlencoded'))) {
           return responseHeaders(original,reply({error:"请求格式不支持"},415));
         }
       }
@@ -2462,6 +2469,10 @@ export default {
         const found=await env.DB.prepare(`SELECT airline,airport,flight,date FROM flights WHERE status='approved' AND upper(replace(replace(flight,' ',''),'-',''))=? ORDER BY CASE WHEN date=? THEN 0 ELSE 1 END,date DESC,id DESC LIMIT 1`).bind(flight,date).first();
         return responseHeaders(original,reply(found?{found:true,...found}:{found:false}));
       }
+      const flightAssist=await flightAssistRoute(request.clone(),env,url,auth.user);
+      if(flightAssist)return responseHeaders(original,flightAssist);
+      const translation=await translationRoute(request.clone(),env,url);
+      if(translation)return responseHeaders(original,translation);
       const progress = await progressRoute(request,env,url);
       if(progress) return responseHeaders(original,progress);
       const sitePhotos = await sitePhotoRoute(request.clone(),env,url,auth.user,uploadImage);

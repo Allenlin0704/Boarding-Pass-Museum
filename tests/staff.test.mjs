@@ -39,3 +39,21 @@ test('staff social links and the shared admin-SA chat enforce role and URL rules
   assert.equal(messages.length,1);assert.equal(messages[0].username,'Admin');assert.equal(messages[0].message,'管理员测试消息');
   assert.equal((await call('/api/staff-chat',{message:'<script>bad</script>'},1)).status,200);
 });
+
+test('only SA can manage the public WeChat link and the public directory exposes only its URL',async()=>{
+  const {call,db,worker,env}=fixture();
+  assert.equal((await call('/api/sa/public-links',null,2)).status,403);
+  assert.equal((await call('/api/sa/public-links',{wechat:'javascript:alert(1)'},1)).status,400);
+  assert.equal((await call('/api/sa/public-links',{wechat:'https://mp.weixin.qq.com/s/example'},1)).status,200);
+  assert.equal(db.prepare("SELECT url FROM site_public_links WHERE key='wechat'").get().url,'https://mp.weixin.qq.com/s/example');
+  const response=await worker.fetch(new Request('https://test.invalid/api/public/site-links'),env);
+  assert.deepEqual(await response.json(),{wechat:'https://mp.weixin.qq.com/s/example'});
+});
+
+test('story translation route is public but never admits unknown write routes without a session',async()=>{
+  const {worker,env}=fixture();
+  const response=await worker.fetch(new Request('https://test.invalid/api/translate/story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'A story',target:'en'})}),env);
+  assert.equal(response.status,503); // No provider secret configured in the test fixture.
+  const denied=await worker.fetch(new Request('https://test.invalid/api/not-a-route',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),env);
+  assert.equal(denied.status,401);
+});

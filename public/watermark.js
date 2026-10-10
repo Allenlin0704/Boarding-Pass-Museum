@@ -95,6 +95,7 @@ if (imageInput && canvas) {
 
 
                     draw();
+                    window.dispatchEvent(new Event("bpm-image-source-ready"));
 
 
                 };
@@ -285,7 +286,7 @@ if (imageInput && canvas) {
     updateCropControls();
     window.bpmImageEditorReady=()=>!cropMode&&!masking&&!cropRect;
     window.bpmGetEditorSource=()=>img.src||"";
-    window.bpmLoadEditorSource=source=>{const next=new Image(),objectUrl=source instanceof Blob?URL.createObjectURL(source):"";next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();if(objectUrl)URL.revokeObjectURL(objectUrl);};next.onerror=()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);};next.src=objectUrl||source;};
+    window.bpmLoadEditorSource=source=>{const next=new Image(),objectUrl=source instanceof Blob?URL.createObjectURL(source):"";next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();window.dispatchEvent(new Event("bpm-image-source-ready"));if(objectUrl)URL.revokeObjectURL(objectUrl);};next.onerror=()=>{document.getElementById("imageEditorSourceStatus")?.removeAttribute("hidden");if(objectUrl)URL.revokeObjectURL(objectUrl);};next.src=objectUrl||source;};
     window.bpmExportEditorBlob=async(options={})=>{
         if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");
         drawImageAndMasks();
@@ -316,7 +317,7 @@ if (imageInput && canvas) {
         return result;
     };
     async function takeEditorImage(key,legacyKey){
-        try{const blob=await window.bpmImageHandoff?.take(key);if(blob instanceof Blob)return blob;}catch{}
+        try{const blob=await window.bpmImageHandoff?.take(key);if(blob instanceof Blob){try{sessionStorage.removeItem(legacyKey);}catch{}return blob;}}catch{}
         try{const legacy=sessionStorage.getItem(legacyKey);if(legacy){sessionStorage.removeItem(legacyKey);return legacy;}}catch{}
         return null;
     }

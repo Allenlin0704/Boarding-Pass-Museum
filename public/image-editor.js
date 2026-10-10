@@ -22,21 +22,21 @@
   const persistImage = async (key, legacyKey, options) => {
     const blob = await window.bpmExportEditorBlob?.(options);
     if (!blob) throw Error("无法导出图片，请重新选择图片后重试");
+    // Keep a small, independently readable fallback before navigating. Some
+    // mobile browsers evict or block IndexedDB between page loads.
+    const fallbackBlob = await window.bpmExportEditorBlob?.({ maxEdge: 1200, maxBytes: 900 * 1024, type: "image/jpeg", quality: 0.68 });
+    if (!fallbackBlob) throw Error("无法准备图片暂存副本，请重新选择图片后重试");
+    const fallback = await new Promise((resolve, reject) => {
+      const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error("图片暂存失败")); reader.readAsDataURL(fallbackBlob);
+    });
+    try { sessionStorage.setItem(legacyKey, fallback); }
+    catch { throw Error("浏览器暂存空间不足，请先压缩或缩小图片后重试"); }
     try {
       if (!window.bpmImageHandoff) throw Error("IndexedDB unavailable");
       await window.bpmImageHandoff.set(key, blob);
-      sessionStorage.removeItem(legacyKey);
       return;
     } catch {
-      // Older/private browsing modes may disable IndexedDB. Keep a smaller
-      // JPEG fallback for browsers that still support sessionStorage.
-      const fallback = window.bpmExportEditorImage?.({
-        maxEdge: Math.min(Number(options.maxEdge) || 1600, 1600),
-        type: "image/jpeg",
-        quality: 0.78
-      });
-      if (!fallback) throw Error("当前浏览器无法暂存图片，请改用较小的图片后重试");
-      sessionStorage.setItem(legacyKey, fallback);
+      // The small sessionStorage copy is already ready for the next page.
     }
   };
 
@@ -64,6 +64,11 @@
   });
 
   if (path.endsWith("/image-editor.html")) {
+    const sourceStatus=document.getElementById("imageEditorSourceStatus"),sourcePicker=document.getElementById("ticketImage");
+    const showPicker=()=>{if(sourceStatus)sourceStatus.hidden=false;};
+    window.addEventListener("bpm-image-source-ready",()=>{if(sourceStatus)sourceStatus.hidden=true;});
+    document.getElementById("reselectEditorImage")?.addEventListener("click",()=>sourcePicker?.click());
+    window.setTimeout(()=>{if(!window.bpmGetEditorSource?.())showPicker();},1200);
     const limitInput=document.getElementById("imageCompressionLimit"),compressionStatus=document.getElementById("imageCompressionStatus");
     try{const saved=JSON.parse(sessionStorage.getItem("bpmImageEditorWatermarkSettings")||"{}");if(["2","3","4"].includes(saved.maxImageMB))limitInput.value=saved.maxImageMB;}catch{}
     limitInput?.addEventListener("change",saveWatermarkSettings);

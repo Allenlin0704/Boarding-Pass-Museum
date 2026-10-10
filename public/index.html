@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=5"></script>
+<script src="security.js?v=20261006-ai"></script>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="favicon.png">
@@ -35,9 +35,9 @@
 
   <title>登机牌博物馆 | BoardingPassMuseum</title>
 
-  <link rel="stylesheet" href="style.css?v=20260927-photo-login2">
-  <link rel="stylesheet" href="features.css?v=20261006-multilingual">
-  <script src="theme.js?v=20261006-multilingual"></script>
+  <link rel="stylesheet" href="style.css?v=20261010-gallery-loading">
+  <link rel="stylesheet" href="features.css?v=20261010-gallery-loading">
+  <script src="theme.js?v=20261006-assist-tags"></script>
 </head>
 
 
@@ -158,9 +158,15 @@ data-i18n-placeholder="home.search"
 
 <select id="museumBaggageTag" aria-label="按行李标记筛选">
 <option value="" data-i18n="home.baggageTags">全部行李标记</option>
-<option value="transfer" data-i18n="home.baggageTag.transfer">转机行李</option>
-<option value="two_cabin" data-i18n="home.baggageTag.twoCabin">两舱行李</option>
-<option value="other" data-i18n="home.baggageTag.other">其他行李标记</option>
+<option value="business" data-i18n="home.baggageTag.business">公务舱</option>
+<option value="premium_economy" data-i18n="home.baggageTag.premiumEconomy">超级经济舱</option>
+<option value="first_class" data-i18n="home.baggageTag.first">头等舱</option>
+<option value="silver" data-i18n="home.baggageTag.silver">银卡</option>
+<option value="gold" data-i18n="home.baggageTag.gold">金卡</option>
+<option value="platinum" data-i18n="home.baggageTag.platinum">白金卡</option>
+<option value="special_assistance" data-i18n="home.baggageTag.assistance">特殊保障</option>
+<option value="transfer" data-i18n="home.baggageTag.transfer">转机</option>
+<option value="other" data-i18n="home.baggageTag.other">其他</option>
 </select>
 
 <select id="museumFormat" aria-label="按登机牌形式筛选">
@@ -190,10 +196,15 @@ data-i18n-placeholder="home.search"
 </p>
 
 
-<div id="museum" class="museum-grid">
-
-  <!-- 展品卡片将在这里显示 -->
-
+<div id="museum" class="museum-grid" aria-busy="true">
+  <div class="gallery-loading-state">
+    <div class="gallery-loading-copy"><span class="gallery-loading-mark" aria-hidden="true">✈</span><div><strong>正在打开线上展厅</strong><p>展品正在加载，部分网络连接需要多一点时间。</p></div></div>
+    <div class="gallery-skeleton-grid" aria-hidden="true">
+      <article class="gallery-skeleton-card"><span class="gallery-skeleton-image"></span><span class="gallery-skeleton-line short"></span><span class="gallery-skeleton-line"></span><span class="gallery-skeleton-line medium"></span></article>
+      <article class="gallery-skeleton-card"><span class="gallery-skeleton-image"></span><span class="gallery-skeleton-line short"></span><span class="gallery-skeleton-line"></span><span class="gallery-skeleton-line medium"></span></article>
+      <article class="gallery-skeleton-card"><span class="gallery-skeleton-image"></span><span class="gallery-skeleton-line short"></span><span class="gallery-skeleton-line"></span><span class="gallery-skeleton-line medium"></span></article>
+    </div>
+  </div>
 </div>
 
 <section class="bpm-panel museum-about-copy" aria-labelledby="museumAboutHeading">
@@ -212,7 +223,7 @@ data-i18n-placeholder="home.search"
 
 <script src="auth.js?v=20260930-nav-fix"></script>
 <script src="image-preview.js"></script>
-<script src="app.js?v=20261006-multilingual"></script>
+<script src="app.js?v=20261010-gallery-loading"></script>
 <script src="notice.js?v=20260930-popup-fix"></script>
 <script src="auth-hero.js?v=20261001-photo-weekdays"></script>
 

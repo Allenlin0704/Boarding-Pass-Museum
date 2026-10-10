@@ -12,7 +12,7 @@ test('submission, restore and withdrawal each notify the authenticated submitter
     return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
   };
   try{
-    const submitted=await call('/api/submit',{user_id:3,airline:'示例航空',flight:'MU5309',route:'PEK',date:'2026-09-27',airport:'PVG',image:'https://images.bpmuseum.org.cn/tickets/test.jpg'},3);
+    const submitted=await call('/api/submit',{user_id:3,airline:'示例航空',flight:'MU5309',route:'PEK',date:'2026-09-27',airport:'PVG',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',rules_consent:true,social_share_consent:true},3);
     assert.equal(submitted.status,200);
     const {flight_id:id}=await submitted.json();
     assert.equal(messages.length,1);

@@ -3,12 +3,13 @@
   if (!page || !['en', 'zh-TW'].includes(window.BPM_LANGUAGE)) return;
 
   const en = `
-    <p>These rules apply to all submissions and reviews on BoardingPassMuseum. We value authentic records, lawful content, respect for copyright, and protection of personal information.</p>
+    <p><strong>Rules version: 2026.10.06</strong> · Effective date: 2026-10-06</p>
+    <p>These rules apply to all submissions and reviews on BoardingPassMuseum. We value authentic records, lawful content, respect for copyright, and protection of personal information. Past rule updates remain available in site announcements.</p>
     <h2>Submission categories</h2>
     <ul>
-      <li><strong>Boarding passes:</strong> Paper and electronic civil-aviation boarding passes from routes worldwide are accepted. Select the format shown and enter the airline, flight number, departure airport, and date.</li>
+      <li><strong>Boarding passes:</strong> Paper and electronic civil-aviation boarding passes from routes worldwide are accepted. Select the format and domestic, international, or regional route scope shown, then enter the airline, flight number, departure airport, and date. An arrival airport is not required.</li>
       <li><strong>Rail tickets:</strong> Authentic railway tickets are accepted. Enter the operator, train number, departure and arrival stations, and the country or region at each end. For international trips, select both countries separately.</li>
-      <li><strong>Special baggage markers:</strong> A boarding-pass submission may include the “transfer baggage” or “two-cabin baggage” marker when it appears on the baggage tag. These markers describe baggage handling; they are not submission categories and do not replace the boarding-pass category. The marker must match the image.</li>
+      <li><strong>Cabin, membership, and service markers:</strong> Choose business class, premium economy, first class, silver, gold, platinum, special assistance, transfer, or other when supported by the ticket or baggage tag. These are exhibit filters, not submission categories. A baggage-claim receipt attached to a boarding pass is part of the ticket image, not a baggage marker. Every selected marker must match the image.</li>
     </ul>
     <p>Do not submit the same ticket more than once, forged tickets, another person’s ticket without permission, or an image that does not match the selected category. The operator, flight or train number, location, and date must agree with the ticket.</p>
     <p>Do not submit unlawful or confidential material, content that violates public standards, or another person’s ticket without authorization. Only registered users may submit exhibits.</p>
@@ -20,6 +21,7 @@
       <li>Use fully opaque solid black or white blocks. Translucent shapes, stickers, mosaics, blur, or partially cropped numbers may leave the original information readable and do not meet the privacy requirement.</li>
       <li>You may choose whether to cover seat numbers, gates, boarding sequence numbers, boarding times, destinations, and dates. Do not cover the airline or operator, flight or train number, or departure location needed to identify the ticket.</li>
       <li>Submit only content you are authorized to share. Obtain permission and credit the source when reposting or submitting for someone else. Infringing, confidential, or unlawful material will be declined or removed.</li>
+      <li>DeepSeek image recognition is optional. Only after you edit and redact the image and actively consent is the current editor canvas sent to DeepSeek. BoardingPassMuseum does not store that recognition image. AI results can be wrong; verify each field against the ticket.</li>
     </ul>
     <h2>Review, appeals, and status notices</h2>
     <p>After submission, an exhibit enters the review queue and is assigned according to the schedule set by the super administrator. The schedule may include regular administrators and the super administrator. Approved exhibits appear in the gallery. Administrators must follow these rules and avoid conflicts of interest or misuse of their authority.</p>
@@ -32,12 +34,13 @@
     <p>We may decline submissions that do not meet these rules and handle unlawful, infringing, confidential, or abusive content under site policy. Changes to these rules will be announced on the site.</p>`;
 
   const tw = `
-    <p>本規則適用於 BoardingPassMuseum 的所有投稿與審核作業。本站重視資料真實、內容合法、尊重著作權及保護個人隱私。</p>
+    <p><strong>規則版本：2026.10.06</strong> · 生效日期：2026-10-06</p>
+    <p>本規則適用於 BoardingPassMuseum 的所有投稿與審核作業。本站重視資料真實、內容合法、尊重著作權及保護個人隱私。歷次規則更新會保留於網站公告。</p>
     <h2>投稿類別</h2>
     <ul>
-      <li><strong>登機牌：</strong>接受全球航線的民航紙本及電子登機牌。請依票面選擇形式，並填寫航空公司、航班、出發機場及日期。</li>
+      <li><strong>登機牌：</strong>接受全球航線的民航紙本及電子登機牌。請依票面選擇形式及國內、國際或地區航線，並填寫航空公司、航班、出發機場及日期；不必填寫抵達機場。</li>
       <li><strong>火車票：</strong>接受真實鐵路客票。請填寫營運公司、車次、出發與抵達車站，以及兩端的國家或地區。跨國行程請分別選擇兩端國家。</li>
-      <li><strong>特殊行李標記：</strong>若行李牌上印有「轉機行李」或「兩艙行李」標記，登機牌投稿可依實際情況選擇。這些標記用來描述行李處理方式，不是投稿類別，也不能取代登機牌類別；標記須與圖片相符。</li>
+      <li><strong>艙等、會員與服務標記：</strong>依票面或行李牌實際資訊選擇商務艙、超級經濟艙、頭等艙、銀卡、金卡、白金卡、特殊保障、轉機或其他。這些是展品篩選標記，不是投稿類別。登機牌上連在一起的行李提領憑證屬於票面內容，不是行李標記。所選標記須與圖片相符。</li>
     </ul>
     <p>請勿重複投稿同一張票據、偽造票據、未經許可投稿他人票據，或上傳與所選類別不符的圖片。營運公司、航班或車次、地點及日期應與票面一致。</p>
     <p>禁止投稿違法或涉密內容、違反公序良俗的內容，以及未經授權的他人票據。僅限已註冊使用者投稿展品。</p>
@@ -49,6 +52,7 @@
       <li>遮蔽須使用完全不透明的純黑或純白色塊。半透明色塊、貼紙、馬賽克、模糊處理，或只裁掉部分號碼，都可能讓原始資訊仍可辨識，不符合隱私要求。</li>
       <li>座位、登機門、登機序號、登機時間、目的地與日期可自行決定是否遮蔽。不得遮住辨識票據所需的航空公司／營運公司、航班或車次，以及出發地點。</li>
       <li>僅上傳你有權分享的內容。轉載或代他人投稿須取得授權並註明來源；侵權、涉密或違法內容將遭拒絕或下架。</li>
+      <li>DeepSeek 圖片辨識為選用功能。只有在你先完成編輯、遮蔽個人資料並主動同意後，目前編輯畫布才會傳送至 DeepSeek。BoardingPassMuseum 不會儲存這次辨識圖片。AI 結果可能有誤，請逐項核對票面資料。</li>
     </ul>
     <h2>審核、申訴與狀態通知</h2>
     <p>投稿送出後會進入審核佇列，並依超級管理員設定的排班分派處理；排班可包含一般管理員及超級管理員。通過審核的展品會公開展示。管理員須依本規則審核，保持公正並避免利益衝突或濫用權限。</p>

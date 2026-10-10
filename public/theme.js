@@ -35,12 +35,21 @@
         user:'<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>'
     };
     window.bpmIcon=(name)=>lucidePaths[name]?`<svg class="bpm-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${lucidePaths[name]}</svg>`:"";
-    window.bpmGoogleTranslateUrl=(text,target)=>{const url=new URL("https://translate.google.com/");url.searchParams.set("sl","auto");url.searchParams.set("tl",target);url.searchParams.set("text",String(text||""));url.searchParams.set("op","translate");return url.href;};
+    document.addEventListener("click",async event=>{
+        const button=event.target.closest?.("[data-bpm-translate]");if(!button)return;
+        event.preventDefault();event.stopPropagation();
+        const panel=button.closest(".story-translate-links"),output=panel?.querySelector(".story-translation-output"),text=panel?.dataset.bpmStory||"";
+        if(!panel||!output||!text)return;
+        const target=button.dataset.bpmTranslate;button.disabled=true;output.hidden=false;output.textContent=window.bpmLocaleText("正在翻译公开故事…");
+        try{const response=await fetch("https://api.bpmuseum.org.cn/api/translate/story",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,target})});const data=await response.json();if(!response.ok)throw Error(data.error||"翻译暂不可用");output.textContent=data.translated;}
+        catch(error){output.textContent=error.message||window.bpmLocaleText("翻译暂不可用，请稍后重试。");}
+        finally{button.disabled=false;}
+    });
 
     const translations={
         en:{
             "nav.gallery":"Gallery","nav.submit":"Submit","nav.community":"Community","nav.my":"My submissions","nav.favorites":"Favorites","nav.admin":"Admin","nav.login":"Log in","nav.register":"Sign up","nav.account":"Account settings","nav.notifications":"Notifications & appeals","nav.manager":"Management center","nav.logout":"Log out","nav.update":"Check for updates",
-            "home.title":"Boarding Pass Museum","home.tagline":"Boarding passes and flight notes shared by travelers.","home.enter":"Browse the collection","home.latest":"Latest exhibits","home.search":"Search flights, operators, stations or airports…","home.sort.latest":"Latest uploads","home.sort.favorite":"Most saved","home.sort.hot":"Popular today","home.airline":"All airlines and operators","home.category":"All submission types","home.category.boarding":"Boarding pass","home.category.rail":"Rail ticket","home.baggageTags":"All baggage markers","home.baggageTag.transfer":"Transfer baggage","home.baggageTag.twoCabin":"Two-cabin baggage","home.format":"All boarding pass formats","home.format.paper":"Paper","home.format.digital":"Electronic","home.airport":"All departure airports or stations","home.year":"All years","home.reset":"Clear filters","home.description":"Find exhibits by flight, operator, station or airport, submission type, baggage marker, or year.",
+        "home.title":"Boarding Pass Museum","home.tagline":"Boarding passes and flight notes shared by travelers.","home.enter":"Browse the collection","home.latest":"Latest exhibits","home.search":"Search flights, operators, stations or airports…","home.sort.latest":"Latest uploads","home.sort.favorite":"Most saved","home.sort.hot":"Popular today","home.airline":"All airlines and operators","home.category":"All submission types","home.category.boarding":"Boarding pass","home.category.rail":"Rail ticket","home.baggageTags":"All baggage markers","home.baggageTag.transfer":"Transfer","home.baggageTag.twoCabin":"Two-cabin baggage","home.format":"All boarding pass formats","home.format.paper":"Paper","home.format.digital":"Electronic","home.airport":"All departure airports or stations","home.year":"All years","home.reset":"Clear filters","home.description":"Find exhibits by flight, operator, station or airport, submission type, baggage marker, or year.",
             "authHero.title":"Boarding Pass Museum","authHero.subtitle":"Boarding passes, routes and collections from travelers.",
             "community.title":"Community","community.tagline":"A place for aviation enthusiasts.","community.publish":"Create a post","community.sort":"Sort","community.latest":"Latest","community.hot":"Popular","community.notice":"Please use the posting feature responsibly. Administrators may hide content that violates the rules.",
             "footer.tagline":"A digital collection of journeys preserved on boarding passes.","footer.about":"About","footer.privacy":"Privacy","footer.rules":"Submission rules","footer.communityRules":"Community rules",
@@ -53,12 +62,24 @@
             "authHero.title":"登機牌博物館","authHero.subtitle":"旅客收藏的登機牌、航線與旅程。","community.title":"社群","community.tagline":"航空愛好者的交流空間。","community.publish":"發布貼文","community.sort":"排序","community.latest":"最新發布","community.hot":"熱門討論","community.notice":"請合理使用發文功能；管理員可下架違規內容。","footer.tagline":"以登機牌珍藏每一段旅程。","footer.about":"關於我們","footer.privacy":"隱私說明","footer.rules":"投稿規則","footer.communityRules":"社群規則","submit.back":"返回社群","submit.title":"發布社群貼文","submit.intro":"分享登機牌收藏、航空旅行與機場見聞。","submit.postTitle":"標題","submit.content":"內文","submit.image":"圖片（選填）","submit.publish":"閱讀規則並發布","login.title":"登入","login.email":"電子郵件","login.password":"密碼","login.forgot":"忘記密碼？","login.button":"登入","register.title":"建立帳戶","register.intro":"加入 BoardingPassMuseum，收藏你的飛行回憶。","register.username":"使用者名稱","register.email":"電子郵件","register.code":"電子郵件驗證碼","register.sendCode":"取得驗證碼","register.password":"密碼","register.confirm":"確認密碼","register.button":"建立帳戶","submit.baggageTags":"特殊行李標記（選填）","submit.baggageTagsHint":"轉機行李與兩艙行李都是行李標記，不是投稿類型。","submit.transferBaggage":"轉機行李","submit.twoCabinBaggage":"兩艙行李"
         }
     };
-    translations.en["submit.baggageTagsHint"] = "Choose a marker printed on the baggage tag, such as transfer or premium cabin. A baggage receipt attached to a boarding pass is ticket content, not a baggage marker.";
-    translations["zh-TW"]["submit.baggageTagsHint"] = "此處選擇行李牌上的轉機、兩艙等標記；連在登機牌上的行李提領憑證屬於票面內容，不是行李標記。";
+    Object.assign(translations.en,{
+        "home.baggageTags":"All service and baggage markers","home.baggageTag.business":"Business class","home.baggageTag.premiumEconomy":"Premium economy","home.baggageTag.first":"First class","home.baggageTag.silver":"Silver card","home.baggageTag.gold":"Gold card","home.baggageTag.platinum":"Platinum card","home.baggageTag.assistance":"Special assistance","home.baggageTag.transfer":"Transfer","home.baggageTag.other":"Other",
+        "submit.routeScope":"Route scope","submit.route.choose":"Choose route scope","submit.route.domestic":"Domestic","submit.route.international":"International","submit.route.regional":"Regional","submit.deepseekConsent":"I have redacted personal details and agree to send the edited image to DeepSeek for recognition.","submit.deepseekPrivacy":"Only the edited canvas is sent when you request recognition. This site does not store it. Redact names, ticket and order numbers, QR codes, and barcodes first.","submit.deepseekButton":"Recognize ticket with DeepSeek",
+        "submit.baggageTags":"Cabin and service markers (optional)","submit.baggageTagsHint":"Choose markers printed on the pass or baggage tag. A baggage receipt attached to a boarding pass is ticket content, not a marker.",
+        "submit.tag.business":"Business class","submit.tag.premiumEconomy":"Premium economy","submit.tag.first":"First class","submit.tag.silver":"Silver card","submit.tag.gold":"Gold card","submit.tag.platinum":"Platinum card","submit.tag.assistance":"Special assistance","submit.tag.transfer":"Transfer","submit.tag.other":"Other"
+    });
+    Object.assign(translations["zh-TW"],{
+        "home.baggageTags":"全部行李與服務標記","home.baggageTag.business":"商務艙","home.baggageTag.premiumEconomy":"超級經濟艙","home.baggageTag.first":"頭等艙","home.baggageTag.silver":"銀卡","home.baggageTag.gold":"金卡","home.baggageTag.platinum":"白金卡","home.baggageTag.assistance":"特殊保障","home.baggageTag.transfer":"轉機","home.baggageTag.other":"其他",
+        "submit.routeScope":"航線範圍","submit.route.choose":"請選擇航線範圍","submit.route.domestic":"國內","submit.route.international":"國際","submit.route.regional":"地區","submit.deepseekConsent":"我已遮蔽個人資料，並同意將處理後的圖片傳送給 DeepSeek 辨識。","submit.deepseekPrivacy":"僅在你點擊辨識時傳送目前編輯畫布；本站不會儲存圖片。請先遮蔽姓名、票號、訂單號、QR Code 與條碼。","submit.deepseekButton":"使用 DeepSeek 辨識票面",
+        "submit.baggageTags":"行李與服務標記（選填）","submit.baggageTagsHint":"依登機牌或行李牌上的實際標記選擇；連在登機牌上的行李提領憑證屬於票面內容，不是此處的標記。",
+        "submit.tag.business":"商務艙","submit.tag.premiumEconomy":"超級經濟艙","submit.tag.first":"頭等艙","submit.tag.silver":"銀卡","submit.tag.gold":"金卡","submit.tag.platinum":"白金卡","submit.tag.assistance":"特殊保障","submit.tag.transfer":"轉機","submit.tag.other":"其他"
+    });
+    translations.en["submit.baggageTagsHint"] = "Choose markers that appear on the ticket or baggage tag. A baggage receipt attached to a boarding pass is ticket content, not a marker.";
+    translations["zh-TW"]["submit.baggageTagsHint"] = "依票面或行李牌上的實際標記選擇；連在登機牌上的行李提領憑證屬於票面內容，不是此處的標記。";
     translations.en["submit.otherBaggage"] = "Other baggage marker";
     translations["zh-TW"]["submit.otherBaggage"] = "其他行李標記";
-    translations.en["home.baggageTag.other"] = "Other baggage marker";
-    translations["zh-TW"]["home.baggageTag.other"] = "其他行李標記";
+    translations.en["home.baggageTag.other"] = "Other";
+    translations["zh-TW"]["home.baggageTag.other"] = "其他";
     translations.en["sa.reviewerScheduleHint"] = "Set the share of new submissions assigned to each reviewer. The total must equal exactly 100%. Set a reviewer to 0% to stop assigning new submissions; the SA may also review.";
     translations["zh-TW"]["sa.reviewerScheduleHint"] = "請設定分配給每位審核人的新稿比例，總和必須正好為 100%。設為 0% 即不再分配新稿；SA 也可參與審核。";
     translations.en["sa.reviewerScheduleTotal"] = "Current total: {percent}% (must equal 100%)";
@@ -390,6 +411,8 @@
         ["账户与数据", "Accounts and data", "帳戶與資料"], ["关于我们", "About us", "關於我們"], ["我们在做什么", "What we do", "我們的工作"], ["联系与反馈", "Contact and feedback", "聯絡與意見回饋"], ["服务说明", "About the service", "服務說明"], ["我们收集哪些信息", "Information we collect", "我們蒐集哪些資料"], ["如何使用这些信息", "How we use information", "資料使用方式"], ["存储与服务提供方", "Storage and service providers", "儲存與服務提供者"], ["你的选择与权利", "Your choices and rights", "你的選擇與權利"], ["规则更新", "Changes to this notice", "本說明的更新"]
     );
     phraseRows.push(["英文","English","英文"],["繁體中文","Traditional Chinese","繁體中文"],["繁体中文","Traditional Chinese","繁體中文"]);
+    phraseRows.push(["查看历史公告","View announcement history","查看歷史公告"],["查看历次公告","View past announcements","查看歷次公告"],["正在加载历史公告…","Loading announcement history…","正在載入歷史公告…"],["正在加载公告…","Loading announcements…","正在載入公告…"]);
+    phraseRows.push(["从第一版上线至今","Since the first release","從第一版上線至今"],["首版上线时间","First release","首版上線時間"]);
     phraseRows.push(
         ["关于我们｜登机牌博物馆 BoardingPassMuseum", "About BoardingPassMuseum | Boarding Pass Museum", "關於我們｜登機牌博物館 BoardingPassMuseum"],
         ["航空旅行社区 · BoardingPassMuseum", "Aviation Travel Community · BoardingPassMuseum", "航空旅行社群 · BoardingPassMuseum"],
@@ -583,6 +606,21 @@
         document.body.appendChild(nav);
     }
 
+    async function updateOfficialWechatLink() {
+        try {
+            const response = await fetch("https://api.bpmuseum.org.cn/api/public/site-links", { cache: "no-store" });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (!/^https:\/\//i.test(data.wechat || "")) return;
+            document.querySelectorAll('a[href^="weixin:"]').forEach(link => {
+                link.href = data.wechat;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.title = "BoardingPassMuseum 微信公众号";
+            });
+        } catch {}
+    }
+
     function addFooter() {
         const existingFooter = document.querySelector(".bpm-footer");
         if (existingFooter) {
@@ -592,6 +630,7 @@
                 wechat.innerHTML = `微信公众号：<a href="weixin://dl/officialaccounts" title="在微信中查找 BoardingPassMuseum">bpmuseumorgcn</a> <span>（在微信搜索）</span>`;
                 existingFooter.insertBefore(wechat, existingFooter.querySelector(".copyright") || null);
             }
+            updateOfficialWechatLink();
             return;
         }
 
@@ -600,6 +639,7 @@
         footer.innerHTML = `<h3>BoardingPassMuseum</h3><p>收录登机牌、航线信息与旅客投稿。</p><p><a href="about.html">关于我们</a>　<a href="privacy.html">隐私说明</a>　<a href="rules.html">投稿及审核条例</a>　<a href="community-rules.html">社区条例</a></p><p>微信公众号：<a href="weixin://dl/officialaccounts" title="在微信中查找 BoardingPassMuseum">bpmuseumorgcn</a>（在微信搜索）</p><p>联系邮箱：<a href="mailto:allenlin_developer@outlook.com">allenlin_developer@outlook.com</a></p><div class="copyright">© 2026 BoardingPassMuseum. All Rights Reserved.</div>`;
         localizeTree(footer);
         document.body.appendChild(footer);
+        updateOfficialWechatLink();
 
     }
 

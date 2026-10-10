@@ -749,7 +749,7 @@ showToast(
 "请先登录"
 );
 
-return;
+return false;
 
 }
 
@@ -836,6 +836,11 @@ if(data.success){
 showToast(
 "航空档案保存成功"
 );
+try{
+const cached=JSON.parse(localStorage.getItem("currentUser")||"null");
+if(cached){Object.assign(cached,{avatar:body.avatar,avatar_shape:body.avatar_shape,bio:body.bio,social_media:body.social_media,equipment:body.equipment,favorite_airlines:body.favorite_airlines,favorite_airports:body.favorite_airports});localStorage.setItem("currentUser",JSON.stringify(cached));}
+}catch{}
+return true;
 
 
 }else{
@@ -844,6 +849,7 @@ showToast(
 data.error ||
 "保存失败"
 );
+return false;
 
 }
 
@@ -853,6 +859,7 @@ data.error ||
 showToast(
 "网络错误"
 );
+return false;
 
 }
 
@@ -914,7 +921,7 @@ avatarCanvas.addEventListener("pointermove",event=>{if(!pointer||!avatarImage)re
 for(const name of ["pointerup","pointercancel","lostpointercapture"])avatarCanvas.addEventListener(name,()=>{pointer=null;});
 saveControl?.addEventListener("click",async()=>{
  if(!avatarImage)return;saveControl.disabled=true;const circle=shapeControl?.value==="circle",mime=circle?"image/png":"image/jpeg";
- avatarCanvas.toBlob(async blob=>{if(!blob){showToast("图片处理失败");saveControl.disabled=false;return;}const formData=new FormData();formData.append("image",blob,circle?"avatar.png":"avatar.jpg");try{showToast("正在上传头像");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.style.borderRadius=circle?"50%":"12px";const saveButton=document.getElementById("saveProfile");if(saveButton?.onclick)await saveButton.onclick();showToast("头像已上传并保存到档案");}catch(error){showToast(error.message||"头像上传失败");}finally{saveControl.disabled=false;}},mime,0.92);
+ avatarCanvas.toBlob(async blob=>{if(!blob){showToast("图片处理失败");saveControl.disabled=false;return;}const formData=new FormData();formData.append("image",blob,circle?"avatar.png":"avatar.jpg");try{showToast("正在上传头像");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.style.borderRadius=circle?"50%":"12px";const saveButton=document.getElementById("saveProfile"),saved=saveButton?.onclick?await saveButton.onclick():false;if(saved)showToast("头像已保存到档案");else showToast("图片已上传；档案保存失败，请检查错误提示后重试");}catch(error){showToast(error.message||"头像上传失败");}finally{saveControl.disabled=false;}},mime,0.92);
 });
 }
 

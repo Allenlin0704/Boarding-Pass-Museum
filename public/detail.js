@@ -38,7 +38,8 @@ bpmSafeRecord(await res.json());
 const storySource=document.createElement("textarea");
 storySource.innerHTML=data.story||"";
 const storyForTranslate=storySource.value;
-const storyTranslateControls=storyForTranslate.trim()?`<div class="story-translate-links"><span>${window.BPM_LANGUAGE==="en"?"Google Translate (story text is sent to Google)":window.BPM_LANGUAGE==="zh-TW"?"Google 翻譯（故事文字將傳送至 Google）":"Google 翻译（故事文本将发送至 Google）"}</span><a href="${(window.bpmGoogleTranslateUrl?.(storyForTranslate,"en")||"https://translate.google.com/").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer">${window.BPM_LANGUAGE==="zh-TW"?"英文":"English"}</a><a href="${(window.bpmGoogleTranslateUrl?.(storyForTranslate,"zh-TW")||"https://translate.google.com/").replace(/&/g,"&amp;")}" target="_blank" rel="noopener noreferrer">${window.BPM_LANGUAGE==="en"?"Traditional Chinese":window.BPM_LANGUAGE==="zh-TW"?"繁體中文":"繁体中文"}</a></div>`:"";
+const storyForAttribute=bpmSafeRecord({value:storyForTranslate}).value;
+const storyTranslateControls=storyForTranslate.trim()?`<div class="story-translate-links" data-bpm-story="${storyForAttribute}"><span>${window.BPM_LANGUAGE==="en"?"Translate with DeepSeek (public story text is sent after you click)":window.BPM_LANGUAGE==="zh-TW"?"使用 DeepSeek 翻譯（點擊後會傳送公開故事文字）":"使用 DeepSeek 翻译（点击后会发送公开故事文本）"}</span><button type="button" data-bpm-translate="en">${window.BPM_LANGUAGE==="zh-TW"?"英文":"English"}</button><button type="button" data-bpm-translate="zh-TW">${window.BPM_LANGUAGE==="en"?"Traditional Chinese":window.BPM_LANGUAGE==="zh-TW"?"繁體中文":"繁体中文"}</button><p class="story-translation-output" hidden aria-live="polite"></p></div>`:"";
 
 
 console.log("DETAIL DATA:",data);

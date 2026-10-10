@@ -1,4 +1,4 @@
-const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/api/oauth/apple/start','/api/oauth/microsoft/start','/api/oauth/github/start','/api/oauth/apple/callback','/wechat']);
+const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/api/oauth/apple/start','/api/oauth/microsoft/start','/api/oauth/github/start','/api/oauth/apple/callback','/api/translate/story','/wechat']);
 export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -12,14 +12,14 @@ const turnstileAction=(path)=>{
   if(path==='/api/register')return 'signup';
   if(path==='/api/account/reset/send-code')return 'reset_code';
   if(path==='/api/account/reset-password')return 'reset';
-  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts')return 'submission';
+  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts'||path==='/api/flight-assist/recognize')return 'submission';
   if(path.startsWith('/api/my/'))return 'exhibit_status';
   if(path.startsWith('/api/sa'))return 'sa_console';
   if(path.startsWith('/api/admin/'))return 'admin_review';
   return 'profile_edit';
 };
 export async function verifyTurnstile(request,env,url) {
-  if(url.pathname==='/wechat'||url.pathname==='/api/oauth/apple/callback'||url.pathname==='/api/staff-chat')return null;
+  if(url.pathname==='/wechat'||url.pathname==='/api/oauth/apple/callback'||url.pathname==='/api/staff-chat'||url.pathname==='/api/translate/story')return null;
   if(['GET','HEAD','OPTIONS'].includes(request.method)||url.pathname==='/api/logout')return null;
   // This binding only exists in the isolated in-memory test fixture.
   if(env.TURNSTILE_TEST_BYPASS===true)return null;
@@ -240,7 +240,7 @@ export function responseHeaders(request,response) {
 export async function boundedRequest(request) {
   if(['GET','HEAD','OPTIONS'].includes(request.method)||!request.body) return request;
   const path=new URL(request.url).pathname;
-  const max=path==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path)?6*1024*1024:64*1024;
+  const max=path==='/api/flight-assist/recognize'?2.5*1024*1024:path==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path)?6*1024*1024:64*1024;
   const reader=request.body.getReader(),chunks=[];let length=0;
   while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>max){await reader.cancel();throw new RangeError('请求过大');}chunks.push(value);}
   const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
