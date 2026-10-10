@@ -476,7 +476,7 @@
     const watchLocaleDom=()=>{if(document.body)localeObserver.observe(document.body,{subtree:true,childList:true,characterData:true});};
 
     const pwaScript = document.createElement("script");
-    pwaScript.src = "pwa.js?v=3";
+    pwaScript.src = "pwa.js?v=4";
     pwaScript.defer = true;
     document.head.appendChild(pwaScript);
 
