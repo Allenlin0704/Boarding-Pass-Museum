@@ -1,4 +1,5 @@
 (() => {
+  if (location.hostname === 'admin.bpmuseum.org.cn') return;
   let installPrompt;
   const language = () => ['en', 'zh-TW'].includes(window.BPM_LANGUAGE) ? window.BPM_LANGUAGE : 'zh-CN';
   const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

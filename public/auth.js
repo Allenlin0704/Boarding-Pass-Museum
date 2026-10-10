@@ -113,10 +113,6 @@ function updateNavbar(){
         </a>
 
 
-        <a href="admin.html">
-        Admin
-        </a>
-
 
         <span id="userArea">
 
@@ -190,12 +186,6 @@ function updateNavbar(){
                 我的收藏
                 </a>
 
-
-                <a href="admin.html">
-                管理员中心
-                </a>
-
-                ${currentUser.role==="superadministrator"?'<a href="sa.html">SA 控制台</a>':''}
 
                 <button type="button" id="checkUpdate">检查新版本</button>
 
@@ -284,6 +274,7 @@ function updateNavbar(){
                 localStorage.removeItem(
                     "currentUser"
                 );
+                sessionStorage.removeItem("bpm_admin_entry_authenticated");
 
 
                 location.reload();

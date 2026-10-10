@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>管理员专属登录 · BoardingPassMuseum</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css?v=20261010-global-design">
+  <link rel="stylesheet" href="features.css?v=20261010-global-design">
+  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
+  <script src="security.js?v=5"></script>
+  <script src="theme.js?v=20261010-admin-domain"></script>
+</head>
+<body>
+  <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · 管理入口</div><nav><a href="https://bpmuseum.org.cn/">返回展厅</a></nav></header>
+  <main class="auth-page">
+    <section class="submit-form">
+      <p class="bpm-page-kicker">ADMINISTRATOR ACCESS</p>
+      <h1>管理员专属登录</h1>
+      <p>管理员和 SA 账号请从此页面登录。首次使用账户密码，之后可设置 PIN 或使用 Passkey。</p>
+      <label for="adminRole">登录身份</label>
+      <select id="adminRole"><option value="administrator">管理员</option><option value="superadministrator">SA</option></select>
+      <label for="loginEmail">邮箱</label>
+      <input id="loginEmail" type="email" autocomplete="username" required>
+      <label for="loginPassword">密码</label>
+      <div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required><button type="button" class="password-toggle" data-password="loginPassword" aria-label="显示密码"><span data-bpm-icon="eye"></span></button></div>
+      <a href="https://bpmuseum.org.cn/reset-password.html">忘记密码？</a>
+      <button id="loginBtn" type="button">登录管理中心</button>
+      <hr>
+      <label for="adminPin">管理员 PIN（6 位）</label>
+      <input id="adminPin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+      <button id="adminPinLogin" type="button">使用 PIN 登录</button>
+      <details>
+        <summary>设置或更改 PIN</summary>
+        <p>需要验证账户密码。PIN 仅用于你的管理员账号，连续输错 5 次会暂时锁定。</p>
+        <label for="newAdminPin">新 PIN</label>
+        <input id="newAdminPin" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password">
+        <button id="saveAdminPin" type="button">保存 PIN</button>
+      </details>
+      <button id="passkeyLogin" type="button">使用 Passkey 登录</button>
+      <div class="oauth-actions" data-oauth="login" hidden>
+        <p class="oauth-divider"><span>或使用第三方账户</span></p>
+        <button type="button" data-provider="github" hidden>使用 GitHub 登录</button>
+        <button type="button" data-provider="apple" hidden>使用 Apple 登录</button>
+        <button type="button" data-provider="microsoft" hidden>使用 Microsoft 登录</button>
+      </div>
+      <p id="adminLoginHelp" role="status" class="bpm-muted">此入口只接受管理员和超级管理员账号。</p>
+    </section>
+  </main>
+  <script src="notice.js?v=20260930-popup-fix"></script>
+  <script src="login.js?v=20261010-admin-domain"></script>
+  <script src="login-passkey.js?v=20261010-admin-domain"></script>
+  <script src="admin-pin-login.js?v=20261010-admin-domain"></script>
+  <script src="oauth.js?v=20261010-admin-domain"></script>
+  <script src="password-toggle.js?v=20260927"></script>
+</body>
+</html>

@@ -91,7 +91,7 @@ export async function staffRoute(request, env, url, user) {
   }
 
   if (path === '/api/staff-chat' && ['GET', 'POST'].includes(method)) {
-    if (!isAdmin(user)) return reply({ error: '仅管理员与 SA 可使用工作聊天' }, user ? 403 : 401);
+    if (!isAdmin(user) || user.auth_context !== 'admin') return reply({ error: user ? '请从管理员专属入口重新登录' : '仅管理员与 SA 可使用工作聊天' }, user ? 403 : 401);
     if (method === 'GET') {
       const rows = await env.DB.prepare(`SELECT m.id,m.user_id,m.message,m.created_at,u.username,u.role
         FROM staff_chat_messages m JOIN users u ON u.id=m.user_id

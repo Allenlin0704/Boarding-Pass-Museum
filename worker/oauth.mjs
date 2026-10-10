@@ -1,6 +1,7 @@
-import {passwordHash,randomHex,reply} from './security.mjs';
+import {passwordHash,randomHex,reply,ADMIN_ORIGIN,isAdmin} from './security.mjs';
 
 const SITE='https://bpmuseum.org.cn';
+const ADMIN_SITE=ADMIN_ORIGIN;
 const API='https://api.bpmuseum.org.cn';
 const enc=new TextEncoder();
 const b64url=value=>{
@@ -17,11 +18,12 @@ const configured=(env,provider)=>provider==='microsoft'
 const callback=provider=>`${API}/api/oauth/${provider}/callback`;
 const formPost=(url,body)=>fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','Accept':'application/json'},body:new URLSearchParams(body),signal:AbortSignal.timeout(12000)});
 const safeName=(name,email,provider)=>String(name||email?.split('@')[0]||`${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 用户`).trim().slice(0,40)||'新用户';
-const resultRedirect=(error='')=>new Response(null,{status:302,headers:{Location:`${SITE}/oauth-complete.html${error?`?error=${encodeURIComponent(error)}`:''}`}});
-const sessionResponse=async(env,user)=>{
+const resultRedirect=(error='',site=SITE,path='oauth-complete.html')=>new Response(null,{status:302,headers:{Location:`${site}/${path}${error?`?error=${encodeURIComponent(error)}`:''}`}});
+const sessionResponse=async(env,user,authContext)=>{
   const token=randomHex(32);
-  await env.DB.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at) VALUES(?,?,datetime('now','+7 days'))").bind(await hash(token),user.id).run();
-  const response=resultRedirect();
+  await env.DB.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at,auth_context) VALUES(?,?,datetime('now','+7 days'),?)").bind(await hash(token),user.id,authContext).run();
+  const site=authContext==='admin'?ADMIN_SITE:SITE;
+  const response=resultRedirect('',site,authContext==='admin'?'admin-oauth-complete.html':'oauth-complete.html');
   response.headers.set('Set-Cookie',`bpm_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`);
   return response;
 };
@@ -83,32 +85,36 @@ async function providerIdentity(provider,code,saved,env){
 async function finish(provider,body,env){
   const state=String(body.state||''),code=String(body.code||'');
   if(!state||!code)return resultRedirect(body.error?'登录授权已取消':'登录请求不完整');
-  const saved=await env.DB.prepare("DELETE FROM oauth_authorizations WHERE state_hash=? AND provider=? AND expires_at>datetime('now') RETURNING code_verifier,nonce,user_id").bind(await hash(state),provider).first();
+  const saved=await env.DB.prepare("DELETE FROM oauth_authorizations WHERE state_hash=? AND provider=? AND expires_at>datetime('now') RETURNING code_verifier,nonce,user_id,auth_context").bind(await hash(state),provider).first();
   if(!saved)return resultRedirect('登录请求已过期，请重新开始');
+  const authContext=saved.auth_context==='admin'?'admin':'public',site=authContext==='admin'?ADMIN_SITE:SITE,complete=authContext==='admin'?'admin-oauth-complete.html':'oauth-complete.html';
   try{
     const identity=await providerIdentity(provider,code,saved,env);
     let linked=await env.DB.prepare('SELECT u.* FROM oauth_identities o JOIN users u ON u.id=o.user_id WHERE o.provider=? AND o.subject=? AND u.deleted_at IS NULL').bind(provider,identity.subject).first();
     if(saved.user_id){
       const account=await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(saved.user_id).first();
-      if(!account)return resultRedirect('账户已失效，请重新登录');
-      if(linked&&Number(linked.id)!==Number(account.id))return resultRedirect('这个第三方账户已绑定其他用户');
+      if(!account)return resultRedirect('账户已失效，请重新登录',site,complete);
+      if(isAdmin(account)!==(authContext==='admin'))return resultRedirect(authContext==='admin'?'此入口仅供管理员使用':'管理员请使用管理专属入口登录',site,complete);
+      if(linked&&Number(linked.id)!==Number(account.id))return resultRedirect('这个第三方账户已绑定其他用户',site,complete);
       const own=await env.DB.prepare('SELECT subject FROM oauth_identities WHERE user_id=? AND provider=?').bind(account.id,provider).first();
-      if(own&&own.subject!==identity.subject)return resultRedirect(`请先解绑原有的 ${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 账户`);
+      if(own&&own.subject!==identity.subject)return resultRedirect(`请先解绑原有的 ${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 账户`,site,complete);
       await env.DB.prepare("INSERT INTO oauth_identities(user_id,provider,subject,email_at_link,last_used_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(provider,subject) DO UPDATE SET last_used_at=CURRENT_TIMESTAMP,email_at_link=excluded.email_at_link").bind(account.id,provider,identity.subject,identity.email||null).run();
-      return sessionResponse(env,account);
+      return sessionResponse(env,account,authContext);
     }
     if(linked){
+      if(isAdmin(linked)!==(authContext==='admin'))return resultRedirect(authContext==='admin'?'此入口仅供管理员使用':'管理员请使用管理专属入口登录',site,complete);
       await env.DB.prepare('UPDATE oauth_identities SET last_used_at=CURRENT_TIMESTAMP WHERE provider=? AND subject=?').bind(provider,identity.subject).run();
-      return sessionResponse(env,linked);
+      return sessionResponse(env,linked,authContext);
     }
-    if(!identity.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.email))return resultRedirect('第三方账户没有提供可验证邮箱，请改用邮箱登录');
+    if(authContext==='admin')return resultRedirect('此第三方账户尚未关联管理员账户，请使用管理员邮箱登录',site,complete);
+    if(!identity.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.email))return resultRedirect('第三方账户没有提供可验证邮箱，请改用邮箱登录',site,complete);
     const existing=await env.DB.prepare('SELECT id FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(identity.email).first();
-    if(existing)return resultRedirect('该邮箱已有账户，请先用原方式登录，再到账户设置中绑定');
+    if(existing)return resultRedirect('该邮箱已有账户，请先用原方式登录，再到账户设置中绑定',site,complete);
     const created=await env.DB.prepare("INSERT INTO users(username,email,password,role) VALUES(?,?,?,'user') RETURNING *").bind(safeName(identity.name,identity.email,provider),identity.email,await passwordHash(randomHex(32))).first();
     try{await env.DB.prepare("INSERT INTO oauth_identities(user_id,provider,subject,email_at_link,last_used_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP)").bind(created.id,provider,identity.subject,identity.email).run();}
     catch(error){await env.DB.prepare('DELETE FROM users WHERE id=?').bind(created.id).run();throw error;}
-    return sessionResponse(env,created);
-  }catch(error){return resultRedirect(error?.message||'第三方登录暂不可用');}
+    return sessionResponse(env,created,authContext);
+  }catch(error){return resultRedirect(error?.message||'第三方登录暂不可用',site,complete);}
 }
 
 export async function oauthRoute(request,env,url,user){
@@ -126,13 +132,15 @@ export async function oauthRoute(request,env,url,user){
     return finish(provider,body,env);
   }
   if(request.method!=='POST')return reply({error:'请求方式不支持'},405);
+  const adminOrigin=request.headers.get('Origin')===ADMIN_SITE;
   if(!configured(env,provider))return reply({error:'该登录方式尚未配置'},503);
   const startBody=await request.json();
   const linking=startBody.mode==='link';
   if(linking&&!user)return reply({error:'请重新登录后绑定'},401);
+  if(linking&&isAdmin(user)!==adminOrigin)return reply({error:adminOrigin?'此入口仅供管理员使用':'管理员请使用管理专属入口登录'},403);
   const state=randomHex(32),verifier=randomHex(48),nonce=randomHex(24);
   await env.DB.prepare("DELETE FROM oauth_authorizations WHERE expires_at<=datetime('now')").run();
-  await env.DB.prepare("INSERT INTO oauth_authorizations(state_hash,provider,code_verifier,nonce,user_id,expires_at) VALUES(?,?,?,?,?,datetime('now','+5 minutes'))").bind(await hash(state),provider,verifier,nonce,linking?user.id:null).run();
+  await env.DB.prepare("INSERT INTO oauth_authorizations(state_hash,provider,code_verifier,nonce,user_id,expires_at,auth_context) VALUES(?,?,?,?,?,datetime('now','+5 minutes'),?)").bind(await hash(state),provider,verifier,nonce,linking?user.id:null,adminOrigin?'admin':'public').run();
   let authorize;
   if(provider==='github'){
     authorize=new URL('https://github.com/login/oauth/authorize');

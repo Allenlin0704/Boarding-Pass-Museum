@@ -18,6 +18,16 @@ document.getElementById("consoleChatButton")?.addEventListener("click",()=>frame
     const response=await fetch(`${consoleApi}/api/session`,{credentials:"include",cache:"no-store"});
     const account=await response.json();
     if(!response.ok||!account.id)throw Error("请先登录");
+    if(["administrator","superadministrator"].includes(account.role)){
+      if(location.hostname!=="admin.bpmuseum.org.cn"){
+        location.replace(account.admin_context?"https://admin.bpmuseum.org.cn/console.html":"https://admin.bpmuseum.org.cn/admin-login.html");
+        return;
+      }
+      if(!account.admin_context){location.replace("admin-login.html");return;}
+    }else if(location.hostname==="admin.bpmuseum.org.cn"){
+      location.replace("https://bpmuseum.org.cn/console.html");
+      return;
+    }
     welcome.innerHTML=account.role==="user"?window.bpmLocaleText("管理员申请"):`<span data-user-content>${String(account.username||"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}</span> ${window.bpmLocaleText("的工作区")}`;
     if(account.role==="user"){
       controls.forEach(control=>control.hidden=true);
@@ -28,7 +38,10 @@ document.getElementById("consoleChatButton")?.addEventListener("click",()=>frame
       document.querySelector(".bpm-console-sidebar").append(hint);
       frame.src="admin.html?embed=1#admin-apply";
     }else if(!["administrator","superadministrator"].includes(account.role))throw Error("无权限");
+    if(account.role==="superadministrator"){
+      const saLink=document.createElement("a");saLink.className="bpm-console-exit";saLink.href="sa.html";saLink.textContent="SA 控制台";document.querySelector(".bpm-console-sidebar").insertBefore(saLink,document.querySelector(".bpm-console-exit"));
+    }
   }catch{
-    location.replace("login.html");
+    location.replace(location.hostname==="admin.bpmuseum.org.cn"?"admin-login.html":"login.html");
   }
 })();

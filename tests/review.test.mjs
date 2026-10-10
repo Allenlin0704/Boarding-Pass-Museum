@@ -37,6 +37,8 @@ test('admin applications: submission, SA listing, approval and rejection', async
   assert.equal(requests.length,1); assert.equal(requests[0].social,'test account');
   assert.equal((await call('/api/sa/admin-request/approve',{sa_id:1,request_id:1,user_id:3})).status,200);
   assert.equal(db.prepare('SELECT role FROM users WHERE id=3').get().role,'administrator');
+  const notice=db.prepare('SELECT content FROM notifications WHERE user_id=3 ORDER BY id DESC LIMIT 1').get();
+  assert.match(notice.content,/admin\.bpmuseum\.org\.cn/);assert.match(notice.content,/首次登录/);
   db.prepare("UPDATE users SET role='user' WHERE id=3").run();
   await call('/api/account/admin-request',{user_id:3,reason:'【隐私守护规范】测试理由',social:'test'});
   assert.equal((await call('/api/sa/admin-request/reject',{sa_id:1,request_id:2})).status,200);

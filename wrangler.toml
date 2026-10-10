@@ -14,4 +14,4 @@ bucket_name = "boardingpassmuseum-images"
 crons = ["0 * * * *"]
 
 [vars]
-TURNSTILE_HOSTNAMES = "bpmuseum.org.cn,www.bpmuseum.org.cn"
+TURNSTILE_HOSTNAMES = "bpmuseum.org.cn,www.bpmuseum.org.cn,admin.bpmuseum.org.cn"

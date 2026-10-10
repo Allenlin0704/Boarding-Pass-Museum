@@ -1,0 +1,275 @@
+/* Site-wide visual language: quiet surfaces, useful contrast, BoardingPassMuseum blue. */
+:root {
+  --bpm-accent: #77b8d8;
+  --bpm-accent-strong: #8cc7e3;
+  --bpm-accent-ink: #102733;
+  --bpm-bg: #101417;
+  --bpm-text: #f2f4f5;
+  --bpm-muted: #b8c0c5;
+  --bpm-card: #191f23;
+  --bpm-input: #151a1d;
+  --bpm-border: #354047;
+  --bpm-header: #191f23;
+  color-scheme: dark;
+}
+
+html.light-theme {
+  --bpm-accent: #245e7c;
+  --bpm-accent-strong: #174b68;
+  --bpm-accent-ink: #ffffff;
+  --bpm-bg: #f3f5f6;
+  --bpm-text: #151a1d;
+  --bpm-muted: #4e5960;
+  --bpm-card: #ffffff;
+  --bpm-input: #f8f9fa;
+  --bpm-border: #d4dadd;
+  --bpm-header: #ffffff;
+  color-scheme: light;
+}
+
+html,
+body {
+  background-color: var(--bpm-bg);
+  color: var(--bpm-text);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  line-height: 1.55;
+}
+
+body > header:not(.menubar) {
+  background: var(--bpm-card);
+  color: var(--bpm-text);
+}
+
+.menubar {
+  background: var(--bpm-header);
+  color: var(--bpm-text);
+  border-bottom: 1px solid var(--bpm-border);
+}
+
+.menubar a,
+.menubar .brand,
+.menubar #userMenuBtn {
+  color: var(--bpm-text);
+}
+
+.menubar nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-color: var(--bpm-accent);
+  text-underline-offset: 5px;
+}
+
+a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.bpm-form-page a,
+.sa-panel a,
+.profile-page a,
+.account-card a,
+.bpm-info-page .bpm-panel a,
+.bpm-auto-footer a {
+  color: var(--bpm-accent);
+}
+
+.bpm-page-hero span,
+.bpm-section-heading span,
+.bpm-page-hero p,
+.bpm-section-heading p,
+.bpm-form-actions p,
+.bpm-notice-page small {
+  color: var(--bpm-muted);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.bpm-page-hero h1,
+.bpm-form-page > h1 {
+  color: var(--bpm-text);
+  font-family: inherit;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 650;
+  letter-spacing: -.025em;
+  line-height: 1.16;
+}
+
+.card,
+.community-post,
+.community-comment,
+.account-card,
+.profile-card,
+.admin-card,
+.sa-panel,
+.modal,
+.panel,
+.bpm-panel,
+.bpm-form-page form,
+.bpm-dialog,
+.flight-footprint,
+.bpm-related-exhibits,
+.bpm-notice-page .bpm-panel,
+.bpm-moderation-row {
+  background-color: var(--bpm-card);
+  color: var(--bpm-text);
+  border-color: var(--bpm-border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.bpm-info-page .bpm-panel {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.card {
+  transition: border-color .16s ease, transform .16s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: none;
+  border-color: var(--bpm-accent);
+}
+
+.card h3,
+.card p,
+.community-post h2,
+.community-comment h3,
+.profile-card h1,
+.profile-card h2,
+.account-card h2,
+.admin-card h2,
+.sa-panel h2 {
+  color: var(--bpm-text);
+}
+
+.card p,
+.gallery-desc,
+.profile-info p,
+.community-notice,
+.community-post-meta,
+.community-post-rule,
+.museum-result-count {
+  color: var(--bpm-muted);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+textarea,
+select {
+  background-color: var(--bpm-input);
+  color: var(--bpm-text);
+  border-color: var(--bpm-border);
+  border-radius: 4px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--bpm-muted);
+  opacity: .82;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--bpm-accent);
+  outline-offset: 2px;
+}
+
+button {
+  background: var(--bpm-card);
+  color: var(--bpm-text);
+  border-color: var(--bpm-border);
+  border-radius: 5px;
+  font: inherit;
+}
+
+button:hover {
+  border-color: var(--bpm-accent);
+  filter: none;
+}
+
+button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.enter-btn,
+.bpm-install-app,
+.bpm-moderation-page button,
+.bpm-notice-page button,
+.deepseek-recognition-controls button,
+.bpm-staff-chat-dialog form button {
+  background: var(--bpm-accent);
+  color: var(--bpm-accent-ink);
+  border-color: var(--bpm-accent);
+}
+
+.bpm-footer {
+  background: var(--bpm-card);
+  color: var(--bpm-text);
+  border-color: var(--bpm-border);
+}
+
+.bpm-footer p {
+  color: var(--bpm-muted);
+}
+
+.theme-toggle {
+  color: var(--bpm-text);
+}
+
+@media (max-width: 700px) {
+  body > .menubar {
+    background: color-mix(in srgb, var(--bpm-card) 78%, transparent);
+    border-bottom-color: color-mix(in srgb, var(--bpm-border) 75%, transparent);
+    box-shadow: 0 5px 20px color-mix(in srgb, #06111a 12%, transparent);
+    backdrop-filter: blur(22px) saturate(1.5);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  }
+
+  .menubar nav {
+    background: color-mix(in srgb, var(--bpm-card) 88%, transparent) !important;
+    border-color: var(--bpm-border) !important;
+    box-shadow: 0 14px 32px color-mix(in srgb, #06111a 24%, transparent) !important;
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  }
+
+  .menubar > .user-menu .user-dropdown {
+    background: color-mix(in srgb, var(--bpm-card) 88%, transparent) !important;
+    border: 1px solid var(--bpm-border);
+    box-shadow: 0 14px 32px color-mix(in srgb, #06111a 24%, transparent);
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  }
+
+  .bpm-form-page,
+  .bpm-page-hero {
+    padding-top: 18px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .menubar,
+  .menubar nav,
+  .menubar .user-dropdown {
+    background: var(--bpm-card) !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

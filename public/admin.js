@@ -37,7 +37,7 @@ checkSA();
 
 if(!adminUser){
 
-location.href="login.html";
+location.href=location.hostname==="admin.bpmuseum.org.cn"?"admin-login.html":"https://admin.bpmuseum.org.cn/admin-login.html";
 
 return;
 

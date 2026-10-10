@@ -53,7 +53,8 @@ body:
 JSON.stringify(
 {
 email:email,
-password:password
+password:password,
+admin_role:document.getElementById("adminRole")?.value
 }
 )
 
@@ -85,6 +86,8 @@ data
 )
 );
 
+if(data.admin_context) sessionStorage.setItem("bpm_admin_entry_authenticated","1");
+
 
 
 showToast(
@@ -94,7 +97,7 @@ showToast(
 
 
 const requestedNext=new URLSearchParams(location.search).get("next")||"";
-const next=/^[a-zA-Z0-9_-]+\.html(?:[?#][^\s]*)?$/.test(requestedNext)?requestedNext:"index.html";
+const next=/^[a-zA-Z0-9_-]+\.html(?:[?#][^\s]*)?$/.test(requestedNext)?requestedNext:(data.admin_context?"console.html":"index.html");
 window.location.href = next;
 
 

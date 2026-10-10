@@ -144,6 +144,7 @@ function draftValue(){
     story: document.getElementById("story")?.value || "",
     submission_type:submissionTypeInput?.value||"boarding_pass",
     ticket_format:document.getElementById("ticketFormat")?.value||"paper",
+    cabin_class:document.getElementById("cabinClass")?.value||"economy",
     special_tags:[...document.querySelectorAll('input[name="specialTag"]:checked')].map(input=>input.value),
     rail_operator_code:selectedRailOperator?.iata||"",
     rail_operator_text:railOperatorInput?.value||"",
@@ -195,7 +196,7 @@ function restoreDraft(){
     document.getElementById("story").value = draft.story || "";
     if(submissionTypeInput)submissionTypeInput.value=draft.submission_type||"boarding_pass";
     updateSubmissionType();
-    for(const [id,value] of [["ticketFormat",draft.ticket_format],["routeScope",draft.route_scope],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value!==undefined&&value!=="")input.value=value;}
+    for(const [id,value] of [["ticketFormat",draft.ticket_format],["cabinClass",draft.cabin_class],["routeScope",draft.route_scope],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value!==undefined&&value!=="")input.value=value;}
     document.querySelectorAll('input[name="specialTag"]').forEach(input=>input.checked=(draft.special_tags||[]).includes(input.value));
     window.bpmSubmitDraft = draft;
     setDraftStatus("已恢复未提交草稿；图片需重新选择。");
@@ -1082,6 +1083,7 @@ let flightData = {
 
 submission_type:rail?"rail_ticket":"boarding_pass",
 ticket_format:rail?document.getElementById("railTicketFormat").value:document.getElementById("ticketFormat").value,
+cabin_class:rail?"":(document.getElementById("cabinClass")?.value||"economy"),
 departure_country:rail?document.getElementById("departureCountry").value.trim():(selectedAirport?.country_cn||""),
 arrival_country:rail?document.getElementById("arrivalCountry").value.trim():(selectedAirport?.country_cn||""),
 special_tags:rail?[]:[...document.querySelectorAll('input[name="specialTag"]:checked')].map(input=>input.value),

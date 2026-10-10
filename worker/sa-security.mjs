@@ -1,5 +1,5 @@
 import {generateRegistrationOptions,generateAuthenticationOptions,verifyRegistrationResponse,verifyAuthenticationResponse} from '@simplewebauthn/server';
-import {isSA,passwordHash,passwordMatches,reply,sessionTokenHash} from './security.mjs';
+import {isSA,passwordHash,passwordMatches,reply,sessionTokenHash,ADMIN_ORIGIN} from './security.mjs';
 const origin='https://bpmuseum.org.cn',rpID='bpmuseum.org.cn';
 const bytesToB64=value=>btoa(String.fromCharCode(...new Uint8Array(value))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64ToBytes=value=>Uint8Array.from(atob(String(value).replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-String(value).length%4)%4)),c=>c.charCodeAt(0));
@@ -48,14 +48,14 @@ export async function saSecurityRoute(request,env,url,user){
   }
   if(url.pathname==='/api/sa-security/passkey/register/verify'){
     const saved=await consume(env,hash,'register');if(!saved)return reply({error:'登记请求已过期，请重新开始'},400);
-    try{const verified=await verifyRegistrationResponse({response:body.credential,expectedChallenge:saved.challenge,expectedOrigin:origin,expectedRPID:rpID,requireUserVerification:true});if(!verified.verified||!verified.registrationInfo)return reply({error:'Passkey 登记未通过'},400);const c=verified.registrationInfo.credential;await env.DB.prepare("INSERT INTO sa_passkeys(credential_id,user_id,public_key,counter,transports) VALUES(?,?,?,?,?)").bind(c.id,user.id,bytesToB64(c.publicKey),Number(c.counter),JSON.stringify(c.transports||[])).run();await stepup(env,user,hash,'passkey');return reply({success:true});}catch{return reply({error:'Passkey 登记未通过'},400);}
+    try{const verified=await verifyRegistrationResponse({response:body.credential,expectedChallenge:saved.challenge,expectedOrigin:[origin,ADMIN_ORIGIN],expectedRPID:rpID,requireUserVerification:true});if(!verified.verified||!verified.registrationInfo)return reply({error:'Passkey 登记未通过'},400);const c=verified.registrationInfo.credential;await env.DB.prepare("INSERT INTO sa_passkeys(credential_id,user_id,public_key,counter,transports) VALUES(?,?,?,?,?)").bind(c.id,user.id,bytesToB64(c.publicKey),Number(c.counter),JSON.stringify(c.transports||[])).run();await stepup(env,user,hash,'passkey');return reply({success:true});}catch{return reply({error:'Passkey 登记未通过'},400);}
   }
   if(url.pathname==='/api/sa-security/passkey/auth/options'){
     const keys=await credentials(env,user);if(!keys.length)return reply({error:'尚未登记 Passkey'},400);const options=await generateAuthenticationOptions({rpID,allowCredentials:keys.map(k=>({id:k.credential_id,transports:JSON.parse(k.transports)})),userVerification:'required'});await challenge(env,hash,'auth',options.challenge);return reply(options);
   }
   if(url.pathname==='/api/sa-security/passkey/auth/verify'){
     const saved=await consume(env,hash,'auth'),key=body.credential?.id&&await env.DB.prepare('SELECT * FROM sa_passkeys WHERE credential_id=? AND user_id=?').bind(body.credential.id,user.id).first();if(!saved||!key)return reply({error:'Passkey 验证已过期，请重试'},400);
-    try{const verified=await verifyAuthenticationResponse({response:body.credential,expectedChallenge:saved.challenge,expectedOrigin:origin,expectedRPID:rpID,credential:{id:key.credential_id,publicKey:b64ToBytes(key.public_key),counter:Number(key.counter),transports:JSON.parse(key.transports)},requireUserVerification:true});if(!verified.verified)return reply({error:'Passkey 验证未通过'},403);await env.DB.prepare('UPDATE sa_passkeys SET counter=?,last_used_at=CURRENT_TIMESTAMP WHERE credential_id=?').bind(Number(verified.authenticationInfo.newCounter),key.credential_id).run();await stepup(env,user,hash,'passkey');return reply({success:true});}catch{return reply({error:'Passkey 验证未通过'},403);}
+    try{const verified=await verifyAuthenticationResponse({response:body.credential,expectedChallenge:saved.challenge,expectedOrigin:[origin,ADMIN_ORIGIN],expectedRPID:rpID,credential:{id:key.credential_id,publicKey:b64ToBytes(key.public_key),counter:Number(key.counter),transports:JSON.parse(key.transports)},requireUserVerification:true});if(!verified.verified)return reply({error:'Passkey 验证未通过'},403);await env.DB.prepare('UPDATE sa_passkeys SET counter=?,last_used_at=CURRENT_TIMESTAMP WHERE credential_id=?').bind(Number(verified.authenticationInfo.newCounter),key.credential_id).run();await stepup(env,user,hash,'passkey');return reply({success:true});}catch{return reply({error:'Passkey 验证未通过'},403);}
   }
   return reply({error:'请求不存在'},404);
 }

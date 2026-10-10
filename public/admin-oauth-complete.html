@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>验证管理员登录 · BoardingPassMuseum</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="style.css?v=20261010-global-design">
+  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
+  <script src="theme.js?v=20261010-admin-domain"></script>
+</head>
+<body>
+  <main class="auth-page"><section class="submit-form"><h1>正在验证管理员身份</h1><p id="adminOAuthStatus" role="status">请稍候…</p><a href="admin-login.html">返回管理员登录</a></section></main>
+  <script>
+    (() => {
+      const status = document.getElementById('adminOAuthStatus');
+      const error = new URLSearchParams(location.search).get('error');
+      if (error) { status.textContent = error; return; }
+      fetch('https://api.bpmuseum.org.cn/api/session', { credentials: 'include', cache: 'no-store' })
+        .then(async response => {
+          const account = await response.json();
+          if (!response.ok || !account.admin_context || !['administrator', 'superadministrator'].includes(account.role)) throw Error(account.error || '此登录不是管理员会话');
+          localStorage.setItem('currentUser', JSON.stringify(account));
+          sessionStorage.setItem('bpm_admin_entry_authenticated','1');
+          location.replace('console.html');
+        })
+        .catch(error => { status.textContent = error.message || '登录未完成，请重试'; });
+    })();
+  </script>
+</body>
+</html>

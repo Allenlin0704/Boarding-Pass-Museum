@@ -103,6 +103,7 @@ async function loadFlights() {
       Array.isArray(data)
         ? data
         : [];
+    window.BPM_EXHIBITS=flights;
     flightsLoading = false;
 
     populateMuseumFilters();
@@ -430,11 +431,13 @@ function renderMuseum() {
         : traditional
           ? {rail:"火車票",boarding:"登機牌",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站",domestic:"國內航線",international:"國際航線",regional:"地區航線",business:"商務艙",premium_economy:"超級經濟艙",first_class:"頭等艙",silver:"銀卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"轉機",other:"其他",legacyTwoCabin:"兩艙行李"}
           : {rail:"火车票",boarding:"登机牌",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站",domestic:"国内航线",international:"国际航线",regional:"地区航线",business:"公务舱",premium_economy:"超级经济舱",first_class:"头等舱",silver:"银卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"转机",other:"其他",legacyTwoCabin:"两舱行李"};
+      const cabinLabels=english?{economy:"Economy",premium_economy:"Premium economy",business:"Business",first_class:"First class (Business suite)",other:"Other"}:traditional?{economy:"經濟艙",premium_economy:"超級經濟艙",business:"商務艙",first_class:"頭等艙（豪華商務艙）",other:"其他"}:{economy:"经济舱",premium_economy:"超级经济舱",business:"公务舱",first_class:"头等舱（豪华公务舱）",other:"其他"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
       const tagIcons={business:"armchair",premium_economy:"armchair",first_class:"armchair",silver:"circle",gold:"circle",platinum:"circle",special_assistance:"alert",transfer:"repeat",other:"file",two_cabin:"armchair"};
       const specialBadges=specialTags.filter(tag=>tagIcons[tag]).map(tag=>badge(tagIcons[tag],labels[tag]||labels.legacyTwoCabin)).join("");
       const routeScopeBadge=!isRail&&labels[flight.route_scope]?badge("globe",labels[flight.route_scope]):"";
+      const cabinBadge=!isRail&&cabinLabels[flight.cabin_class]?badge("armchair",cabinLabels[flight.cabin_class]):"";
 
       let card =
         document.createElement("div");
@@ -464,7 +467,7 @@ function renderMuseum() {
           ${airlineLabel || labels.operator}
         </span>
 
-        ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${specialBadges}`:``}
+        ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${cabinBadge}${specialBadges}`:``}
 
         <h3>
           ${flight.flight || ""}
@@ -513,6 +516,8 @@ ${flight.username || "匿名用户"}
         ? (english?"Saved":"已收藏")
         : (english?"Save":"收藏")}
         </button>
+
+        ${Number(flight.social_share_consent)===1?`<button type="button" class="bpm-share-trigger" data-share-flight="${Number(flight.id)}">${english?"Share card":traditional?"分享卡":"分享卡"}</button>`:""}
 
       `;
 

@@ -1,5 +1,6 @@
-const PUBLIC_WRITES = new Set(['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/api/oauth/apple/start','/api/oauth/microsoft/start','/api/oauth/github/start','/api/oauth/apple/callback','/api/translate/story','/wechat']);
+const PUBLIC_WRITES = new Set(['/api/login','/api/account/admin-pin/login','/api/account/admin-pin/setup','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/api/oauth/apple/start','/api/oauth/microsoft/start','/api/oauth/github/start','/api/oauth/apple/callback','/api/translate/story','/wechat']);
 export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+export const ADMIN_ORIGIN = 'https://admin.bpmuseum.org.cn';
 const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
@@ -7,6 +8,7 @@ export const isAdmin = user => user?.role==='administrator' || isSA(user);
 export const reply = (body,status=200) => Response.json(body,{status});
 const turnstileAction=(path)=>{
   if(path==='/api/login')return 'login';
+  if(path==='/api/account/admin-pin/login'||path==='/api/account/admin-pin/setup')return 'login';
   if(/^\/api\/oauth\/(apple|microsoft|github)\/start$/.test(path))return 'login';
   if(path==='/api/send-code')return 'signup_code';
   if(path==='/api/register')return 'signup';
@@ -60,7 +62,7 @@ export async function passwordMatches(password,stored) {
 export async function sessionUser(request,env) {
   const token=request.headers.get('Cookie')?.match(/(?:^|;\s*)bpm_session=([a-f0-9]{64})(?:;|$)/)?.[1];
   if(!token) return null;
-  return env.DB.prepare(`SELECT users.* FROM auth_sessions JOIN users ON users.id=auth_sessions.user_id
+  return env.DB.prepare(`SELECT users.*,auth_sessions.auth_context FROM auth_sessions JOIN users ON users.id=auth_sessions.user_id
     WHERE token_hash=? AND expires_at>datetime('now') AND users.deleted_at IS NULL`).bind(await sha(token)).first();
 }
 export async function sessionTokenHash(request) {
@@ -75,11 +77,13 @@ async function limited(env,key,max,seconds) {
 }
 export async function authenticate(request,env,url) {
   const user=await sessionUser(request,env);
-  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || ['/api/my-flights','/api/favorites','/api/account/export','/api/account/deletion-request'].includes(url.pathname);
+  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || url.pathname.startsWith('/api/sa-security/') || ['/api/my-flights','/api/favorites','/api/account/export','/api/account/deletion-request'].includes(url.pathname);
   const write=!['GET','HEAD','OPTIONS'].includes(request.method);
   if((protectedRead || (write&&!PUBLIC_WRITES.has(url.pathname)))&&!user) return {response:reply({error:'请重新登录',success:false},401)};
   if(url.pathname.startsWith('/api/sa/')&&!isSA(user)) return {response:reply({error:'No permission'},403)};
   if(url.pathname.startsWith('/api/admin/')&&!isAdmin(user)) return {response:reply({error:'No permission'},403)};
+  if((url.pathname.startsWith('/api/sa/')||url.pathname.startsWith('/api/admin/'))&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
+  if(url.pathname.startsWith('/api/sa-security/')&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
   if((user?.permanent_ban || (user?.banned_until && new Date(user.banned_until+'Z').getTime()>Date.now())) && (write||protectedRead) && !['/api/logout','/api/community/moderation-appeal',...PUBLIC_WRITES].includes(url.pathname)) return {response:reply({error:'账号已被封禁'},403)};
   const imageUploadPath=url.pathname==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(url.pathname);
   if(write && user && !PUBLIC_WRITES.has(url.pathname) && await limited(env,`write:${user.id}:${url.pathname}`,imageUploadPath?10:60,60))return {response:reply({error:'操作过于频繁，请稍后再试'},429)};
@@ -103,7 +107,7 @@ export async function authenticate(request,env,url) {
 }
 export async function accountRoute(request,env,url,user,sendEmail) {
   const path=url.pathname;
-  if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user'}):reply({error:'请重新登录'},401);
+  if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user',admin_context:user.auth_context==='admin'}):reply({error:'请重新登录'},401);
   if(path==='/api/account/deletion-request'&&request.method==='GET') {
     if(!user) return reply({error:'请重新登录'},401);
     const requestRow=await env.DB.prepare('SELECT id,reason,status,requested_at,execute_at,finalized_at FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
@@ -174,21 +178,55 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     if(token) await env.DB.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await sha(token)).run();
     const res=reply({success:true});res.headers.set('Set-Cookie','bpm_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0');return res;
   }
-  const paths=['/api/login','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/account/change-email/send-code','/api/account/change-email','/api/account/change-username'];
+  const paths=['/api/login','/api/account/admin-pin/login','/api/account/admin-pin/setup','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/account/change-email/send-code','/api/account/change-email','/api/account/change-username'];
   if(!paths.includes(path)||request.method!=='POST') return null;
   const body=await request.json();
   const email=String(body.new_email||body.email||'').trim().toLowerCase();
   const ip=request.headers.get('CF-Connecting-IP')||'local';
   if(await limited(env,`${path}:${ip}`,path.includes('send-code')?8:30,600)) return reply({error:'操作过于频繁，请稍后再试'},429);
+  if(path==='/api/account/admin-pin/login') {
+    if(request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口登录'},403);
+    if(await limited(env,`admin-pin:${email}:${ip}`,8,900))return reply({error:'PIN 尝试过多，请稍后重试'},429);
+    const found=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
+    if(!found||!isAdmin(found)||found.must_reset_password)return reply({error:'账号或 PIN 错误'},401);
+    const actualRole=isSA(found)?'superadministrator':'administrator';
+    if(body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);
+    const pin=await env.DB.prepare('SELECT * FROM sa_pins WHERE user_id=?').bind(found.id).first();
+    if(!pin)return reply({error:'尚未设置 PIN，请先使用账户密码登录并设置'},401);
+    if(pin.locked_until&&new Date(pin.locked_until+'Z')>new Date())return reply({error:'PIN 已暂时锁定，请 15 分钟后重试'},429);
+    if(!/^\d{6}$/.test(String(body.pin||''))||!await passwordMatches(body.pin,pin.pin_hash)){
+      const attempts=Number(pin.failed_attempts)+1,locked=attempts>=5?"datetime('now','+15 minutes')":'NULL';
+      await env.DB.prepare(`UPDATE sa_pins SET failed_attempts=?,locked_until=${locked} WHERE user_id=?`).bind(attempts>=5?0:attempts,found.id).run();
+      return reply({error:'账号或 PIN 错误'},401);
+    }
+    await env.DB.prepare('UPDATE sa_pins SET failed_attempts=0,locked_until=NULL WHERE user_id=?').bind(found.id).run();
+    const token=randomHex(32);await env.DB.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at,auth_context) VALUES(?,?,datetime('now','+7 days'),'admin')").bind(await sha(token),found.id).run();
+    const res=reply({id:found.id,username:found.username,email:found.email,role:isSA(found)?'superadministrator':'administrator',admin_context:true});
+    res.headers.set('Set-Cookie',`bpm_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`);return res;
+  }
+  if(path==='/api/account/admin-pin/setup') {
+    if(request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口设置 PIN'},403);
+    if(await limited(env,`admin-pin-setup:${email}:${ip}`,8,900))return reply({error:'尝试过多，请稍后重试'},429);
+    const account=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
+    if(!account||!isAdmin(account)||!await passwordMatches(body.password,account.password))return reply({error:'管理员账号或密码错误'},403);
+    if(body.admin_role&&(body.admin_role!==(isSA(account)?'superadministrator':'administrator')))return reply({error:'所选管理员身份与账号权限不一致'},403);
+    if(!/^\d{6}$/.test(String(body.pin||'')))return reply({error:'PIN 必须为 6 位数字'},400);
+    await env.DB.prepare("INSERT INTO sa_pins(user_id,pin_hash,failed_attempts,locked_until,updated_at) VALUES(?,?,0,NULL,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET pin_hash=excluded.pin_hash,failed_attempts=0,locked_until=NULL,updated_at=CURRENT_TIMESTAMP").bind(account.id,await passwordHash(body.pin)).run();
+    return reply({success:true});
+  }
   if(path==='/api/login') {
     if(await limited(env,`login:${email}`,15,900)) return reply({error:'登录尝试过多，请稍后再试'},429);
     const found=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
     if(!found || !await passwordMatches(body.password,found.password)) return reply({error:'账号或密码错误'},401);
+    const adminOrigin=request.headers.get('Origin')===ADMIN_ORIGIN;
+    if(isAdmin(found)!==adminOrigin) return reply({error:adminOrigin?'此入口仅供管理员使用':'管理员请使用管理专属入口登录'},403);
+    const actualRole=isSA(found)?'superadministrator':'administrator';
+    if(adminOrigin&&body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);
     if(found.must_reset_password)return reply({error:'账户安全升级：请通过邮箱重设一个新密码后再登录'},403);
     if(!found.password.startsWith('pbkdf2$')) await env.DB.prepare('UPDATE users SET password=? WHERE id=?').bind(await passwordHash(body.password),found.id).run();
     const token=randomHex(32);
-    await env.DB.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at) VALUES(?,?,datetime('now','+7 days'))").bind(await sha(token),found.id).run();
-    const res=reply({id:found.id,username:found.username,email:found.email,role:isSA(found)?'superadministrator':found.role==='administrator'?'administrator':'user'});
+    await env.DB.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at,auth_context) VALUES(?,?,datetime('now','+7 days'),?)").bind(await sha(token),found.id,adminOrigin?'admin':'public').run();
+    const res=reply({id:found.id,username:found.username,email:found.email,role:adminOrigin?actualRole:'user',admin_context:adminOrigin});
     res.headers.set('Set-Cookie',`bpm_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`);return res;
   }
   if(path==='/api/account/change-username') {
@@ -228,7 +266,7 @@ export function responseHeaders(request,response) {
   const headers=new Headers(response.headers);
   headers.delete('Access-Control-Allow-Origin');
   const origin=request.headers.get('Origin');
-  if(origin && ['https://bpmuseum.org.cn','https://www.bpmuseum.org.cn','http://localhost:3000','http://127.0.0.1:3000'].includes(origin)) {
+  if(origin && ['https://bpmuseum.org.cn','https://www.bpmuseum.org.cn',ADMIN_ORIGIN,'http://localhost:3000','http://127.0.0.1:3000'].includes(origin)) {
     headers.set('Access-Control-Allow-Origin',origin);headers.set('Access-Control-Allow-Credentials','true');
   }
   headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type');headers.set('Access-Control-Allow-Methods','GET,POST,DELETE,OPTIONS');

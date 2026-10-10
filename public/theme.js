@@ -1,5 +1,32 @@
 (function () {
 
+    // Keep management pages on their dedicated host. The API separately binds
+    // staff sessions to that host, so this navigation guard is not the security boundary.
+    const adminHost = "admin.bpmuseum.org.cn";
+    const adminPaths = new Set(["/admin-login.html", "/admin-oauth-complete.html", "/console.html", "/admin.html", "/sa.html", "/moderation.html"]);
+    const currentPath = location.pathname.toLowerCase();
+    const onAdminHost = location.hostname.toLowerCase() === adminHost;
+    const adminApplicationFrame = currentPath === "/admin.html"
+      && new URLSearchParams(location.search).get("embed") === "1"
+      && location.hash === "#admin-apply";
+    if (onAdminHost && (currentPath === "/" || currentPath === "/index.html")) {
+        location.replace("/admin-login.html");
+        return;
+    }
+    const protectedAdminPage = onAdminHost && ["/console.html", "/admin.html", "/sa.html", "/moderation.html"].includes(currentPath);
+    if (protectedAdminPage && sessionStorage.getItem("bpm_admin_entry_authenticated") !== "1") {
+        location.replace(`/admin-login.html?next=${encodeURIComponent(currentPath.slice(1) + location.search + location.hash)}`);
+        return;
+    }
+    if (onAdminHost && !adminPaths.has(currentPath)) {
+        location.replace(`https://bpmuseum.org.cn${location.pathname}${location.search}${location.hash}`);
+        return;
+    }
+    if (!onAdminHost && adminPaths.has(currentPath) && currentPath !== "/console.html" && !adminApplicationFrame) {
+        location.replace(`https://${adminHost}${location.pathname}${location.search}${location.hash}`);
+        return;
+    }
+
     const lucidePaths={
         plane:'<path d="m17.8 19.2-1.8-8.2 3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2a.5.5 0 0 0-.6.7l2.3 5.5-1.8 1.8a2 2 0 0 0-.5 2.1l.6 1.3 2-2 2.1 2.1-2 2 1.3.6a2 2 0 0 0 2.1-.5l1.8-1.8 5.5 2.3a.5.5 0 0 0 .7-.6Z"/>',
         train:'<rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16M12 3v8m-4-4h.01M16 7h.01M8 19l-2 3m10-3 2 3M8 15h.01M16 15h.01"/>',
@@ -78,6 +105,8 @@
     translations["zh-TW"]["submit.baggageTagsHint"] = "依票面或行李牌上的實際標記選擇；連在登機牌上的行李提領憑證屬於票面內容，不是此處的標記。";
     translations.en["submit.otherBaggage"] = "Other baggage marker";
     translations["zh-TW"]["submit.otherBaggage"] = "其他行李標記";
+    Object.assign(translations.en,{"submit.cabinClass":"Cabin class","submit.cabin.economy":"Economy","submit.cabin.premiumEconomy":"Premium economy","submit.cabin.business":"Business","submit.cabin.first":"First class (Business suite)","submit.cabin.other":"Other"});
+    Object.assign(translations["zh-TW"],{"submit.cabinClass":"艙等","submit.cabin.economy":"經濟艙","submit.cabin.premiumEconomy":"超級經濟艙","submit.cabin.business":"商務艙","submit.cabin.first":"頭等艙（豪華商務艙）","submit.cabin.other":"其他"});
     translations.en["home.baggageTag.other"] = "Other";
     translations["zh-TW"]["home.baggageTag.other"] = "其他";
     translations.en["sa.reviewerScheduleHint"] = "Set the share of new submissions assigned to each reviewer. The total must equal exactly 100%. Set a reviewer to 0% to stop assigning new submissions; the SA may also review.";
@@ -98,7 +127,7 @@
     // Text-node catalog handles both hand-authored pages and labels inserted later by page scripts.
     const phraseRows=[
         ["展厅","Gallery","展廳"],["社区","Community","社群"],["投稿","Submit","投稿"],["我的投稿","My submissions","我的投稿"],["我的收藏","Favorites","我的收藏"],["登录","Log in","登入"],["注册","Sign up","註冊"],["退出","Log out","登出"],["账户设置","Account settings","帳戶設定"],["管理中心","Management center","管理中心"],["查看个人主页","View profile","查看個人主頁"],["检查新版本","Check for updates","檢查更新"],
-        ["关于我们","About us","關於我們"],["隐私说明","Privacy","隱私說明"],["投稿及审核条例","Submission and review rules","投稿與審核規則"],["社区条例","Community rules","社群規則"],["← 返回展厅","← Back to gallery","← 返回展廳"],["← 返回社区","← Back to community","← 返回社群"],["← 返回投稿","← Back to submission","← 返回投稿"],["← 返回 SA 工作台","← Back to SA console","← 返回 SA 工作台"],
+        ["关于我们","About us","關於我們"],["隐私说明","Privacy","隱私說明"],["投稿及审核条例","Submission and review rules","投稿與審核規則"],["社区条例","Community rules","社區規則"],["← 返回展厅","← Back to gallery","← 返回展廳"],["← 返回社区","← Back to community","← 返回社群"],["← 返回投稿","← Back to submission","← 返回投稿"],["← 返回 SA 工作台","← Back to SA console","← 返回 SA 工作台"],["探索","Explore","探索"],["互动探索馆藏","Explore the collection","互動探索館藏"],
         ["微信公众号：","Official WeChat account:","微信公眾帳號："],["（在微信搜索）","(search in WeChat)","（在微信搜尋）"],["（可在微信搜索此微信号）","(search this ID in WeChat)","（可在微信搜尋此微信號）"],["管理员社交主页","Staff social links","管理員社群連結"],["以下链接由站主维护，仅展示管理员主动公开的社交主页。","These links are maintained by the site owner and show only social profiles admins chose to publish.","以下連結由站主維護，僅展示管理員主動公開的社群頁面。"],["查看社交主页 ↗","View profile ↗","查看社群頁面 ↗"],
         ["登机牌博物馆","Boarding Pass Museum","登機牌博物館"],["登机牌、航线和旅客收藏。","Boarding passes, routes, and traveler collections.","登機牌、航線與旅客收藏。"],["看看旅客收藏的登机牌和航程记录。","Boarding passes and flight notes shared by travelers.","看看旅客收藏的登機牌和航程紀錄。"],["浏览馆藏","Browse the collection","瀏覽館藏"],["最新展品","Latest exhibits","最新展品"],["最新上传","Latest uploads","最新上傳"],["最高收藏量","Most saved","收藏數最多"],["今日热点","Popular today","今日熱門"],["全部航空公司 / 运营公司","All airlines and operators","全部航空公司／營運業者"],["全部投稿类别","All submission types","全部投稿類型"],["登机牌","Boarding pass","登機牌"],["火车票","Rail ticket","火車票"],["全部行李标记","All baggage markers","全部行李標記"],["转机行李","Transfer baggage","轉機行李"],["两舱行李","Two-cabin baggage","兩艙行李"],["全部登机牌形式","All boarding pass formats","全部登機牌形式"],["纸质","Paper","紙本"],["电子","Electronic","電子"],["全部出发机场或车站","All departure airports or stations","全部出發機場或車站"],["全部年份","All years","全部年份"],["清除筛选","Clear filters","清除篩選"],["按航班、航空公司、机场或年份查找馆藏。","Find exhibits by flight, airline, airport, or year.","依航班、航空公司、機場或年份查找館藏。"],
         ["社区","Community","社群"],["航空爱好者的交流空间","A place for aviation enthusiasts.","航空愛好者的交流空間"],["发布帖子","Create a post","發布貼文"],["排序","Sort","排序"],["最新发布","Latest","最新發布"],["热门讨论","Popular","熱門討論"],["正在加载帖子…","Loading posts…","正在載入貼文…"],["正在加载条例…","Loading rules…","正在載入規則…"],["正在加载…","Loading…","正在載入…"],["加载中...","Loading…","載入中…"],["加载失败","Could not load","載入失敗"],["暂无展品","No exhibits yet","目前沒有展品"],["没有符合当前筛选条件的展品。请调整关键词或清除筛选后再试。","No exhibits match these filters. Adjust your search or clear the filters.","找不到符合目前篩選條件的展品。請調整關鍵字或清除篩選後再試。"],["请您合理合法使用发帖功能，本站管理员有权对违法违规内容进行下架。","Please follow the community rules. Administrators may hide content that violates them.","請遵守社群規則；管理員得下架違規內容。"],
@@ -412,6 +441,7 @@
     );
     phraseRows.push(["英文","English","英文"],["繁體中文","Traditional Chinese","繁體中文"],["繁体中文","Traditional Chinese","繁體中文"]);
     phraseRows.push(["查看历史公告","View announcement history","查看歷史公告"],["查看历次公告","View past announcements","查看歷次公告"],["正在加载历史公告…","Loading announcement history…","正在載入歷史公告…"],["正在加载公告…","Loading announcements…","正在載入公告…"]);
+    phraseRows.push(["历史公告可以修改、隐藏或移入回收站；需要时可恢复。隐藏的公告不会发给用户。","Past announcements can be edited, hidden, or moved to the recycle bin and restored. Hidden announcements are not shown to users.","歷史公告可修改、隱藏或移至回收站，需要時可復原。隱藏的公告不會顯示給使用者。"],["可直接编辑已有平台和链接，删除后保存；也可添加新社媒资料。公开页面会分别显示平台名称与链接。","Edit saved social profiles directly, remove entries before saving, or add new ones. Public pages show each platform and link.","可直接編輯既有平台與連結，刪除後儲存，也可新增社群資料。公開頁面會分別顯示平台名稱與連結。"],["保存修改","Save changes","儲存修改"],["重新展示","Show again","重新顯示"],["移入回收站","Move to recycle bin","移至回收站"],["已移入回收站","In recycle bin","已移至回收站"],["展示中","Visible","顯示中"],["已隐藏","Hidden","已隱藏"],["公告已修改","Announcement updated","公告已修改"],["公告已隐藏","Announcement hidden","公告已隱藏"],["公告已重新展示","Announcement is visible again","公告已重新顯示"],["公告已移入回收站","Announcement moved to recycle bin","公告已移至回收站"],["公告已恢复","Announcement restored","公告已復原"]);
     phraseRows.push(["从第一版上线至今","Since the first release","從第一版上線至今"],["首版上线时间","First release","首版上線時間"]);
     phraseRows.push(
         ["关于我们｜登机牌博物馆 BoardingPassMuseum", "About BoardingPassMuseum | Boarding Pass Museum", "關於我們｜登機牌博物館 BoardingPassMuseum"],
@@ -476,7 +506,7 @@
     const watchLocaleDom=()=>{if(document.body)localeObserver.observe(document.body,{subtree:true,childList:true,characterData:true});};
 
     const pwaScript = document.createElement("script");
-    pwaScript.src = "pwa.js?v=4";
+    pwaScript.src = "pwa.js?v=5";
     pwaScript.defer = true;
     document.head.appendChild(pwaScript);
 

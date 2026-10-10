@@ -766,7 +766,7 @@ async function loadUsers(){
             box.innerHTML+=`
             <article class="card sa-staff-card" data-staff-user="${Number(x.id)}">
               <div><h3>${escapeSACommunityHTML(x.username)}</h3><p>账号 ID ${Number(x.id)} · ${x.role==="superadministrator"?"站主 SA":"普通管理员"}</p></div>
-              <p>填写平台名称和 HTTPS 链接；可添加多条，公开页面会分别显示平台名称与对应链接。</p>
+              <p>可直接编辑已有平台和链接，删除后保存；也可添加新社媒资料。公开页面会分别显示平台名称与链接。</p>
               <div class="sa-staff-social-links" data-staff-social-links>${parseStaffSocialLinks(x).map(staffSocialRow).join("")}</div>
               <div class="site-photo-card-actions"><button type="button" data-add-staff-social>添加社交链接</button><button type="button" data-save-staff-social="${Number(x.id)}">保存社交链接</button>
               ${x.role==="administrator"?`<button type="button" class="demote-admin-btn" onclick="openDemoteModal(${Number(x.id)}, '${String(x.username).replace(/'/g,"\\'")}')">移除管理员</button>`:""}</div>
@@ -1214,10 +1214,11 @@ document.addEventListener("DOMContentLoaded", function(){
     const loadAnnouncementHistory=async()=>{
         const box=document.getElementById("saAnnouncementHistory");if(!box)return;
         try{
-            const response=await fetch(`${API}/api/announcements`,{cache:"no-store"}),rows=await response.json();
+            const response=await fetch(`${API}/api/sa/announcements?sa_id=${encodeURIComponent(user.id)}`,{cache:"no-store",credentials:"include"}),rows=await response.json();
             if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"公告加载失败");
             const escape=value=>String(value??"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-            box.innerHTML=rows.map(item=>`<article class="bpm-panel bpm-announcement-history-item"><h3>${escape(item.title||item.version||"公告")}</h3><small>${escape(item.created_at||"")}</small><p>${escape(item.content||"").replace(/\[\[RED\]\]([\s\S]*?)\[\[\/RED\]\]/g,'<span class="announcement-red">$1</span>')}</p></article>`).join("")||"暂无历史公告";
+            box.innerHTML=rows.map(item=>{const deleted=!!item.deleted_at,hidden=!!Number(item.hidden);return `<article class="bpm-panel bpm-announcement-history-item ${deleted?'is-deleted':''}" data-announcement-card data-source="${escape(item.source)}" data-id="${Number(item.id)}"><header><small>${escape(item.created_at||"")} · ${item.source==='update'?'历史置顶事项':'公告'} · ${deleted?'已移入回收站':hidden?'已隐藏':'展示中'}</small></header><label>标题<input data-announcement-title maxlength="120" value="${escape(item.title||item.version||'公告')}"></label><label>内容<textarea data-announcement-content maxlength="10000" rows="4">${escape(item.content||'')}</textarea></label><div class="bpm-announcement-history-actions">${deleted?'<button type="button" data-announcement-action="restore">恢复</button>':`<button type="button" data-announcement-action="edit">保存修改</button><button type="button" data-announcement-action="${hidden?'show':'hide'}">${hidden?'重新展示':'隐藏'}</button><button type="button" class="secondary-button" data-announcement-action="delete">移入回收站</button>`}</div></article>`;}).join("")||"暂无历史公告";
+            box.onclick=async event=>{const button=event.target.closest('[data-announcement-action]');if(!button)return;const card=button.closest('[data-announcement-card]'),action=button.dataset.announcementAction;if(action==='delete'&&!confirm('将这条公告移入回收站？之后仍可恢复。'))return;button.disabled=true;try{const payload={sa_id:user.id,source:card.dataset.source,id:Number(card.dataset.id),action};if(action==='edit'){payload.title=card.querySelector('[data-announcement-title]').value;payload.content=card.querySelector('[data-announcement-content]').value;}const result=await fetch(`${API}/api/sa/announcements/manage`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(res=>res.json().then(data=>{if(!res.ok)throw Error(data.error||'保存失败');return data;}));if(result.success){showToast(action==='edit'?'公告已修改':action==='hide'?'公告已隐藏':action==='show'?'公告已重新展示':action==='delete'?'公告已移入回收站':'公告已恢复');await loadAnnouncementHistory();}}catch(error){showToast(error.message||'操作失败');button.disabled=false;}};
         }catch(error){box.textContent=error.message||"公告加载失败";}
     };
     loadAnnouncementHistory();

@@ -1825,6 +1825,7 @@ content,
 created_at,
 'announcement' AS source
 FROM announcements
+WHERE hidden=0 AND deleted_at IS NULL
 UNION ALL
 SELECT
 id,
@@ -1834,6 +1835,7 @@ content,
 created_at,
 'update' AS source
 FROM updates
+WHERE hidden=0 AND deleted_at IS NULL
 ORDER BY created_at DESC
 `
 ).all();
@@ -1845,6 +1847,37 @@ headers
 }
 );
 
+}
+
+if(url.pathname==="/api/sa/announcements"&&request.method==="GET"){
+const sa=await requireSA(env,url.searchParams.get("sa_id"));
+if(!sa)return Response.json({error:"No permission"},{status:403,headers});
+const result=await env.DB.prepare(`SELECT id,title,version,content,created_at,hidden,deleted_at,'announcement' AS source FROM announcements
+  UNION ALL SELECT id,title,version,content,created_at,hidden,deleted_at,'update' AS source FROM updates
+  ORDER BY created_at DESC`).all();
+return Response.json(result.results||[],{headers});
+}
+
+if(url.pathname==="/api/sa/announcements/manage"&&request.method==="POST"){
+const body=await request.json(),sa=await requireSA(env,body.sa_id);
+if(!sa)return Response.json({error:"No permission"},{status:403,headers});
+const source=body.source,action=body.action,id=Number(body.id),table=source==="announcement"?"announcements":source==="update"?"updates":null;
+if(!table||!Number.isSafeInteger(id)||id<1||!['edit','hide','show','delete','restore'].includes(action))return Response.json({error:"公告操作信息无效"},{status:400,headers});
+let result;
+if(action==='edit'){
+  const title=String(body.title||'').trim(),content=String(body.content||'').trim();
+  if(!title||!content||title.length>120||content.length>10000)return Response.json({error:"标题和内容不能为空，标题最多 120 字，内容最多 10000 字"},{status:400,headers});
+  result=source==='announcement'
+    ?await env.DB.prepare("UPDATE announcements SET title=?,version=?,content=? WHERE id=? AND deleted_at IS NULL").bind(title,title,content,id).run()
+    :await env.DB.prepare("UPDATE updates SET title=?,version=?,content=? WHERE id=? AND deleted_at IS NULL").bind(title,title,content,id).run();
+}else if(action==='hide'||action==='show'){
+  result=await env.DB.prepare(`UPDATE ${table} SET hidden=? WHERE id=? AND deleted_at IS NULL`).bind(action==='hide'?1:0,id).run();
+}else if(action==='delete'){
+  result=await env.DB.prepare(`UPDATE ${table} SET deleted_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL`).bind(id).run();
+}else{
+  result=await env.DB.prepare(`UPDATE ${table} SET deleted_at=NULL,hidden=0 WHERE id=? AND deleted_at IS NOT NULL`).bind(id).run();
+}
+return result.meta.changes?Response.json({success:true},{headers}):Response.json({error:"公告不存在或状态已变化，请刷新后重试"},{status:409,headers});
 }
 
 
@@ -1865,6 +1898,7 @@ title,
 content,
 created_at
 FROM updates
+WHERE hidden=0 AND deleted_at IS NULL
 ORDER BY id DESC
 `
 ).all();
@@ -2424,7 +2458,7 @@ export default {
       if (request.method === "OPTIONS") return responseHeaders(original, new Response(null,{status:204}));
       if (!["GET", "HEAD"].includes(request.method)) {
         const origin=request.headers.get("Origin");
-        if (origin && !["https://bpmuseum.org.cn","https://www.bpmuseum.org.cn","http://localhost:3000","http://127.0.0.1:3000"].includes(origin) && url.pathname!=='/api/oauth/apple/callback') {
+        if (origin && !["https://bpmuseum.org.cn","https://www.bpmuseum.org.cn","https://admin.bpmuseum.org.cn","http://localhost:3000","http://127.0.0.1:3000"].includes(origin) && url.pathname!=='/api/oauth/apple/callback') {
           return responseHeaders(original,reply({error:"来源不受信任"},403));
         }
         const type=request.headers.get("Content-Type")||"";

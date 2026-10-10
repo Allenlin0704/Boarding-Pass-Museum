@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="用机场与航司关系星图、时间回廊和相关展品，探索 BoardingPassMuseum 的旅程收藏。">
+  <title>馆藏索引 | BoardingPassMuseum</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="style.css?v=20261010-index-review">
+  <link rel="stylesheet" href="features.css?v=20261010-index-review">
+  <link rel="stylesheet" href="explore.css?v=20261010-index-review">
+  <script src="theme.js?v=20261010-admin-domain"></script>
+  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
+</head>
+<body class="bpm-explore-body">
+  <header class="menubar">
+    <div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum</div>
+    <nav><a href="index.html" data-i18n="nav.gallery">展厅</a><a href="explore.html" aria-current="page">探索</a><a href="submit.html" data-i18n="nav.submit">投稿</a><a href="community.html" data-i18n="nav.community">社区</a><a href="login.html" data-i18n="nav.login">登录</a></nav>
+  </header>
+  <main class="bpm-explore-page">
+    <a class="bpm-back-link" href="index.html">← 返回展厅</a>
+    <section class="bpm-explore-hero">
+      <h1 data-i18n="explore.title">旅程索引</h1>
+      <p data-i18n="explore.intro">按出发地、航司和票面日期查找馆藏。</p>
+      <div class="bpm-explore-metrics" id="exploreMetrics"><span>正在连接馆藏…</span></div>
+    </section>
+
+    <nav class="bpm-explore-tabs" aria-label="馆藏探索工具">
+      <button type="button" data-explore-tab="atlas" aria-selected="true"><span data-bpm-icon="globe"></span><span data-i18n="explore.atlas">关系图</span></button>
+      <button type="button" data-explore-tab="time" aria-selected="false"><span data-bpm-icon="calendar"></span><span data-i18n="explore.time">按日期查找</span></button>
+      <button type="button" data-explore-tab="related" aria-selected="false"><span data-bpm-icon="repeat"></span><span data-i18n="explore.related">同航班展品</span></button>
+    </nav>
+
+    <section class="bpm-explore-panel" data-explore-panel="atlas" aria-labelledby="atlasHeading">
+      <div class="bpm-explore-section-heading"><div><h2 id="atlasHeading" data-i18n="explore.atlas">关系图</h2><p data-i18n="explore.atlasNote">节点按出发地点、展品和航司关联。图中不推测目的地或实际航线。</p></div><div class="bpm-explore-legend"><span><i class="airport-dot"></i><span data-i18n="explore.airports">出发地点</span></span><span><i class="ticket-dot"></i><span data-i18n="explore.tickets">展品</span></span><span><i class="airline-dot"></i><span data-i18n="explore.operators">航司 / 运营公司</span></span></div></div>
+      <div class="bpm-atlas-layout">
+        <div class="bpm-atlas-stage" id="atlasStage" aria-live="polite"><p>星图正在展开…</p></div>
+        <aside class="bpm-atlas-detail" id="atlasDetail"><h3 data-i18n="explore.chooseNode">选择一个节点</h3><p data-i18n="explore.chooseNodeHint">点选机场、航司或展品，查看相关馆藏。</p></aside>
+      </div>
+    </section>
+
+    <section class="bpm-explore-panel" data-explore-panel="time" aria-labelledby="timeHeading" hidden>
+      <div class="bpm-explore-section-heading"><div><h2 id="timeHeading" data-i18n="explore.time">按日期查找</h2><p data-i18n="explore.timeNote">选择年份，可再按航司或运营公司筛选。</p></div></div>
+      <div class="bpm-time-controls"><label><span data-i18n="explore.year">年份</span><select id="timeYear"></select></label><label class="bpm-time-search"><span data-i18n="explore.operatorFilter">筛选航司或运营公司</span><input id="timeSearch" type="search" placeholder="搜索名称或代码"></label><p id="timeCount" role="status"></p></div>
+      <div class="bpm-time-ruler" id="timeRuler" aria-label="按年份浏览"></div>
+      <div class="bpm-time-list" id="timeList"></div>
+    </section>
+
+    <section class="bpm-explore-panel" data-explore-panel="related" aria-labelledby="relatedHeading" hidden>
+      <div class="bpm-explore-section-heading"><div><h2 id="relatedHeading" data-i18n="explore.related">同航班展品</h2><p data-i18n="explore.relatedNote">输入航班号，或按出发地点查找展品。</p></div></div>
+      <div class="bpm-related-controls"><label><span data-i18n="explore.flightSearch">查找航班号</span><input id="relatedSearch" type="search" placeholder="例如 MU5309"></label><label><span data-i18n="explore.airportFilter">或选择出发机场</span><select id="relatedAirport"></select></label></div>
+      <div class="bpm-related-groups" id="relatedGroups"></div>
+    </section>
+    <p class="bpm-explore-footnote" data-i18n="explore.privacy">这里只使用已公开的审核通过展品；不会推测目的地，也不会展示待审核内容。</p>
+  </main>
+  <script src="auth.js?v=20260930-nav-fix"></script>
+  <script src="explore.js?v=20261010-index-review"></script>
+</body>
+</html>
