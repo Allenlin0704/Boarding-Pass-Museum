@@ -115,7 +115,7 @@ function updateSubmissionType(){
   const rail=submissionTypeInput?.value==="rail_ticket";
   if(airSubmissionFields)airSubmissionFields.hidden=rail;
   if(railSubmissionFields)railSubmissionFields.hidden=!rail;
-  const recognition=document.querySelector(".deepseek-recognition-controls");
+  const recognition=document.querySelector(".ai-recognition-controls");
   if(recognition)recognition.hidden=rail;
 }
 submissionTypeInput?.addEventListener("change",updateSubmissionType);
@@ -728,15 +728,15 @@ flightAssistBtn?.addEventListener("click",()=>startAIRecognition());
 
 const recognizeTicketBtn=document.getElementById("recognizeTicketBtn");
 const recognizeTicketStatus=document.getElementById("recognizeTicketStatus");
-const deepseekPrivacyConsent=document.getElementById("deepseekPrivacyConsent");
+const aiPrivacyConsent=document.getElementById("aiPrivacyConsent");
 const localizedChoiceText=(zh,en,tw)=>window.BPM_LANGUAGE==="en"?en:window.BPM_LANGUAGE==="zh-TW"?tw:zh;
 const setRecognitionStatus=message=>{if(recognizeTicketStatus)recognizeTicketStatus.textContent=message;if(flightAssistStatus)flightAssistStatus.textContent=message;};
 function startAIRecognition(){
   const canvas=document.getElementById("watermarkCanvas");
-  if(!deepseekPrivacyConsent?.checked||!canvas?.width){
+  if(!aiPrivacyConsent?.checked||!canvas?.width){
     document.querySelector(".submit-image-card")?.scrollIntoView({behavior:"smooth",block:"center"});
     setRecognitionStatus(localizedChoiceText("先选择图片、在本机遮挡隐私并勾选发送处理后图片的授权。","Choose an image, redact private details locally, and consent to sending the edited image first.","請先選擇圖片、在本機遮蔽個人資料，並勾選傳送處理後圖片的授權。"));
-    deepseekPrivacyConsent?.focus({preventScroll:true});
+    aiPrivacyConsent?.focus({preventScroll:true});
     return;
   }
   recognizeTicket();
@@ -747,7 +747,7 @@ const findCatalogItem=(list,code,name)=>{
     ||list.find(item=>normalized&&[item.name_cn,item.name_en].some(value=>String(value||"").trim().toLocaleLowerCase()===normalized))||null;
 };
 async function recognizeTicket(){
-  if(!deepseekPrivacyConsent?.checked){setRecognitionStatus(localizedChoiceText("请先确认已遮挡隐私并同意发送处理后的图片。","Confirm that private details are redacted and that you agree to send the edited image.","請先確認已遮蔽個人資料，並同意傳送處理後的圖片。"));return;}
+  if(!aiPrivacyConsent?.checked){setRecognitionStatus(localizedChoiceText("请先确认已遮挡隐私并同意发送处理后的图片。","Confirm that private details are redacted and that you agree to send the edited image.","請先確認已遮蔽個人資料，並同意傳送處理後的圖片。"));return;}
   if(window.bpmImageEditorReady&&!window.bpmImageEditorReady()){setRecognitionStatus(localizedChoiceText("请先应用或取消当前裁剪框。","Apply or cancel the current crop first.","請先套用或取消目前的裁切框。"));return;}
   const canvas=document.getElementById("watermarkCanvas");
   if(!canvas||!canvas.width||!canvas.height){setRecognitionStatus(localizedChoiceText("请先选择并处理票据图片。","Choose and edit a ticket image first.","請先選擇並處理票據圖片。"));return;}
@@ -1317,7 +1317,7 @@ issueAirportInput.value="";
 
 if(routeScopeInput)routeScopeInput.value="";
 document.querySelectorAll('input[name="specialTag"]').forEach(input=>input.checked=false);
-if(deepseekPrivacyConsent)deepseekPrivacyConsent.checked=false;
+if(aiPrivacyConsent)aiPrivacyConsent.checked=false;
 
 
 

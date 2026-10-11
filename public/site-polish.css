@@ -203,7 +203,7 @@ button:disabled {
 .bpm-install-app,
 .bpm-moderation-page button,
 .bpm-notice-page button,
-.deepseek-recognition-controls button,
+.ai-recognition-controls button,
 .bpm-staff-chat-dialog form button {
   background: var(--bpm-accent);
   color: var(--bpm-accent-ink);

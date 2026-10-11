@@ -2452,6 +2452,7 @@ headers
 export default {
   async fetch(request, env, ctx) {
     const original = request;
+    const trustedCountry = request.cf?.country;
     try {
       const url = new URL(request.url);
       if(url.pathname==="/api/admin/screening") url.pathname="/api/admin/pending";
@@ -2504,9 +2505,9 @@ export default {
         const found=await env.DB.prepare(`SELECT airline,airport,flight,date FROM flights WHERE status='approved' AND upper(replace(replace(flight,' ',''),'-',''))=? ORDER BY CASE WHEN date=? THEN 0 ELSE 1 END,date DESC,id DESC LIMIT 1`).bind(flight,date).first();
         return responseHeaders(original,reply(found?{found:true,...found}:{found:false}));
       }
-      const flightAssist=await flightAssistRoute(request.clone(),env,url,auth.user);
+      const flightAssist=await flightAssistRoute(request.clone(),env,url,auth.user,trustedCountry);
       if(flightAssist)return responseHeaders(original,flightAssist);
-      const translation=await translationRoute(request.clone(),env,url);
+      const translation=await translationRoute(request.clone(),env,url,trustedCountry);
       if(translation)return responseHeaders(original,translation);
       const progress = await progressRoute(request,env,url);
       if(progress) return responseHeaders(original,progress);

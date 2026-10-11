@@ -9,3 +9,11 @@ test('admin login passkeys can be managed only from the admin origin',async()=>{
   assert.equal((await request(2,'https://bpmuseum.org.cn')).status,403);
   assert.equal((await request(3,'https://admin.bpmuseum.org.cn')).status,403);
 });
+
+test('an administrator can register a separate public-site passkey in a public session',async()=>{
+  const {worker,env,db}=fixture();
+  db.prepare('UPDATE users SET password=? WHERE id=2').run(await passwordHash('admin-password'));
+  db.prepare("UPDATE auth_sessions SET auth_context='public' WHERE user_id=2").run();
+  const response=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/passkey/register/options',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://bpmuseum.org.cn',Cookie:`bpm_session=${'2'.repeat(64)}`},body:JSON.stringify({password:'admin-password'})}),env);
+  assert.equal(response.status,200);assert.ok((await response.json()).challenge);
+});

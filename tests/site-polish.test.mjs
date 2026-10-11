@@ -28,7 +28,7 @@ test('the service worker precaches the shared design stylesheet in a fresh shell
 test('about page credits the used projects and providers and links to the public source repository', () => {
   const about = readFileSync(new URL('../public/about.html', import.meta.url), 'utf8');
   const theme = readFileSync(new URL('../public/theme.js', import.meta.url), 'utf8');
-  for (const name of ['Lucide Icons', 'Feather', 'SimpleWebAuthn', 'DeepSeek', 'Cloudflare', 'Resend']) {
+  for (const name of ['Lucide Icons', 'Feather', 'SimpleWebAuthn', '火山引擎豆包', 'Cloudflare', 'Resend']) {
     assert.ok(about.includes(name), `about page should credit ${name}`);
   }
   assert.match(about, /https:\/\/github\.com\/lucide-icons\/lucide/);
@@ -48,7 +48,7 @@ test('SA exhibit search comes before the repair queue and both correction flows 
   assert.match(script, /flight_updates:flightUpdates/);
 });
 
-test('client login clearly sends administrator accounts to the dedicated management host', () => {
+test('client login keeps the public account experience separate from the management entry', () => {
   const html = readFileSync(new URL('../public/login.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../public/login.js', import.meta.url), 'utf8');
   assert.match(html, /此站为用户客户端/);

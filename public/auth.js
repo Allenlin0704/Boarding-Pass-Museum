@@ -306,11 +306,30 @@ function updateNavbar(){
                 checkUpdate.disabled=true;
                 checkUpdate.textContent="正在检查…";
                 try{
-                    const registration=await navigator.serviceWorker?.getRegistration();
-                    await registration?.update();
-                    await fetch(location.href,{cache:"reload",credentials:"same-origin"});
-                    checkUpdate.textContent="正在加载最新版…";
-                    location.reload();
+                    const serviceWorker=navigator.serviceWorker;
+                    const registration=await serviceWorker?.getRegistration();
+                    const previousController=serviceWorker?.controller;
+                    let controllerChanged=false;
+                    const onControllerChange=()=>{controllerChanged=true;};
+                    serviceWorker?.addEventListener("controllerchange",onControllerChange,{once:true});
+                    if(registration) await registration.update();
+                    if(registration && previousController){
+                        await Promise.race([
+                            new Promise(resolve=>serviceWorker.addEventListener("controllerchange",resolve,{once:true})),
+                            new Promise(resolve=>setTimeout(resolve,8000))
+                        ]);
+                    }else{
+                        await fetch(location.href,{cache:"no-store",credentials:"same-origin"});
+                    }
+                    if(controllerChanged || (previousController && serviceWorker?.controller!==previousController)){
+                        checkUpdate.textContent="发现更新，正在加载…";
+                        location.reload();
+                        return;
+                    }
+                    serviceWorker?.removeEventListener("controllerchange",onControllerChange);
+                    checkUpdate.disabled=false;
+                    checkUpdate.textContent="检查新版本";
+                    alert("当前已是最新版。");
                 }catch{
                     checkUpdate.disabled=false;
                     checkUpdate.textContent="检查新版本";

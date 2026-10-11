@@ -125,10 +125,10 @@
     <input id="ticketImage" type="file" accept="image/*">
     <p>单张图片上传上限 5 MB；最终图片会先压缩，目标为 4 MB 内。</p>
     <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开图片编辑器</button><canvas id="watermarkCanvas"></canvas></div>
-    <div class="deepseek-recognition-controls">
-      <label class="deepseek-privacy-consent"><input id="deepseekPrivacyConsent" type="checkbox"> <span data-i18n="submit.deepseekConsent">我已在本机处理并遮挡个人信息，并同意将处理后的图片发送给 DeepSeek 识别。</span></label>
-      <p data-i18n="submit.deepseekPrivacy">只会在你点击识别时发送当前编辑画布；图片不会保存到本站。请先遮住姓名、票号、订单号、二维码和条形码。</p>
-      <button type="button" id="recognizeTicketBtn" data-i18n="submit.deepseekButton">识别并填写票面信息</button>
+    <div class="ai-recognition-controls">
+      <label class="ai-privacy-consent"><input id="aiPrivacyConsent" type="checkbox"> <span>我已在本机处理并遮挡个人信息，并同意将处理后的图片发送给 <span data-bpm-ai-slot>本地区 AI 服务</span> 识别。</span></label>
+      <p>只会在你点击识别时发送当前编辑画布；图片不会保存到本站。请先遮住姓名、票号、订单号、二维码和条形码。</p>
+      <button type="button" id="recognizeTicketBtn">识别并填写票面信息</button>
       <p id="recognizeTicketStatus" role="status" aria-live="polite"></p>
     </div>
   </div>
@@ -177,12 +177,13 @@ BoardingPassMuseum © 2026
 
 
 
-<script src="auth.js?v=20260930-nav-fix"></script>
+<script src="auth.js?v=20261011-update-check"></script>
 
 <script src="image-handoff.js?v=20261001-mobile-editor"></script>
 <script src="image-compression.js?v=20261006-upload-cap"></script>
 <script src="watermark.js?v=20261011-clean-route"></script>
 <script src="image-editor.js?v=20261011-clean-route"></script>
+<script src="ai-provider.js?v=20261011-region-route"></script>
 
 <script src="display.js"></script>
 

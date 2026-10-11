@@ -94,7 +94,7 @@ async function finish(provider,body,env){
     if(saved.user_id){
       const account=await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(saved.user_id).first();
       if(!account)return resultRedirect('账户已失效，请重新登录',site,complete);
-      if(isAdmin(account)!==(authContext==='admin'))return resultRedirect(authContext==='admin'?'此入口仅供管理员使用':'管理员请使用管理专属入口登录',site,complete);
+      if(authContext==='admin'&&!isAdmin(account))return resultRedirect('此入口仅供管理员使用',site,complete);
       if(linked&&Number(linked.id)!==Number(account.id))return resultRedirect('这个第三方账户已绑定其他用户',site,complete);
       const own=await env.DB.prepare('SELECT subject FROM oauth_identities WHERE user_id=? AND provider=?').bind(account.id,provider).first();
       if(own&&own.subject!==identity.subject)return resultRedirect(`请先解绑原有的 ${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 账户`,site,complete);
@@ -102,7 +102,7 @@ async function finish(provider,body,env){
       return sessionResponse(env,account,authContext);
     }
     if(linked){
-      if(isAdmin(linked)!==(authContext==='admin'))return resultRedirect(authContext==='admin'?'此入口仅供管理员使用':'管理员请使用管理专属入口登录',site,complete);
+      if(authContext==='admin'&&!isAdmin(linked))return resultRedirect('此入口仅供管理员使用',site,complete);
       await env.DB.prepare('UPDATE oauth_identities SET last_used_at=CURRENT_TIMESTAMP WHERE provider=? AND subject=?').bind(provider,identity.subject).run();
       return sessionResponse(env,linked,authContext);
     }
@@ -137,7 +137,7 @@ export async function oauthRoute(request,env,url,user){
   const startBody=await request.json();
   const linking=startBody.mode==='link';
   if(linking&&!user)return reply({error:'请重新登录后绑定'},401);
-  if(linking&&isAdmin(user)!==adminOrigin)return reply({error:adminOrigin?'此入口仅供管理员使用':'管理员请使用管理专属入口登录'},403);
+  if(linking&&adminOrigin&&!isAdmin(user))return reply({error:'此入口仅供管理员使用'},403);
   const state=randomHex(32),verifier=randomHex(48),nonce=randomHex(24);
   await env.DB.prepare("DELETE FROM oauth_authorizations WHERE expires_at<=datetime('now')").run();
   await env.DB.prepare("INSERT INTO oauth_authorizations(state_hash,provider,code_verifier,nonce,user_id,expires_at,auth_context) VALUES(?,?,?,?,?,datetime('now','+5 minutes'),?)").bind(await hash(state),provider,verifier,nonce,linking?user.id:null,adminOrigin?'admin':'public').run();

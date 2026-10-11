@@ -93,10 +93,10 @@ test('gallery filters merge Chinese and English aliases by airline and airport c
   }
 });
 
-test('gallery story offers DeepSeek translation targets and discloses external text sharing', async () => {
+test('gallery story offers regional AI translation targets and discloses external text sharing', async () => {
   const { museum } = await renderForLanguage('en');
   assert.equal(museum.children.length, 2);
-  assert.match(museum.children[0].innerHTML, /Translate with DeepSeek \(public story text is sent after you click\)/);
+  assert.match(museum.children[0].innerHTML, /Translate public story text with /);
   assert.match(museum.children[0].innerHTML, /data-bpm-translate="en"/);
   assert.match(museum.children[0].innerHTML, /data-bpm-translate="zh-TW"/);
 });

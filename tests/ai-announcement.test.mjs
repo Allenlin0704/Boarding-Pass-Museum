@@ -2,19 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture} from './helpers.mjs';
 
-function recognizeRequest(image,identity=3,consent=true){
+function recognizeRequest(image,identity=3,consent=true,country='CN'){
   const form=new FormData();
   if(consent)form.append('consent','1');
   form.append('image',new Blob([image],{type:'image/jpeg'}),'edited-ticket.jpg');
-  return new Request('https://test.invalid/api/flight-assist/recognize',{method:'POST',headers:{Cookie:`bpm_session=${String(identity).repeat(64)}`},body:form});
+  const request=new Request('https://test.invalid/api/flight-assist/recognize',{method:'POST',headers:{Cookie:`bpm_session=${String(identity).repeat(64)}`},body:form});
+  request.cf={country};
+  return request;
 }
 
-test('DeepSeek recognition accepts only a small edited JPEG and returns sanitized form fields',async()=>{
-  const {worker,env,db}=fixture();env.DEEPSEEK_API_KEY='test-only';
+test('mainland recognition uses Doubao and returns sanitized fields from edited JPEG only',async()=>{
+  const {worker,env,db}=fixture();env.DOUBAO_API_KEY='test-only';env.DOUBAO_MODEL='doubao-vision-test';
   const originalFetch=globalThis.fetch;
   let sent;
   globalThis.fetch=async(url,init)=>{
-    assert.equal(url,'https://api.deepseek.com/chat/completions');
+    assert.equal(url,'https://ark.cn-beijing.volces.com/api/v3/chat/completions');
     sent=JSON.parse(init.body);
     return Response.json({choices:[{message:{content:JSON.stringify({airline_name:'Air China',airline_iata:'ca',flight_number:'CA 123',flight_date:'2026-08-17',departure_airport_name:'Beijing Capital International Airport',departure_airport_iata:'PEK',issue_airport_iata:'PEK',route_scope:'international',passenger_name:'should not return'})}}]});
   };
@@ -23,7 +25,7 @@ test('DeepSeek recognition accepts only a small edited JPEG and returns sanitize
     assert.equal(response.status,200);
     assert.deepEqual(data.fields,{airline_name:'Air China',airline_iata:'CA',airline_icao:'',flight_number:'CA 123',flight_date:'2026-08-17',departure_airport_name:'Beijing Capital International Airport',departure_airport_iata:'PEK',departure_airport_icao:'',issue_airport_name:'',issue_airport_iata:'PEK',issue_airport_icao:'',route_scope:'international'});
     assert.equal(JSON.stringify(data).includes('should not return'),false);
-    assert.equal(sent.model,'deepseek-flash');
+    assert.equal(sent.model,'doubao-vision-test');
     assert.equal(sent.messages[0].content[1].image_url.url.startsWith('data:image/jpeg;base64,'),true);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM auth_limits').get().count,2);
   }finally{globalThis.fetch=originalFetch;}
@@ -43,17 +45,49 @@ test('boarding-pass route scope, cabin class and markers are stored; invalid cab
   assert.equal(invalid.status,400);
 });
 
-test('DeepSeek recognition fails closed when no key is configured and rejects non-JPEG uploads',async()=>{
+test('all regions use Doubao, missing Doubao configuration fails closed, and non-JPEG uploads are rejected',async()=>{
   const {worker,env}=fixture();
-  env.DEEPSEEK_API_KEY='test-only';
-  const noConsent=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,false),env);
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async(url,init)=>{
+    assert.equal(url,'https://ark.cn-beijing.volces.com/api/v3/chat/completions');
+    assert.equal(JSON.parse(init.body).model,'doubao-vision-test');
+    return Response.json({choices:[{message:{content:'{}'}}]});
+  };
+  try {
+    env.DOUBAO_API_KEY='test-only';env.DOUBAO_MODEL='doubao-vision-test';
+    const accepted=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,true,'US'),env);
+    assert.equal(accepted.status,200);
+    const providerRequest=new Request('https://test.invalid/api/ai/provider');providerRequest.cf={country:'HK'};
+    const domesticProvider=await worker.fetch(providerRequest,env);
+    assert.equal((await domesticProvider.json()).provider,'doubao');
+    const overseasRequest=new Request('https://test.invalid/api/ai/provider');overseasRequest.cf={country:'SG'};
+    const overseasProvider=await worker.fetch(overseasRequest,env);
+    assert.equal((await overseasProvider.json()).provider,'doubao');
+  } finally { globalThis.fetch=originalFetch; }
+  const noConsent=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,false,'US'),env);
   assert.equal(noConsent.status,400);
-  env.DEEPSEEK_API_KEY=undefined;
-  const unavailable=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255])),env);
+  env.DOUBAO_API_KEY=undefined;env.DOUBAO_MODEL=undefined;
+  const unavailable=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,true,'US'),env);
   assert.equal(unavailable.status,503);
-  env.DEEPSEEK_API_KEY='test-only';
-  const response=await worker.fetch(recognizeRequest(Uint8Array.from([137,80,78,71])),env);
+  env.DOUBAO_API_KEY='test-only';env.DOUBAO_MODEL='doubao-vision-test';
+  const response=await worker.fetch(recognizeRequest(Uint8Array.from([137,80,78,71]),3,true,'CN'),env);
   assert.equal(response.status,415);
+});
+
+test('public story translation uses Doubao in every region',async()=>{
+  const {worker,env}=fixture();env.DOUBAO_API_KEY='test-only';env.DOUBAO_MODEL='doubao-text-test';
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async(url,init)=>{
+    assert.equal(url,'https://ark.cn-beijing.volces.com/api/v3/chat/completions');
+    assert.equal(JSON.parse(init.body).model,'doubao-text-test');
+    return Response.json({choices:[{message:{content:'Translated story'}}]});
+  };
+  try{
+    const request=new Request('https://test.invalid/api/translate/story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:'Public travel story',target:'en'})});
+    request.cf={country:'SG'};
+    const response=await worker.fetch(request,env),data=await response.json();
+    assert.equal(response.status,200);assert.equal(data.translated,'Translated story');assert.equal(data.provider,'doubao');
+  }finally{globalThis.fetch=originalFetch;}
 });
 
 test('announcement publishing is idempotent across retries and remains in history',async()=>{

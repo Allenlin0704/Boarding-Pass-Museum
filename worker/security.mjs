@@ -117,7 +117,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
       ORDER BY CASE WHEN id=1 THEN 0 ELSE 1 END,username COLLATE NOCASE`).all();
     return reply({identities:rows.results.map(row=>({id:row.id,username:row.username,role:isSA(row)?'superadministrator':'administrator'}))});
   }
-  if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user',admin_context:user.auth_context==='admin'}):reply({error:'请重新登录'},401);
+  if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:user.auth_context==='admin'?(isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user'):'user',admin_context:user.auth_context==='admin'}):reply({error:'请重新登录'},401);
   if(path==='/api/account/deletion-request'&&request.method==='GET') {
     if(!user) return reply({error:'请重新登录'},401);
     const requestRow=await env.DB.prepare('SELECT id,reason,status,requested_at,execute_at,finalized_at FROM account_deletion_requests WHERE user_id=?').bind(user.id).first();
@@ -234,7 +234,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     if(await limited(env,`login:${hasAccountId?accountId:email}`,15,900)) return reply({error:'登录尝试过多，请稍后再试'},429);
     const found=hasAccountId?await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(accountId).first():await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
     if(!found || !await passwordMatches(body.password,found.password)) return reply({error:'账号或密码错误'},401);
-    if(isAdmin(found)!==adminOrigin) return reply({error:adminOrigin?'此入口仅供管理员使用':'管理员请使用管理专属入口登录'},403);
+    if(adminOrigin&&!isAdmin(found)) return reply({error:'此入口仅供管理员使用'},403);
     const actualRole=isSA(found)?'superadministrator':'administrator';
     if(adminOrigin&&body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);
     if(found.must_reset_password)return reply({error:'账户安全升级：请通过邮箱重设一个新密码后再登录'},403);

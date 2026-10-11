@@ -418,7 +418,7 @@ function renderMuseum() {
       const airportLabel=bpmSafeRecord({value:entityLabel("airport",flight)}).value;
       const translateLabels=english?["English","Traditional Chinese"]:traditional?["英文","繁體中文"]:["English","繁体中文"];
       const storyForAttribute=bpmSafeRecord({value:rawStory}).value;
-      const storyTranslationLinks=rawStory.trim()?`<div class="story-translate-links" data-bpm-story="${storyForAttribute}"><span>${english?"Translate with DeepSeek (public story text is sent after you click)":traditional?"使用 DeepSeek 翻譯（點擊後會傳送公開故事文字）":"使用 DeepSeek 翻译（点击后会发送公开故事文本）"}</span><button type="button" data-bpm-translate="en">${translateLabels[0]}</button><button type="button" data-bpm-translate="zh-TW">${translateLabels[1]}</button><p class="story-translation-output" hidden aria-live="polite"></p></div>`:"";
+      const storyTranslationLinks=rawStory.trim()?`<div class="story-translate-links" data-bpm-story="${storyForAttribute}"><span>${english?"Translate public story text with ":traditional?"使用":"使用"}<span data-bpm-ai-slot>AI</span>${english?" after you click (public story text is sent)":traditional?" 翻譯（點擊後會傳送公開故事文字）":" 翻译（点击后会发送公开故事文本）"}</span><button type="button" data-bpm-translate="en">${translateLabels[0]}</button><button type="button" data-bpm-translate="zh-TW">${translateLabels[1]}</button><p class="story-translation-output" hidden aria-live="polite"></p></div>`:"";
       flight=bpmSafeRecord(flight);
       const isRail=flight.submission_type==="rail_ticket";
       let specialTags=flight.special_tags||[];

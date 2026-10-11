@@ -31,21 +31,28 @@ test('login issues HttpOnly cookie; logout revokes it',async()=>{
   await worker.fetch(new Request('https://test.invalid/api/logout',{method:'POST',headers:{Cookie:cookie,'Content-Type':'application/json'},body:'{}'}),env);
   assert.equal((await worker.fetch(new Request('https://test.invalid/api/session',{headers:{Cookie:cookie}}),env)).status,401);
 });
-test('administrator sessions can only be created and used through the dedicated host',async()=>{
+test('administrators can use the public site as ordinary users while management endpoints remain isolated',async()=>{
   const {worker,env,db}=fixture();
   db.prepare('UPDATE users SET password=? WHERE id=2').run(await passwordHash('admin-test-password'));
   const mainLogin=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://bpmuseum.org.cn'},body:JSON.stringify({email:'a@example.test',password:'admin-test-password'})}),env);
-  assert.equal(mainLogin.status,403);
+  assert.equal(mainLogin.status,200);
+  const publicLogin=await mainLogin.json();
+  assert.equal(publicLogin.role,'user');assert.equal(publicLogin.admin_context,false);
+  const publicToken=mainLogin.headers.get('Set-Cookie').match(/bpm_session=([a-f0-9]{64})/)[1];
+  const publicSession=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/session',{headers:{Cookie:`bpm_session=${publicToken}`}}),env);
+  assert.deepEqual(await publicSession.json(),{id:2,username:'Admin',email:'a@example.test',role:'user',admin_context:false});
   const staffLogin=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://admin.bpmuseum.org.cn'},body:JSON.stringify({email:'a@example.test',password:'admin-test-password'})}),env);
   assert.equal(staffLogin.status,200);assert.equal((await staffLogin.json()).admin_context,true);
   const publicSessionCookie=`bpm_session=${'3'.repeat(64)}`;
-  const publicSession=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/session',{headers:{Cookie:publicSessionCookie}}),env);
-  assert.equal((await publicSession.json()).admin_context,false);
+  const ordinarySession=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/session',{headers:{Cookie:publicSessionCookie}}),env);
+  assert.equal((await ordinarySession.json()).admin_context,false);
   const staffRead=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/admin/pending',{headers:{Cookie:`bpm_session=${'2'.repeat(64)}`}}),env);
   assert.equal(staffRead.status,200);
   db.prepare("UPDATE auth_sessions SET auth_context='public' WHERE user_id=2").run();
   const oldSessionRead=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/admin/pending',{headers:{Cookie:`bpm_session=${'2'.repeat(64)}`}}),env);
   assert.equal(oldSessionRead.status,403);
+  const isolatedRead=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/admin/pending',{headers:{Cookie:`bpm_session=${publicToken}`}}),env);
+  assert.equal(isolatedRead.status,403);
   db.prepare("UPDATE auth_sessions SET auth_context='public' WHERE user_id=1").run();
   const oldStaffChat=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/staff-chat',{headers:{Cookie:`bpm_session=${'1'.repeat(64)}`}}),env);
   assert.equal(oldStaffChat.status,403);

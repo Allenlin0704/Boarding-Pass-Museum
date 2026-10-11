@@ -21,7 +21,7 @@
       <li>Use fully opaque solid black or white blocks. Translucent shapes, stickers, mosaics, blur, or partially cropped numbers may leave the original information readable and do not meet the privacy requirement.</li>
       <li>You may choose whether to cover seat numbers, gates, boarding sequence numbers, boarding times, destinations, and dates. Do not cover the airline or operator, flight or train number, or departure location needed to identify the ticket.</li>
       <li>Submit only content you are authorized to share. Obtain permission and credit the source when reposting or submitting for someone else. Infringing, confidential, or unlawful material will be declined or removed.</li>
-      <li>DeepSeek image recognition is optional. Only after you edit and redact the image and actively consent is the current editor canvas sent to DeepSeek. BoardingPassMuseum does not store that recognition image. AI results can be wrong; verify each field against the ticket.</li>
+      <li>AI image recognition is optional. Only after you edit and redact the image and actively consent is the edited canvas sent to Doubao. BoardingPassMuseum does not store the recognition image. AI results can be wrong; verify each field against the ticket.</li>
     </ul>
     <h2>Review, appeals, and status notices</h2>
     <p>After submission, an exhibit enters the review queue and is assigned according to the schedule set by the super administrator. The schedule may include regular administrators and the super administrator. Approved exhibits appear in the gallery. Administrators must follow these rules and avoid conflicts of interest or misuse of their authority.</p>
@@ -52,7 +52,7 @@
       <li>遮蔽須使用完全不透明的純黑或純白色塊。半透明色塊、貼紙、馬賽克、模糊處理，或只裁掉部分號碼，都可能讓原始資訊仍可辨識，不符合隱私要求。</li>
       <li>座位、登機門、登機序號、登機時間、目的地與日期可自行決定是否遮蔽。不得遮住辨識票據所需的航空公司／營運公司、航班或車次，以及出發地點。</li>
       <li>僅上傳你有權分享的內容。轉載或代他人投稿須取得授權並註明來源；侵權、涉密或違法內容將遭拒絕或下架。</li>
-      <li>DeepSeek 圖片辨識為選用功能。只有在你先完成編輯、遮蔽個人資料並主動同意後，目前編輯畫布才會傳送至 DeepSeek。BoardingPassMuseum 不會儲存這次辨識圖片。AI 結果可能有誤，請逐項核對票面資料。</li>
+      <li>AI 圖片辨識為選用功能。只有在你先完成編輯、遮蔽個人資料並主動同意後，目前編輯畫布才會傳送至豆包。BoardingPassMuseum 不會儲存識別圖片。AI 結果可能有誤，請逐項核對票面資料。</li>
     </ul>
     <h2>審核、申訴與狀態通知</h2>
     <p>投稿送出後會進入審核佇列，並依超級管理員設定的排班分派處理；排班可包含一般管理員及超級管理員。通過審核的展品會公開展示。管理員須依本規則審核，保持公正並避免利益衝突或濫用權限。</p>
