@@ -284,3 +284,16 @@ button:disabled {
 .bpm-admin-identity-fallback label{display:block;margin:0 0 7px;font-weight:650}
 .bpm-admin-identity-fallback input{width:100%;box-sizing:border-box}
 .bpm-admin-identity-fallback p{margin:9px 0 0;font-size:13px;line-height:1.55}
+
+.bpm-acknowledgements-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:18px}
+.bpm-acknowledgement{display:flex;flex-direction:column;justify-content:space-between;gap:16px;min-width:0;padding:16px;border:1px solid var(--bpm-border);border-radius:12px;background:var(--bpm-input);color:var(--bpm-text)}
+.bpm-acknowledgement h3{margin:0 0 7px;color:var(--bpm-text);font-size:17px}
+.bpm-acknowledgement p{margin:0;color:var(--bpm-muted);font-size:14px;line-height:1.65}
+.bpm-acknowledgement-links{display:flex;flex-wrap:wrap;gap:8px}
+.bpm-acknowledgement-links a{display:inline-flex;align-items:center;min-height:36px;padding:0 11px;border:1px solid var(--bpm-border);border-radius:9px;background:var(--bpm-card);color:var(--bpm-text)!important;font-size:13px;font-weight:650;text-decoration:none}
+.bpm-acknowledgement-links a:hover{border-color:var(--bpm-accent);background:var(--bpm-card)}
+.bpm-github-source a{display:inline-flex;align-items:center;gap:6px}
+@media(max-width:600px){.bpm-acknowledgements-grid{grid-template-columns:1fr;gap:10px}.bpm-acknowledgement{padding:14px}.bpm-acknowledgement-links a{min-height:42px}}
+.admin-client-notice{width:min(460px,calc(100vw - 32px));padding:0;border:1px solid var(--bpm-border);border-radius:18px;background:var(--bpm-card);color:var(--bpm-text);box-shadow:0 22px 70px #0005}
+.admin-client-notice::backdrop{background:#06101dcc;backdrop-filter:blur(3px)}
+.admin-client-notice form{padding:24px}.admin-client-notice h2{margin-top:0}.admin-client-notice form>div{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:20px}.admin-client-notice .button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:9px;text-decoration:none;background:var(--bpm-accent);color:#fff;font-weight:700}

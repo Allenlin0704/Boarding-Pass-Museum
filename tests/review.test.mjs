@@ -42,6 +42,23 @@ test('only SA can edit hidden exhibits; ordinary admins can edit only assigned s
   const assigned={...edit,flight_id:10,admin_id:2};
   assert.equal((await call('/api/admin/edit',assigned,2)).status,200);
 });
+test('SA can repair missing fields on any exhibit without changing review status',async()=>{
+  const {call,db}=fixture();
+  const response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'boarding_pass',airline:'Example Air',flight:'EA202',airport:'PEK',date:'2026-10-11',route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',image:'https://images.bpmuseum.org.cn/tickets/ea202.jpg',story:'Corrected by SA'});
+  assert.equal(response.status,200);
+  const saved=db.prepare('SELECT airline,flight,airport,route,route_scope,departure_country,arrival_country,status FROM flights WHERE id=13').get();
+  assert.deepEqual({...saved},{airline:'Example Air',flight:'EA202',airport:'PEK',route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',status:'approved'});
+  assert.equal((await call('/api/admin/edit',{admin_id:2,flight_id:13,route_scope:'domestic'},2)).status,403);
+});
+test('accepting a correction can update exhibit fields and keeps its status',async()=>{
+  const {call,db}=fixture();
+  db.prepare("INSERT INTO flight_corrections(id,flight_id,user_id,message) VALUES(1,13,3,'航线应为北京到东京')").run();
+  const response=await call('/api/sa/flight-corrections/resolve',{sa_id:1,correction_id:1,status:'accepted',decision:'已核对并修正航线',flight_updates:{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP'}});
+  assert.equal(response.status,200);
+  const flight=db.prepare('SELECT route,route_scope,departure_country,arrival_country,status FROM flights WHERE id=13').get();
+  assert.deepEqual({...flight},{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',status:'approved'});
+  assert.equal(db.prepare('SELECT status FROM flight_corrections WHERE id=1').get().status,'accepted');
+});
 test('admin applications: submission, SA listing, approval and rejection', async () => {
   const {db,call}=fixture();
   assert.equal((await call('/api/account/admin-request',{user_id:3,reason:'Aviation',social:'test account'})).status,200);

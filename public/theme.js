@@ -453,6 +453,22 @@
         ["管理中心 · BoardingPassMuseum", "Management center · BoardingPassMuseum", "管理中心 · BoardingPassMuseum"],
         ["发布社区帖子 · BoardingPassMuseum", "Create a community post · BoardingPassMuseum", "發布社群貼文 · BoardingPassMuseum"]
     );
+    phraseRows.push(
+        ["此站为用户客户端", "This is the public client", "此站為使用者用戶端"],
+        ["管理员与 SA 请前往管理员专属站登录和处理工作。", "Administrators and the SA should sign in and manage the site from the dedicated admin portal.", "管理員與 SA 請前往管理員專屬站登入及處理工作。"],
+        ["留在客户端", "Stay on the client", "留在用戶端"],
+        ["前往管理员端", "Go to admin portal", "前往管理員端"],
+        ["开源项目与服务致谢", "Open-source projects and service credits", "開源專案與服務致謝"],
+        ["BoardingPassMuseum 感谢以下项目维护者、贡献者与服务团队，让本站的图标、Passkey、AI、托管、安全和邮件功能得以实现。", "BoardingPassMuseum thanks the maintainers, contributors, and service teams whose work supports our icons, Passkeys, AI features, hosting, security, and email.", "BoardingPassMuseum 感謝以下專案維護者、貢獻者與服務團隊，讓本站的圖示、Passkey、AI、託管、安全及郵件功能得以實現。"],
+        ["界面 SVG 图标库；图标项目采用 ISC 许可。", "SVG icon library used in the interface; the icon project is released under the ISC license.", "介面使用的 SVG 圖示庫；圖示專案採 ISC 授權。"],
+        ["界面 SVG 图标来源；Lucide 采用 ISC 许可，其中部分图标源自 Feather 并沿用其 MIT 许可。", "SVG icons used in the interface. Lucide is released under the ISC license; some icons derive from Feather and retain its MIT license.", "介面使用的 SVG 圖示來源；Lucide 採 ISC 授權，部分圖示源自 Feather 並沿用其 MIT 授權。"],
+        ["为 Passkey 注册和验证提供服务端工具。", "Server-side tools for Passkey registration and verification.", "提供 Passkey 註冊與驗證所需的伺服器端工具。"],
+        ["提供可选的票面信息识别与公开故事翻译服务。", "Optional ticket-information recognition and public-story translation services.", "提供選用的票面資訊辨識與公開故事翻譯服務。"],
+        ["提供网站与 Worker 托管、D1 数据库、R2 图片存储及 Turnstile 安全验证。", "Provides website and Worker hosting, D1 database, R2 image storage, and Turnstile security verification.", "提供網站與 Worker 託管、D1 資料庫、R2 圖片儲存及 Turnstile 安全驗證。"],
+        ["提供账户验证邮件和投稿状态通知发送服务。", "Sends account-verification emails and submission-status notifications.", "提供帳戶驗證郵件與投稿狀態通知寄送服務。"],
+        ["GitHub 项目", "GitHub repository", "GitHub 專案"], ["许可说明", "License", "授權說明"], ["npm 套件", "npm package", "npm 套件"], ["API 文档", "API documentation", "API 文件"],
+        ["本站 GitHub 源码", "BoardingPassMuseum source on GitHub", "本站 GitHub 原始碼"]
+    );
     const phraseTranslations=Object.create(null);
     phraseRows.forEach(([source,en,tw])=>{phraseTranslations[source]={en,"zh-TW":tw};});
     const queryLanguage=new URLSearchParams(location.search).get("lang");
@@ -649,6 +665,14 @@
     }
 
     function addFooter() {
+        const addSourceLink = footer => {
+            if (footer.querySelector(".bpm-github-source")) return;
+            const source = document.createElement("p");
+            source.className = "bpm-github-source";
+            source.innerHTML = '<a href="https://github.com/Allenlin0704/Boarding-Pass-Museum" target="_blank" rel="noopener noreferrer">本站 GitHub 源码</a>';
+            footer.insertBefore(source, footer.querySelector(".copyright") || null);
+            localizeTree(source);
+        };
         const existingFooter = document.querySelector(".bpm-footer");
         if (existingFooter) {
             if (!existingFooter.querySelector(".bpm-official-wechat")) {
@@ -657,13 +681,14 @@
                 wechat.innerHTML = `微信公众号：<a href="weixin://dl/officialaccounts" title="在微信中查找 BoardingPassMuseum">bpmuseumorgcn</a> <span>（在微信搜索）</span>`;
                 existingFooter.insertBefore(wechat, existingFooter.querySelector(".copyright") || null);
             }
+            addSourceLink(existingFooter);
             updateOfficialWechatLink();
             return;
         }
 
         const footer = document.createElement("footer");
         footer.className = "bpm-footer bpm-auto-footer";
-        footer.innerHTML = `<h3>BoardingPassMuseum</h3><p>收录登机牌、航线信息与旅客投稿。</p><p><a href="about.html">关于我们</a>　<a href="privacy.html">隐私说明</a>　<a href="rules.html">投稿及审核条例</a>　<a href="community-rules.html">社区条例</a></p><p>微信公众号：<a href="weixin://dl/officialaccounts" title="在微信中查找 BoardingPassMuseum">bpmuseumorgcn</a>（在微信搜索）</p><p>联系邮箱：<a href="mailto:allenlin_developer@outlook.com">allenlin_developer@outlook.com</a></p><div class="copyright">© 2026 BoardingPassMuseum. All Rights Reserved.</div>`;
+        footer.innerHTML = `<h3>BoardingPassMuseum</h3><p>收录登机牌、航线信息与旅客投稿。</p><p><a href="about.html">关于我们</a>　<a href="privacy.html">隐私说明</a>　<a href="rules.html">投稿及审核条例</a>　<a href="community-rules.html">社区条例</a></p><p>微信公众号：<a href="weixin://dl/officialaccounts" title="在微信中查找 BoardingPassMuseum">bpmuseumorgcn</a>（在微信搜索）</p><p><a href="https://github.com/Allenlin0704/Boarding-Pass-Museum" target="_blank" rel="noopener noreferrer">本站 GitHub 源码</a></p><p>联系邮箱：<a href="mailto:allenlin_developer@outlook.com">allenlin_developer@outlook.com</a></p><div class="copyright">© 2026 BoardingPassMuseum. All Rights Reserved.</div>`;
         localizeTree(footer);
         document.body.appendChild(footer);
         updateOfficialWechatLink();

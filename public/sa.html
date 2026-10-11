@@ -6,8 +6,8 @@
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
-  <script src="theme.js?v=20261011-browser-nav"></script>
-<link rel="stylesheet" href="features.css?v=20261011-sa-mobile-ui">
+  <script src="theme.js?v=20261011-acknowledgements"></script>
+<link rel="stylesheet" href="features.css?v=20261011-sa-exhibit-edit">
 <meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
 </head>
 
@@ -135,24 +135,51 @@
 管理展厅中的投稿展品。
 </p>
 
-<h3>缺少必要信息的展品</h3>
-<p>系统会自动列出缺少展出所需字段的记录；选择 ID 可在下方打开完整记录。</p>
-<div id="saIncompleteFlights" aria-live="polite">正在检查展品信息…</div>
-
+<h3>搜索展品</h3>
+<p>输入展品 ID 查看记录、处理审核或修改展品信息。</p>
 <input
 id="flightSearchId"
+type="search"
+inputmode="numeric"
+aria-label="展品 ID"
 placeholder="输入展品 ID"
 >
 
-<button id="searchSAFlight">
-查询展品
+<button id="searchSAFlight" type="button">
+搜索展品
 </button>
 
 <div id="saFlights">
-请输入展品 ID 查询
+搜索结果会显示在这里
 </div>
 
+<h3>需要补全信息</h3>
+<p>系统会自动检查缺少必要字段的展品。点“编辑信息”可直接打开编辑窗口。</p>
+<div id="saIncompleteFlights" aria-live="polite">正在检查展品信息…</div>
+
 </section>
+
+<dialog id="saFlightEditDialog" class="sa-flight-edit-dialog">
+  <form id="saFlightEditForm" method="dialog">
+    <header><h2 id="saFlightEditTitle">编辑展品信息</h2><button type="button" id="closeSAFlightEdit" aria-label="关闭编辑窗口">关闭</button></header>
+    <p id="saFlightEditHint">修改后保存，展品审核状态不会改变。</p>
+    <div class="sa-flight-edit-grid">
+      <label>投稿类型<select data-edit-flight="submission_type"><option value="boarding_pass">登机牌</option><option value="rail_ticket">火车票</option></select></label>
+      <label>航空公司 / 运营公司<input data-edit-flight="airline" maxlength="200"></label>
+      <label>航班号 / 车次<input data-edit-flight="flight" maxlength="30"></label>
+      <label>出发机场 / 车站<input data-edit-flight="airport" maxlength="200"></label>
+      <label>日期<input type="date" data-edit-flight="date"></label>
+      <label>到达机场 / 车站<input data-edit-flight="route" maxlength="200"></label>
+      <label>航线范围<select data-edit-flight="route_scope"><option value="">未设置</option><option value="domestic">国内</option><option value="international">国际</option><option value="regional">地区</option></select></label>
+      <label>出发国家或地区<input data-edit-flight="departure_country" maxlength="100"></label>
+      <label>到达国家或地区<input data-edit-flight="arrival_country" maxlength="100"></label>
+      <label class="sa-flight-edit-wide">图片地址<input type="url" data-edit-flight="image"></label>
+      <label class="sa-flight-edit-wide">展品故事<textarea rows="4" maxlength="5000" data-edit-flight="story"></textarea></label>
+      <label class="sa-flight-edit-wide" data-correction-decision-field hidden>采纳说明<textarea rows="3" maxlength="2000" data-correction-decision></textarea></label>
+    </div>
+    <footer><button type="button" class="secondary-button" id="cancelSAFlightEdit">取消</button><button type="submit" id="saveSAFlightEdit">保存修改</button></footer>
+  </form>
+</dialog>
 
 
 
@@ -249,7 +276,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="review-rules.js"></script>
 <script src="image-compression.js?v=20261006-upload-cap"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
-<script src="sa.js?v=20261011-sa-review"></script>
+<script src="sa.js?v=20261011-sa-exhibit-edit"></script>
 
 
 

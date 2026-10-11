@@ -1,4 +1,12 @@
 (() => {
+  window.bpmHandleClientAdminLogin=data=>{
+    if(!['administrator','superadministrator'].includes(data?.role)||location.hostname==='admin.bpmuseum.org.cn')return false;
+    const dialog=document.getElementById('adminClientNotice');
+    if(dialog)dialog.showModal();
+    else alert(`${window.bpmLocaleText?.('此站为用户客户端')||'此站为用户客户端'}：${window.bpmLocaleText?.('管理员与 SA 请前往管理员专属站登录和处理工作。')||'管理员与 SA 请前往管理员专属站登录和处理工作。'}`);
+    const password=document.getElementById('loginPassword');if(password)password.value='';
+    return true;
+  };
   const button=document.getElementById('loginBtn');
   if(!button)return;
   button.addEventListener('click',async()=>{
@@ -13,9 +21,10 @@
     button.disabled=true;
     try{
       const body=identity?(identity.disabled?{email:fallbackEmail,password}:{account_id:Number(identity.value),password}):{email,password};
-      const res=await fetch('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const res=await fetch('https://api.bpmuseum.org.cn/api/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const data=await res.json();
       if(!res.ok||!data.id)throw Error(data.error||'账号或密码错误');
+      if(window.bpmHandleClientAdminLogin(data))return;
       localStorage.setItem('currentUser',JSON.stringify(data));
       if(data.admin_context)sessionStorage.setItem('bpm_admin_entry_authenticated','1');
       showToast('登录成功');

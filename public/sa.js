@@ -98,7 +98,7 @@ async function loadFlightCorrections(){
     const response=await apiFetch(`${API}/api/sa/flight-corrections?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();
     if(!response.ok)throw Error(rows.error||"加载失败");
     if(!Array.isArray(rows)||!rows.length){box.textContent="暂无待处理纠错";return;}
-    box.innerHTML=rows.map(raw=>{const x=bpmSafeRecord(raw);return `<article class="card"><h3>${escapeSACommunityHTML(x.airline)} ${escapeSACommunityHTML(x.flight)} · #${Number(x.flight_id)}</h3><p>投稿人：${escapeSACommunityHTML(x.username)} · ${escapeSACommunityHTML(x.created_at)}</p><p>${escapeSACommunityHTML(x.message)}</p><a href="detail.html?id=${Number(x.flight_id)}" target="_blank" rel="noopener">在新窗口查看展品</a><label>处理说明<textarea data-correction-decision="${Number(x.id)}" rows="3" maxlength="2000"></textarea></label><button type="button" data-correction="${Number(x.id)}" data-status="accepted">采纳</button><button type="button" data-correction="${Number(x.id)}" data-status="dismissed">不采纳</button></article>`;}).join("");
+    box.innerHTML=rows.map(raw=>{const x=bpmSafeRecord(raw);return `<article class="card"><h3>${escapeSACommunityHTML(x.airline)} ${escapeSACommunityHTML(x.flight)} · #${Number(x.flight_id)}</h3><p>投稿人：${escapeSACommunityHTML(x.username)} · ${escapeSACommunityHTML(x.created_at)}</p><p>${escapeSACommunityHTML(x.message)}</p><a href="detail.html?id=${Number(x.flight_id)}" target="_blank" rel="noopener">在新窗口查看展品</a><div class="sa-review-actions"><button type="button" data-correction-edit="${Number(x.id)}" data-flight-id="${Number(x.flight_id)}" data-correction-message="${escapeSACommunityHTML(x.message)}">采纳并编辑展品</button><button type="button" class="secondary-button" data-correction="${Number(x.id)}" data-status="dismissed">不采纳</button></div></article>`;}).join("");
   }catch(error){box.textContent=`加载失败：${error.message}`;}
 }
 
@@ -217,8 +217,11 @@ document.getElementById("heroPhotosPanel")?.addEventListener("click",async event
 document.getElementById("closeSitePhotoPreview")?.addEventListener("click",()=>document.getElementById("sitePhotoPreviewDialog").close());
 
 document.getElementById("flightCorrections")?.addEventListener("click",async event=>{
-  const button=event.target.closest("button[data-correction]");if(!button)return;const id=Number(button.dataset.correction),decision=document.querySelector(`[data-correction-decision="${id}"]`)?.value.trim();if(!decision){showToast("请填写处理说明");return;}button.disabled=true;
-  try{const response=await apiFetch(`${API}/api/sa/flight-corrections/resolve`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,correction_id:id,status:button.dataset.status,decision})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");await loadFlightCorrections();}catch(error){showToast(error.message);button.disabled=false;}
+  const edit=event.target.closest("button[data-correction-edit]");
+  if(edit){try{await openSAFlightEditorById(Number(edit.dataset.flightId),{correctionId:Number(edit.dataset.correctionEdit),correctionMessage:edit.dataset.correctionMessage});}catch(error){showToast(error.message||"无法打开展品编辑窗口");}return;}
+  const button=event.target.closest("button[data-correction]");if(!button)return;
+  const explanation=prompt("填写不采纳原因","");if(explanation===null)return;if(!explanation.trim()){showToast("请填写处理说明");return;}button.disabled=true;
+  try{const response=await apiFetch(`${API}/api/sa/flight-corrections/resolve`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,correction_id:Number(button.dataset.correction),status:button.dataset.status,decision:explanation.trim()})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");await loadFlightCorrections();}catch(error){showToast(error.message);button.disabled=false;}
 });
 
 
@@ -630,13 +633,13 @@ async function loadSAIncompleteFlights(){
             return {flight,missing};
         }).filter(item=>item.missing.length);
         if(!incomplete.length){box.textContent="目前没有发现缺少必要信息的展品。";return;}
-        box.innerHTML=incomplete.map(({flight,missing})=>`<article class="sa-incomplete-flight"><div><strong>#${Number(flight.id)} · ${escapeSACommunityHTML(flight.airline||"未填写承运方")} ${escapeSACommunityHTML(flight.flight||"")}</strong><p>状态：${escapeSACommunityHTML(flight.status||"未知")} · 投稿日期：${escapeSACommunityHTML(flight.created_at||"未知")}</p><p>缺少：${missing.map(escapeSACommunityHTML).join("、")}</p></div><button type="button" data-sa-incomplete-id="${Number(flight.id)}">查看记录</button></article>`).join("");
+        box.innerHTML=incomplete.map(({flight,missing})=>`<article class="sa-incomplete-flight"><div><strong>#${Number(flight.id)} · ${escapeSACommunityHTML(flight.airline||"未填写承运方")} ${escapeSACommunityHTML(flight.flight||"")}</strong><p>状态：${escapeSACommunityHTML(flight.status||"未知")} · 投稿日期：${escapeSACommunityHTML(flight.created_at||"未知")}</p><p>缺少：${missing.map(escapeSACommunityHTML).join("、")}</p></div><button type="button" data-sa-incomplete-id="${Number(flight.id)}">编辑信息</button></article>`).join("");
         box.onclick=event=>{
             const button=event.target.closest("[data-sa-incomplete-id]");
             if(!button)return;
             const input=document.getElementById("flightSearchId");
             if(input)input.value=button.dataset.saIncompleteId;
-            document.getElementById("searchSAFlight")?.click();
+            openSAFlightEditorById(Number(button.dataset.saIncompleteId));
         };
     }catch(error){
         box.textContent=`检查展品失败：${error.message||"请稍后重试"}`;
@@ -1064,25 +1067,63 @@ async function confirmDemote(){
 // SA 展品 ID 查询
 // ==========================
 
-async function saSaveHiddenFlight(flightId,button){
-    const editor=button.closest(".sa-hidden-flight-edit");
-    const value=key=>editor.querySelector(`[data-hidden-edit="${key}"]`).value.trim();
-    const body={flight_id:Number(flightId),airline:value("airline"),flight:value("flight"),airport:value("airport"),date:value("date"),story:value("story"),image:value("image")};
-    button.disabled=true;
-    try{
-        const response=await apiFetch(`${API}/api/admin/edit`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-        const result=await response.json();
-        if(!response.ok)throw Error(result.error||"保存失败");
-        showToast("已下架展品已更新");
-        document.getElementById("searchSAFlight")?.click();
-    }catch(error){showToast(error.message||"保存失败");button.disabled=false;}
+let saFlightEditContext=null;
+async function loadSAFlightById(flightId){
+    let response=await apiFetch(`${API}/api/flight/${encodeURIComponent(flightId)}`,{cache:"no-store"});
+    if(response.ok)return bpmSafeRecord(await response.json());
+    response=await apiFetch(`${API}/api/sa/flights?sa_id=${encodeURIComponent(user.id)}`,{cache:"no-store"});
+    const rows=await response.json();
+    if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"展品读取失败");
+    const record=rows.find(row=>Number(row.id)===Number(flightId));
+    if(!record)throw Error("未找到该展品");
+    return bpmSafeRecord(record);
 }
+async function openSAFlightEditorById(flightId,options={}){
+    const flight=await loadSAFlightById(flightId);
+    const dialog=document.getElementById("saFlightEditDialog"),form=document.getElementById("saFlightEditForm");
+    form.querySelector("#saveSAFlightEdit").disabled=false;
+    saFlightEditContext={flightId:Number(flight.id),correctionId:Number(options.correctionId)||null};
+    form.querySelectorAll("[data-edit-flight]").forEach(input=>input.value=flight[input.dataset.editFlight]??(input.dataset.editFlight==="submission_type"?"boarding_pass":""));
+    const decisionField=form.querySelector("[data-correction-decision-field]");
+    decisionField.hidden=!saFlightEditContext.correctionId;
+    document.getElementById("saFlightEditTitle").textContent=`编辑展品 #${Number(flight.id)}`;
+    document.getElementById("saFlightEditHint").textContent=saFlightEditContext.correctionId?`用户纠错：${String(options.correctionMessage||"")}。核对并修改后保存，会一并采纳纠错，审核状态保持不变。`:"补全或修正展品信息；保存后审核状态保持不变。";
+    if(saFlightEditContext.correctionId)form.querySelector("[data-correction-decision]").value="已核对并更新展品信息";
+    dialog.showModal();
+}
+
+document.getElementById("closeSAFlightEdit")?.addEventListener("click",()=>document.getElementById("saFlightEditDialog").close());
+document.getElementById("cancelSAFlightEdit")?.addEventListener("click",()=>document.getElementById("saFlightEditDialog").close());
+document.getElementById("saFlightEditForm")?.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(!saFlightEditContext)return;
+    const form=event.currentTarget,save=form.querySelector("#saveSAFlightEdit"),flightUpdates={};
+    form.querySelectorAll("[data-edit-flight]").forEach(input=>flightUpdates[input.dataset.editFlight]=input.value.trim());
+    save.disabled=true;
+    try{
+        const correctionId=saFlightEditContext.correctionId;
+        const endpoint=correctionId?`${API}/api/sa/flight-corrections/resolve`:`${API}/api/admin/edit`;
+        const payload=correctionId?{sa_id:user.id,correction_id:correctionId,status:"accepted",decision:form.querySelector("[data-correction-decision]").value.trim(),flight_updates:flightUpdates}:{flight_id:saFlightEditContext.flightId,...flightUpdates};
+        if(correctionId&&!payload.decision)throw Error("请填写采纳说明");
+        const response=await apiFetch(endpoint,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}),result=await response.json();
+        if(!response.ok)throw Error(result.error||"保存失败");
+        document.getElementById("saFlightEditDialog").close();
+        document.getElementById("searchSAFlight")?.click();
+        await loadSAIncompleteFlights();
+        if(correctionId)await loadFlightCorrections();
+        showToast(correctionId?"展品已更新，纠错已采纳":"展品信息已保存");
+    }catch(error){showToast(error.message||"保存失败");save.disabled=false;}
+});
 
 const searchSAFlight =
 document.getElementById("searchSAFlight");
 
 
 if(searchSAFlight){
+
+    document.getElementById("flightSearchId")?.addEventListener("keydown",event=>{
+        if(event.key==="Enter"){event.preventDefault();searchSAFlight.click();}
+    });
 
     searchSAFlight.onclick = async function(){
 
@@ -1109,39 +1150,11 @@ if(searchSAFlight){
 
         try{
 
-            const res =
-            await apiFetch(
-                `${API}/api/flight/${encodeURIComponent(id)}`
-            );
-
-
-            const x =
-            bpmSafeRecord(await res.json());
-
-
-            if(!res.ok){
-
-                box.innerHTML="未找到该展品";
-                return;
-
-            }
+            const x=await loadSAFlightById(id);
 
 
             const status =
                 String(x.status || "");
-
-            const hiddenEdit = status === "hidden" ? `
-              <details class="sa-hidden-flight-edit">
-                <summary>编辑已下架展品（仅 SA）</summary>
-                <label>航空公司 / 运营公司<input data-hidden-edit="airline" value="${x.airline||""}"></label>
-                <label>航班 / 班次<input data-hidden-edit="flight" value="${x.flight||""}"></label>
-                <label>机场 / 出发地点<input data-hidden-edit="airport" value="${x.airport||""}"></label>
-                <label>日期<input type="date" data-hidden-edit="date" value="${x.date||""}"></label>
-                <label>故事<textarea rows="4" data-hidden-edit="story">${x.story||""}</textarea></label>
-                <label>图片地址<input type="url" data-hidden-edit="image" value="${x.image||""}"></label>
-                <button type="button" onclick="saSaveHiddenFlight(${Number(x.id)},this)">保存展品修改</button>
-              </details>` : "";
-
 
             let reviewButtons = "";
 
@@ -1192,14 +1205,14 @@ if(searchSAFlight){
             <div class="card">
 
             <img
-            src="${x.image || ''}"
+            src="${escapeSACommunityHTML(x.image || '')}"
             class="ticket-image"
-            data-preview="${x.image || ''}"
+            data-preview="${escapeSACommunityHTML(x.image || '')}"
             >
 
             <h3>
-            ${x.airline || ""}
-            ${x.flight || ""}
+            ${escapeSACommunityHTML(x.airline || "")}
+            ${escapeSACommunityHTML(x.flight || "")}
             </h3>
 
             <p>
@@ -1207,11 +1220,11 @@ if(searchSAFlight){
             </p>
 
             <p>
-            投稿用户:${x.username || "未知"}
+            投稿用户:${escapeSACommunityHTML(x.username || "未知")}
             </p>
 
             <p>
-            状态:${x.status || ""}
+            状态:${escapeSACommunityHTML(x.status || "")}
             </p>
 
             ${
@@ -1222,7 +1235,7 @@ if(searchSAFlight){
 
             ${
                 x.reject_reason
-                ? `<p>拒绝原因:${x.reject_reason}</p>`
+                ? `<p>拒绝原因:${escapeSACommunityHTML(x.reject_reason)}</p>`
                 : ""
             }
 
@@ -1230,7 +1243,7 @@ if(searchSAFlight){
                 ${reviewButtons}
             </div>
 
-            ${hiddenEdit}
+            <button type="button" class="secondary-button" data-open-sa-flight-edit="${Number(x.id)}">编辑展品信息</button>
 
             <button
             class="danger-button"
@@ -1241,6 +1254,7 @@ if(searchSAFlight){
             </div>
 
             `;
+            box.querySelector("[data-open-sa-flight-edit]")?.addEventListener("click",()=>openSAFlightEditorById(Number(x.id)).catch(error=>showToast(error.message||"无法打开展品编辑窗口")));
 
 
         }catch(e){

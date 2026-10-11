@@ -98,10 +98,25 @@ export async function reviewRoute(request,env,url,user) {
     if(!Number.isInteger(id)||!['accepted','dismissed'].includes(status)||!decision||decision.length>2000)return reply({error:'处理信息无效'},400);
     const correction=await env.DB.prepare("SELECT * FROM flight_corrections WHERE id=? AND status='pending'").bind(id).first();
     if(!correction)return reply({error:'纠错不存在或已处理'},409);
-    const results=await env.DB.batch([
-      env.DB.prepare("UPDATE flight_corrections SET status=?,decision=?,resolved_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'").bind(status,decision,id),
-      env.DB.prepare("INSERT INTO notifications(user_id,content) SELECT ?,? WHERE changes()>0").bind(correction.user_id,`你对展品 #${correction.flight_id} 的纠错已${status==='accepted'?'采纳':'处理'}：${decision}`)
-    ]);
+    const updates=body.flight_updates;
+    const fields=['submission_type','airline','flight','airport','date','route','route_scope','departure_country','arrival_country','image','story'];
+    if(updates!==undefined){
+      if(status!=='accepted'||!updates||typeof updates!=='object'||Array.isArray(updates))return reply({error:'纠错修改信息无效'},400);
+      for(const field of fields)if(updates[field]!==undefined&&typeof updates[field]!=='string')return reply({error:'展品字段格式错误'},400);
+      if(updates.submission_type!==undefined&&!['boarding_pass','rail_ticket'].includes(updates.submission_type))return reply({error:'投稿类型无效'},400);
+      if(updates.route_scope!==undefined&&!['','domestic','international','regional'].includes(updates.route_scope))return reply({error:'航线范围无效'},400);
+      if((updates.airline||'').length>200||(updates.flight||'').length>30||(updates.airport||'').length>200||(updates.route||'').length>200||(updates.departure_country||'').length>100||(updates.arrival_country||'').length>100||(updates.story||'').length>5000)return reply({error:'展品字段超出长度限制'},400);
+    }
+    const statements=[env.DB.prepare("UPDATE flight_corrections SET status=?,decision=?,resolved_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'").bind(status,decision,id)];
+    if(updates){
+      const existing=await env.DB.prepare('SELECT * FROM flights WHERE id=?').bind(correction.flight_id).first();
+      if(!existing)return reply({error:'关联展品不存在'},404);
+      const value=field=>updates[field]===undefined?(existing[field]??''):updates[field];
+      statements.push(env.DB.prepare("UPDATE flights SET submission_type=?,airline=?,flight=?,airport=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,image=?,story=? WHERE id=? AND EXISTS(SELECT 1 FROM flight_corrections WHERE id=? AND status='accepted')")
+        .bind(value('submission_type'),value('airline'),value('flight'),value('airport'),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('image'),value('story'),correction.flight_id,id));
+    }
+    statements.push(env.DB.prepare("INSERT INTO notifications(user_id,content) SELECT ?,? WHERE changes()>0").bind(correction.user_id,`你对展品 #${correction.flight_id} 的纠错已${status==='accepted'?'采纳':'处理'}：${decision}`));
+    const results=await env.DB.batch(statements);
     return results[0].meta.changes?reply({success:true}):reply({error:'处理状态已变化，请刷新'},409);
   }
   if(path==='/api/account/admin-request') {
@@ -126,15 +141,20 @@ export async function reviewRoute(request,env,url,user) {
   if(path==='/api/admin/edit') {
     if(!isAdmin(user))return reply({error:'No permission'},403);
     const body=await request.json();
-    const flight=await env.DB.prepare('SELECT id,status,reviewer_id FROM flights WHERE id=?').bind(Number(body.flight_id)).first();
+    const flight=await env.DB.prepare('SELECT * FROM flights WHERE id=?').bind(Number(body.flight_id)).first();
     if(!flight)return reply({error:'展品不存在'},404);
     // Withdrawn/hidden exhibits are editable by the site owner only. Ordinary
     // reviewers may still correct an exhibit assigned to them while screening.
     if(flight.status==='hidden'&&!isSA(user))return reply({error:'只有 SA 可以修改已下架展品'},403);
     if(!isSA(user)&&(flight.status!=='screening'||Number(flight.reviewer_id)!==Number(user.id)))return reply({error:'只能修改分配给自己的待审展品'},403);
-    for(const field of ['airline','flight','airport','date','story','image']) if(body[field]!==undefined&&typeof body[field]!=='string')return reply({error:'字段格式错误'},400);
-    const result=await env.DB.prepare(`UPDATE flights SET airline=?,flight=?,airport=?,date=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
-      .bind(body.airline||'',body.flight||'',body.airport||'',body.date||'',body.story||'',body.image||'',Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
+    const fields=['submission_type','airline','flight','airport','date','route','route_scope','departure_country','arrival_country','story','image'];
+    for(const field of fields) if(body[field]!==undefined&&typeof body[field]!=='string')return reply({error:'字段格式错误'},400);
+    if(body.submission_type!==undefined&&!['boarding_pass','rail_ticket'].includes(body.submission_type))return reply({error:'投稿类型无效'},400);
+    if(body.route_scope!==undefined&&!['','domestic','international','regional'].includes(body.route_scope))return reply({error:'航线范围无效'},400);
+    if((body.airline||'').length>200||(body.flight||'').length>30||(body.airport||'').length>200||(body.route||'').length>200||(body.departure_country||'').length>100||(body.arrival_country||'').length>100||(body.story||'').length>5000)return reply({error:'字段超出长度限制'},400);
+    const value=field=>body[field]===undefined?(flight[field]??''):body[field];
+    const result=await env.DB.prepare(`UPDATE flights SET submission_type=?,airline=?,flight=?,airport=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
+      .bind(value('submission_type'),value('airline'),value('flight'),value('airport'),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('story'),value('image'),Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
     return result.meta.changes?reply({success:true}):reply({error:'展品状态已变化，请刷新后重试'},409);
   }
   if(path==='/api/appeal') {
