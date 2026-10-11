@@ -124,11 +124,18 @@ export async function reviewRoute(request,env,url,user) {
     await env.DB.batch(statements);return reply({success:true});
   }
   if(path==='/api/admin/edit') {
+    if(!isAdmin(user))return reply({error:'No permission'},403);
     const body=await request.json();
+    const flight=await env.DB.prepare('SELECT id,status,reviewer_id FROM flights WHERE id=?').bind(Number(body.flight_id)).first();
+    if(!flight)return reply({error:'展品不存在'},404);
+    // Withdrawn/hidden exhibits are editable by the site owner only. Ordinary
+    // reviewers may still correct an exhibit assigned to them while screening.
+    if(flight.status==='hidden'&&!isSA(user))return reply({error:'只有 SA 可以修改已下架展品'},403);
+    if(!isSA(user)&&(flight.status!=='screening'||Number(flight.reviewer_id)!==Number(user.id)))return reply({error:'只能修改分配给自己的待审展品'},403);
     for(const field of ['airline','flight','airport','date','story','image']) if(body[field]!==undefined&&typeof body[field]!=='string')return reply({error:'字段格式错误'},400);
-    const result=await env.DB.prepare(`UPDATE flights SET airline=?,flight=?,airport=?,date=?,story=?,image=? WHERE id=? AND (?=1 OR (reviewer_id=? AND status='screening'))`)
-      .bind(body.airline||'',body.flight||'',body.airport||'',body.date||'',body.story||'',body.image||'',Number(body.flight_id),Number(isSA(user)),user.id).run();
-    return result.meta.changes?reply({success:true}):reply({error:'只能修改分配给自己的待审展品'},403);
+    const result=await env.DB.prepare(`UPDATE flights SET airline=?,flight=?,airport=?,date=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
+      .bind(body.airline||'',body.flight||'',body.airport||'',body.date||'',body.story||'',body.image||'',Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
+    return result.meta.changes?reply({success:true}):reply({error:'展品状态已变化，请刷新后重试'},409);
   }
   if(path==='/api/appeal') {
     const body=await request.json(); const reason=String(body.reason||'').trim();

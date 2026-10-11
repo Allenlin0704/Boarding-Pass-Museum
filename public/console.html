@@ -6,27 +6,32 @@
   <title>管理中心 · BoardingPassMuseum</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
-  <link rel="stylesheet" href="features.css?v=20261006-multilingual">
+  <link rel="stylesheet" href="features.css?v=20261011-console-cleanup">
   <script src="theme.js?v=20261011-browser-nav"></script>
   <script src="security.js?v=5"></script>
   <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
 </head>
 <body class="bpm-console-body">
-  <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum</div><nav><a href="https://bpmuseum.org.cn/">返回展厅</a></nav></header>
+  <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · 管理工作区</div><nav><a href="admin-settings.html">登录设置</a></nav></header>
   <main class="bpm-console-shell">
     <aside class="bpm-console-sidebar" aria-label="管理功能">
       <p class="bpm-console-kicker">管理中心</p>
       <h1 id="consoleWelcome">正在验证权限…</h1>
       <button class="bpm-console-nav active" data-page="admin.html?embed=1#pending">待我审核</button>
-      <button class="bpm-console-nav" data-page="admin.html?embed=1#approved">审核记录</button>
       <button class="bpm-console-nav" data-page="admin.html?embed=1#admin-rules-panel">审核规则</button>
       <button class="bpm-console-chat" id="consoleChatButton" type="button">管理员工作聊天</button>
-      <a class="bpm-console-exit" href="https://bpmuseum.org.cn/">退出管理中心</a>
+      <a class="bpm-console-exit" href="admin-settings.html">登录设置</a>
+      <a class="bpm-console-exit" href="https://bpmuseum.org.cn/" data-confirm-console-exit>退出管理中心</a>
     </aside>
     <section class="bpm-console-content">
       <iframe id="consoleFrame" title="BoardingPassMuseum 管理工作区" src="admin.html?embed=1"></iframe>
     </section>
   </main>
-  <script src="console.js?v=20260930-nav-fix"></script>
+  <nav class="bpm-console-mobile-nav" aria-label="管理员快捷操作">
+    <button type="button" data-console-page="admin.html?embed=1#pending">待我审核</button>
+    <a href="admin-settings.html">登录设置</a>
+    <a href="https://bpmuseum.org.cn/" data-confirm-console-exit>离开管理</a>
+  </nav>
+  <script src="console.js?v=20261011-sa-workspace"></script>
 </body>
 </html>

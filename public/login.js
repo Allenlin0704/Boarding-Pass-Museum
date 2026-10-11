@@ -20,7 +20,7 @@
       if(data.admin_context)sessionStorage.setItem('bpm_admin_entry_authenticated','1');
       showToast('登录成功');
       const requestedNext=new URLSearchParams(location.search).get('next')||'';
-      const next=/^[a-zA-Z0-9_-]+\.html(?:[?#][^\s]*)?$/.test(requestedNext)?requestedNext:(data.admin_context?'console.html':'index.html');
+      const next=data.role==='superadministrator'?'sa.html#saReviewQueuePanel':(/^[a-zA-Z0-9_-]+\.html(?:[?#][^\s]*)?$/.test(requestedNext)?requestedNext:(data.admin_context?'console.html':'index.html'));
       location.href=next;
     }catch(error){
       console.error(error);

@@ -6,12 +6,12 @@
 const API =
 "https://api.bpmuseum.org.cn";
 
+const apiFetch=(input,init={})=>fetch(input,{...init,credentials:"include"});
+
 
 let adminUser = null;
 
 let pendingFlights = [];
-
-let approvedFlights = [];
 
 let editingId = null;
 
@@ -115,8 +115,6 @@ bindEvents();
 await loadDashboard();
 
 await loadPending();
-
-await loadApproved();
 
 
 }
@@ -282,7 +280,7 @@ try{
 
 
 const res =
-await fetch(
+await apiFetch(
 `${API}/api/admin/screening?admin_id=${adminUser.id}`
 );
 
@@ -328,7 +326,7 @@ async function loadPending(){
 
 
 const res =
-await fetch(
+await apiFetch(
 `${API}/api/admin/screening?admin_id=${adminUser.id}`
 );
 
@@ -384,80 +382,6 @@ box.innerHTML +=
 createCard(
 item,
 "screening"
-);
-
-}
-);
-
-
-}
-
-
-// =====================================
-// APPROVED
-// =====================================
-
-
-async function loadApproved(){
-
-
-const res =
-await fetch(
-`${API}/api/admin/approved?admin_id=${adminUser.id}`
-);
-
-
-const data =
-await res.json();
-
-
-if(
-Array.isArray(data)
-){
-
-approvedFlights=data;
-
-}else{
-
-approvedFlights=[];
-
-console.error(
-"Approved error",
-data
-);
-
-}
-
-
-renderApproved();
-
-
-}
-
-
-
-function renderApproved(){
-
-
-const box =
-document.getElementById(
-"approvedList"
-);
-
-
-if(!box)return;
-
-
-box.innerHTML="";
-
-
-approvedFlights.forEach(
-item=>{
-
-box.innerHTML +=
-createCard(
-item,
-"approved"
 );
 
 }
@@ -594,7 +518,7 @@ return;
 
 
 const res =
-await fetch(
+await apiFetch(
 `${API}/api/admin/approve`,
 {
 
@@ -640,8 +564,6 @@ showToast(
 
 await loadPending();
 
-await loadApproved();
-
 
 }else{
 
@@ -674,7 +596,7 @@ if(!reason) return;
 
 
 const res =
-await fetch(
+await apiFetch(
 `${API}/api/admin/reject`,
 {
 
@@ -751,8 +673,7 @@ function openEditModal(id){
 
 const item =
 [
-...pendingFlights,
-...approvedFlights
+...pendingFlights
 ]
 .find(
 x=>x.id===id
@@ -913,7 +834,7 @@ document.getElementById(
 
 
 const res =
-await fetch(
+await apiFetch(
 `${API}/api/admin/edit`,
 {
 
@@ -951,8 +872,6 @@ closeEditModal();
 
 
 await loadPending();
-
-await loadApproved();
 
 
 }else{
@@ -1035,7 +954,7 @@ function bindAdminApply(){
         try{
 
             const res =
-                await fetch(
+                await apiFetch(
                     `${API}/api/account/admin-request`,
                     {
                         method:"POST",

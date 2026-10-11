@@ -30,6 +30,18 @@ test('ordinary admins restricted to assigned pending; invalid SA denied', async 
   assert.equal((await call('/api/admin/pending?admin_id=4')).status,403);
   assert.equal((await call('/api/admin/approve',{admin_id:2,flight_id:10})).status,200);
 });
+test('only SA can edit hidden exhibits; ordinary admins can edit only assigned screening exhibits',async()=>{
+  const {call,db}=fixture();
+  const edit={flight_id:11,airline:'Updated Air',flight:'MU123',airport:'PEK',date:'2026-10-11',story:'Corrected details',image:'https://images.bpmuseum.org.cn/tickets/example.jpg'};
+  assert.equal((await call('/api/admin/edit',{...edit,admin_id:2},2)).status,403);
+  assert.equal((await call('/api/admin/edit',{...edit,flight_id:10,user_id:3},3)).status,403);
+  assert.equal((await call('/api/admin/edit',{...edit,admin_id:1},1)).status,200);
+  assert.equal(db.prepare('SELECT airline,flight,status FROM flights WHERE id=11').get().airline,'Updated Air');
+  assert.equal(db.prepare('SELECT status FROM flights WHERE id=11').get().status,'hidden');
+  assert.equal((await call('/api/admin/edit',{...edit,flight_id:10,admin_id:5},5)).status,403);
+  const assigned={...edit,flight_id:10,admin_id:2};
+  assert.equal((await call('/api/admin/edit',assigned,2)).status,200);
+});
 test('admin applications: submission, SA listing, approval and rejection', async () => {
   const {db,call}=fixture();
   assert.equal((await call('/api/account/admin-request',{user_id:3,reason:'Aviation',social:'test account'})).status,200);

@@ -23,7 +23,7 @@
           if (!response.ok || !account.admin_context || !['administrator', 'superadministrator'].includes(account.role)) throw Error(account.error || '此登录不是管理员会话');
           localStorage.setItem('currentUser', JSON.stringify(account));
           sessionStorage.setItem('bpm_admin_entry_authenticated','1');
-          location.replace('console.html');
+          location.replace(account.role==='superadministrator'?'sa.html#saReviewQueuePanel':'console.html');
         })
         .catch(error => { status.textContent = error.message || '登录未完成，请重试'; });
     })();

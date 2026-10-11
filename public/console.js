@@ -12,6 +12,13 @@ const selectPage=button=>{
   frame.src=button.dataset.page;
 };
 controls.forEach(button=>button.addEventListener("click",()=>selectPage(button)));
+document.querySelectorAll("[data-console-page]").forEach(button=>button.addEventListener("click",()=>{
+  const target=controls.find(control=>control.dataset.page===button.dataset.consolePage);
+  if(target)selectPage(target);
+}));
+document.querySelectorAll("[data-confirm-console-exit]").forEach(link=>link.addEventListener("click",event=>{
+  if(!confirm("要离开管理员工作区并返回展厅吗？"))event.preventDefault();
+}));
 document.getElementById("consoleChatButton")?.addEventListener("click",()=>frame.contentWindow.postMessage('bpm-open-staff-chat',location.origin));
 (async()=>{
   try{
@@ -24,6 +31,10 @@ document.getElementById("consoleChatButton")?.addEventListener("click",()=>frame
         return;
       }
       if(!account.admin_context){location.replace("admin-login.html");return;}
+      if(account.role==="superadministrator"){
+        location.replace("sa.html#saReviewQueuePanel");
+        return;
+      }
     }else if(location.hostname==="admin.bpmuseum.org.cn"){
       location.replace("https://bpmuseum.org.cn/console.html");
       return;
@@ -38,9 +49,6 @@ document.getElementById("consoleChatButton")?.addEventListener("click",()=>frame
       document.querySelector(".bpm-console-sidebar").append(hint);
       frame.src="admin.html?embed=1#admin-apply";
     }else if(!["administrator","superadministrator"].includes(account.role))throw Error("无权限");
-    if(account.role==="superadministrator"){
-      const saLink=document.createElement("a");saLink.className="bpm-console-exit";saLink.href="sa.html";saLink.textContent="SA 控制台";document.querySelector(".bpm-console-sidebar").insertBefore(saLink,document.querySelector(".bpm-console-exit"));
-    }
   }catch{
     location.replace(location.hostname==="admin.bpmuseum.org.cn"?"admin-login.html":"login.html");
   }

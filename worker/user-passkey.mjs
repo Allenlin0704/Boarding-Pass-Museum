@@ -10,6 +10,10 @@ const consume=(env,flow,kind)=>env.DB.prepare("DELETE FROM user_webauthn_challen
 export async function userPasskeyRoute(request,env,url,user){
   if(!url.pathname.startsWith('/api/passkey/'))return null;
   const path=url.pathname,body=request.method==='POST'?await request.json():{};
+  if(user){
+    const adminOrigin=request.headers.get('Origin')===ADMIN_ORIGIN;
+    if(isAdmin(user)!==adminOrigin||isAdmin(user)&&user.auth_context!=='admin')return reply({error:isAdmin(user)?'请从管理员专属入口管理 Passkey':'此入口仅供管理员使用'},403);
+  }
   if(path==='/api/passkey/status'&&request.method==='GET'){
     if(!user)return reply({error:'请重新登录'},401);const keys=await env.DB.prepare('SELECT credential_id,created_at,last_used_at FROM user_passkeys WHERE user_id=? ORDER BY created_at').bind(user.id).all();return reply({passkeys:keys.results});
   }
@@ -24,7 +28,7 @@ export async function userPasskeyRoute(request,env,url,user){
   }
   if(path==='/api/passkey/register/verify'){
     if(!user)return reply({error:'请重新登录'},401);const saved=await consume(env,await sessionTokenHash(request),'register');if(!saved)return reply({error:'登记请求已过期，请重新开始'},400);
-    try{const verified=await verifyRegistrationResponse({response:body.credential,expectedChallenge:saved.challenge,expectedOrigin:origin,expectedRPID:rpID,requireUserVerification:true});if(!verified.verified||!verified.registrationInfo)return reply({error:'Passkey 登记未通过'},400);const c=verified.registrationInfo.credential;await env.DB.prepare('INSERT INTO user_passkeys(credential_id,user_id,public_key,counter,transports) VALUES(?,?,?,?,?)').bind(c.id,user.id,bytesToB64(c.publicKey),Number(c.counter),JSON.stringify(c.transports||[])).run();return reply({success:true});}catch{return reply({error:'Passkey 登记未通过'},400);}
+    try{const verified=await verifyRegistrationResponse({response:body.credential,expectedChallenge:saved.challenge,expectedOrigin:[origin,ADMIN_ORIGIN],expectedRPID:rpID,requireUserVerification:true});if(!verified.verified||!verified.registrationInfo)return reply({error:'Passkey 登记未通过'},400);const c=verified.registrationInfo.credential;await env.DB.prepare('INSERT INTO user_passkeys(credential_id,user_id,public_key,counter,transports) VALUES(?,?,?,?,?)').bind(c.id,user.id,bytesToB64(c.publicKey),Number(c.counter),JSON.stringify(c.transports||[])).run();return reply({success:true});}catch{return reply({error:'Passkey 登记未通过'},400);}
   }
   if(path==='/api/passkey/login/options'){
     const token=randomHex(32),flow=await hash(token),options=await generateAuthenticationOptions({rpID,userVerification:'required'});await saveChallenge(env,flow,'login',options.challenge);const res=reply(options);res.headers.set('Set-Cookie',`bpm_passkey_flow=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=300`);return res;

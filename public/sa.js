@@ -1,3 +1,4 @@
+const apiFetch=(input,init={})=>fetch(input,{...init,credentials:"include"});
 const API = "https://api.bpmuseum.org.cn";
 
 const user = JSON.parse(
@@ -32,7 +33,7 @@ async function loadAppeals(){
 
     try{
 
-        const res = await fetch(
+        const res = await apiFetch(
             `${API}/api/sa/appeals?sa_id=${user.id}`
         );
 
@@ -88,13 +89,13 @@ async function loadAppeals(){
 
 document.getElementById("appeals")?.addEventListener("click",async event=>{
   const button=event.target.closest("button[data-flight-appeal]");if(!button)return;button.disabled=true;
-  try{const response=await fetch(`${API}/api/sa/appeal/${button.dataset.result}`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,appeal_id:Number(button.dataset.flightAppeal),flight_id:Number(button.dataset.flightId)})}),result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");await loadAppeals();showToast("申诉已处理");}catch(error){button.disabled=false;showToast(error.message);}
+  try{const response=await apiFetch(`${API}/api/sa/appeal/${button.dataset.result}`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,appeal_id:Number(button.dataset.flightAppeal),flight_id:Number(button.dataset.flightId)})}),result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");await loadAppeals();showToast("申诉已处理");}catch(error){button.disabled=false;showToast(error.message);}
 });
 
 async function loadFlightCorrections(){
   const box=document.getElementById("flightCorrections");if(!box)return;
   try{
-    const response=await fetch(`${API}/api/sa/flight-corrections?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();
+    const response=await apiFetch(`${API}/api/sa/flight-corrections?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();
     if(!response.ok)throw Error(rows.error||"加载失败");
     if(!Array.isArray(rows)||!rows.length){box.textContent="暂无待处理纠错";return;}
     box.innerHTML=rows.map(raw=>{const x=bpmSafeRecord(raw);return `<article class="card"><h3>${escapeSACommunityHTML(x.airline)} ${escapeSACommunityHTML(x.flight)} · #${Number(x.flight_id)}</h3><p>投稿人：${escapeSACommunityHTML(x.username)} · ${escapeSACommunityHTML(x.created_at)}</p><p>${escapeSACommunityHTML(x.message)}</p><a href="detail.html?id=${Number(x.flight_id)}" target="_blank" rel="noopener">在新窗口查看展品</a><label>处理说明<textarea data-correction-decision="${Number(x.id)}" rows="3" maxlength="2000"></textarea></label><button type="button" data-correction="${Number(x.id)}" data-status="accepted">采纳</button><button type="button" data-correction="${Number(x.id)}" data-status="dismissed">不采纳</button></article>`;}).join("");
@@ -103,7 +104,7 @@ async function loadFlightCorrections(){
 
 async function loadReviewerSchedule(){
   const box=document.getElementById("reviewerSchedule");if(!box)return;
-  try{const response=await fetch(`${API}/api/sa/reviewer-schedule?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();if(!response.ok)throw Error(rows.error||"加载失败");
+  try{const response=await apiFetch(`${API}/api/sa/reviewer-schedule?sa_id=${user.id}`,{credentials:"include"}),rows=await response.json();if(!response.ok)throw Error(rows.error||"加载失败");
     box.innerHTML=rows.map(row=>`<label class="reviewer-schedule-row" data-schedule-row="${Number(row.id)}"><span><strong>${escapeSACommunityHTML(row.username)}</strong><small>${row.role==="superadministrator"?"SA":"管理员"}</small></span><span class="reviewer-percent-field"><input type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="${escapeSACommunityHTML(row.username)} 的稿件分配百分比" data-reviewer-id="${Number(row.id)}" value="${Math.max(0,Math.min(100,Number(row.allocation_percent)||0))}"><span>%</span></span></label>`).join("")||"目前没有可排班的管理员。";
     updateReviewerScheduleTotal();
   }catch(error){box.textContent=`加载失败：${error.message}`;}
@@ -122,7 +123,7 @@ document.getElementById("saveReviewerSchedule")?.addEventListener("click",async 
   const status=document.getElementById("reviewerScheduleStatus"),button=event.currentTarget;
   const allocations=[...document.querySelectorAll("#reviewerSchedule [data-reviewer-id]")].map(input=>({user_id:Number(input.dataset.reviewerId),percent:Number(input.value)}));
   if(allocations.reduce((sum,row)=>sum+row.percent,0)!==100){updateReviewerScheduleTotal();status.textContent=window.bpmLocaleText("总分配比例必须正好为 100%。");return;}button.disabled=true;status.textContent=window.bpmLocaleText("保存中…");
-  try{const response=await fetch(`${API}/api/sa/reviewer-schedule`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({reviewer_allocations:allocations})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");status.textContent=window.bpmLocaleText("分配比例已保存。");await loadReviewerSchedule();}catch(error){status.textContent=window.bpmLocaleText(error.message);}finally{updateReviewerScheduleTotal();}
+  try{const response=await apiFetch(`${API}/api/sa/reviewer-schedule`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({reviewer_allocations:allocations})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");status.textContent=window.bpmLocaleText("分配比例已保存。");await loadReviewerSchedule();}catch(error){status.textContent=window.bpmLocaleText(error.message);}finally{updateReviewerScheduleTotal();}
 });
 
 const sitePhotoUrl=value=>{
@@ -137,7 +138,7 @@ async function loadSitePhotoManager(){
   const library=document.getElementById("sitePhotoLibrary");if(!library)return;
   const requestsBox=document.getElementById("sitePhotoRequests"),adminSelect=document.getElementById("sitePhotoInviteAdmins");
   try{
-    const response=await fetch(`${API}/api/sa/site-photos?sa_id=${user.id}`,{credentials:"include"}),data=await response.json();
+    const response=await apiFetch(`${API}/api/sa/site-photos?sa_id=${user.id}`,{credentials:"include"}),data=await response.json();
     if(!response.ok)throw Error(data.error||"加载失败");
     const occupiedWeekdays=new Set(data.photos.filter(photo=>photo.active).map(photo=>Number(photo.weekday)));
     const suggestedWeekday=photoWeekdays.find(([weekday])=>!occupiedWeekdays.has(weekday))?.[0]||1;
@@ -161,7 +162,7 @@ async function loadSitePhotoManager(){
 document.getElementById("sendSitePhotoInvites")?.addEventListener("click",async event=>{
   const button=event.currentTarget,status=document.getElementById("sitePhotoInviteStatus"),select=document.getElementById("sitePhotoInviteAdmins"),ids=[...select.selectedOptions].map(option=>Number(option.value));
   if(!ids.length){status.textContent="请先选择要邀请的管理员。";return;}button.disabled=true;status.textContent="正在发送邀请…";
-  try{const response=await fetch(`${API}/api/sa/site-photo-invitations`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,admin_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"发送失败");status.textContent=`已邀请 ${result.invited} 位管理员。${result.skipped?.length?` ${result.skipped.length} 位已有待处理邀请。`:""}`;await loadSitePhotoManager();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+  try{const response=await apiFetch(`${API}/api/sa/site-photo-invitations`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,admin_ids:ids})}),result=await response.json();if(!response.ok)throw Error(result.error||"发送失败");status.textContent=`已邀请 ${result.invited} 位管理员。${result.skipped?.length?` ${result.skipped.length} 位已有待处理邀请。`:""}`;await loadSitePhotoManager();}catch(error){status.textContent=error.message;}finally{button.disabled=false;}
 });
 
 document.getElementById("sitePhotoDirectUploadForm")?.addEventListener("submit",async event=>{
@@ -173,7 +174,7 @@ document.getElementById("sitePhotoDirectUploadForm")?.addEventListener("submit",
   try{
     const compressed=await window.bpmCompressImageFile(file,{maxBytes:4*1024*1024,maxEdge:2600,quality:.9}),data=new FormData(form);
     data.set("image",compressed,"homepage-photo.jpg");data.set("sa_id",String(user.id));
-    const response=await fetch(`${API}/api/sa/site-photos/upload`,{method:"POST",credentials:"include",body:data}),result=await response.json();
+    const response=await apiFetch(`${API}/api/sa/site-photos/upload`,{method:"POST",credentials:"include",body:data}),result=await response.json();
     if(!response.ok)throw Error(result.error||"照片上传失败");
     form.reset();status.textContent=`已压缩至 ${(compressed.size/1024/1024).toFixed(2)} MB，并加入排期。`;
     await loadSitePhotoManager();
@@ -182,6 +183,8 @@ document.getElementById("sitePhotoDirectUploadForm")?.addEventListener("submit",
 });
 
 document.getElementById("users")?.addEventListener("click",async event=>{
+  const demote=event.target.closest("[data-demote-admin]");
+  if(demote){openDemoteModal(Number(demote.dataset.demoteAdmin),demote.dataset.demoteName||"");return;}
   const add=event.target.closest("[data-add-staff-social]");
   if(add){add.closest("[data-staff-user]").querySelector("[data-staff-social-links]").insertAdjacentHTML("beforeend",staffSocialRow());return;}
   const remove=event.target.closest("[data-remove-staff-social]");
@@ -189,7 +192,7 @@ document.getElementById("users")?.addEventListener("click",async event=>{
   const button=event.target.closest("[data-save-staff-social]");if(!button)return;
   const card=button.closest("[data-staff-user]"),links=[...card.querySelectorAll("[data-staff-social-row]")].map(row=>({platform:row.querySelector("[data-staff-social-platform]").value.trim(),url:row.querySelector("[data-staff-social-url]").value.trim()})).filter(link=>link.platform||link.url);button.disabled=true;
   if(links.some(link=>!link.platform||!link.url)){showToast("请为每条链接填写平台名称和 URL，或删除空行");button.disabled=false;return;}
-  try{const response=await fetch(`${API}/api/sa/admin-social`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:Number(button.dataset.saveStaffSocial),links})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("管理员社交链接已保存");await loadUsers();}
+  try{const response=await apiFetch(`${API}/api/sa/admin-social`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:Number(button.dataset.saveStaffSocial),links})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("管理员社交链接已保存");await loadUsers();}
   catch(error){showToast(error.message||"保存失败");button.disabled=false;}
 });
 
@@ -206,16 +209,16 @@ document.getElementById("heroPhotosPanel")?.addEventListener("click",async event
   const preview=event.target.closest("[data-site-photo-preview]");
   if(preview){const card=preview.closest("[data-site-photo],[data-photo-request]"),image=card?.querySelector("img"),credit=card?.querySelector("[data-photo-credit]")?.value||card?.querySelector("p")?.textContent.replace(/^署名：/,"")||"";const dialog=document.getElementById("sitePhotoPreviewDialog"),stage=document.getElementById("sitePhotoPreviewStage"),placement=preview.dataset.sitePhotoPreview;stage.style.backgroundImage=`linear-gradient(180deg,rgba(3,15,29,.12),rgba(3,15,29,.7)),url("${sitePhotoUrl(image?.src)}")`;document.getElementById("sitePhotoPreviewTitle").textContent=placement==="home"?"首页展厅":placement==="login"?"登录页": "注册页";document.getElementById("sitePhotoPreviewCredit").textContent=credit?`Photo by ${credit}`:"";dialog.showModal();return;}
   const save=event.target.closest("[data-save-site-photo]");
-  if(save){const card=save.closest("[data-site-photo]"),id=Number(save.dataset.saveSitePhoto);save.disabled=true;try{const response=await fetch(`${API}/api/sa/site-photos/${id}`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,credit:card.querySelector("[data-photo-credit]").value,weekday:Number(card.querySelector("[data-photo-weekday]").value),show_home:card.querySelector("[data-photo-home]").checked,show_login:card.querySelector("[data-photo-login]").checked,show_register:card.querySelector("[data-photo-register]").checked,active:card.querySelector("[data-photo-active]").checked})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("照片设置已保存");await loadSitePhotoManager();}catch(error){showToast(error.message);save.disabled=false;}return;}
+  if(save){const card=save.closest("[data-site-photo]"),id=Number(save.dataset.saveSitePhoto);save.disabled=true;try{const response=await apiFetch(`${API}/api/sa/site-photos/${id}`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,credit:card.querySelector("[data-photo-credit]").value,weekday:Number(card.querySelector("[data-photo-weekday]").value),show_home:card.querySelector("[data-photo-home]").checked,show_login:card.querySelector("[data-photo-login]").checked,show_register:card.querySelector("[data-photo-register]").checked,active:card.querySelector("[data-photo-active]").checked})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");showToast("照片设置已保存");await loadSitePhotoManager();}catch(error){showToast(error.message);save.disabled=false;}return;}
   const decision=event.target.closest("[data-photo-request-decision]");
-  if(decision){const card=decision.closest("[data-photo-request]"),id=Number(card.dataset.photoRequest),approved=decision.dataset.photoRequestDecision==="approved";if(!approved&&!confirm("拒绝这张主页照片？"))return;decision.disabled=true;try{const body={sa_id:user.id,decision:approved?"approved":"rejected",review_note:approved?"":card.querySelector("[data-photo-review-note]")?.value.trim()||"未通过照片审核",show_home:card.querySelector("[data-photo-home]").checked,show_login:card.querySelector("[data-photo-login]").checked,show_register:card.querySelector("[data-photo-register]").checked,weekday:Number(card.querySelector("[data-photo-weekday]").value)};const response=await fetch(`${API}/api/sa/site-photo-requests/${id}/decision`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");await loadSitePhotoManager();showToast(approved?"照片已通过并加入轮播":"照片申请已拒绝");}catch(error){showToast(error.message);decision.disabled=false;}}
+  if(decision){const card=decision.closest("[data-photo-request]"),id=Number(card.dataset.photoRequest),approved=decision.dataset.photoRequestDecision==="approved";if(!approved&&!confirm("拒绝这张主页照片？"))return;decision.disabled=true;try{const body={sa_id:user.id,decision:approved?"approved":"rejected",review_note:approved?"":card.querySelector("[data-photo-review-note]")?.value.trim()||"未通过照片审核",show_home:card.querySelector("[data-photo-home]").checked,show_login:card.querySelector("[data-photo-login]").checked,show_register:card.querySelector("[data-photo-register]").checked,weekday:Number(card.querySelector("[data-photo-weekday]").value)};const response=await apiFetch(`${API}/api/sa/site-photo-requests/${id}/decision`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");await loadSitePhotoManager();showToast(approved?"照片已通过并加入轮播":"照片申请已拒绝");}catch(error){showToast(error.message);decision.disabled=false;}}
 });
 
 document.getElementById("closeSitePhotoPreview")?.addEventListener("click",()=>document.getElementById("sitePhotoPreviewDialog").close());
 
 document.getElementById("flightCorrections")?.addEventListener("click",async event=>{
   const button=event.target.closest("button[data-correction]");if(!button)return;const id=Number(button.dataset.correction),decision=document.querySelector(`[data-correction-decision="${id}"]`)?.value.trim();if(!decision){showToast("请填写处理说明");return;}button.disabled=true;
-  try{const response=await fetch(`${API}/api/sa/flight-corrections/resolve`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,correction_id:id,status:button.dataset.status,decision})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");await loadFlightCorrections();}catch(error){showToast(error.message);button.disabled=false;}
+  try{const response=await apiFetch(`${API}/api/sa/flight-corrections/resolve`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,correction_id:id,status:button.dataset.status,decision})}),result=await response.json();if(!response.ok)throw Error(result.error||"保存失败");await loadFlightCorrections();}catch(error){showToast(error.message);button.disabled=false;}
 });
 
 
@@ -238,7 +241,7 @@ async function loadSACommunity(){
 
     try{
 
-        const res = await fetch(
+        const res = await apiFetch(
             `${API}/api/sa/community/posts?sa_id=${user.id}`
         );
 
@@ -421,7 +424,7 @@ async function changeSACommunityStatus(
 
     try{
 
-        const res = await fetch(
+        const res = await apiFetch(
             `${API}/api/sa/community/posts/status`,
             {
                 method:"POST",
@@ -507,7 +510,7 @@ async function loadSAFlights(){
 
     try{
 
-        const res = await fetch(
+        const res = await apiFetch(
             `${API}/api/sa/flights?sa_id=${user.id}`
         );
 
@@ -586,11 +589,26 @@ async function loadSAFlights(){
 
 }
 
+async function loadSAReviewQueue(){
+    const box=document.getElementById("saReviewQueue");
+    if(!box)return;
+    try{
+        const response=await apiFetch(`${API}/api/admin/screening?admin_id=${user.id}`);
+        const rows=await response.json();
+        if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"待审核投稿加载失败");
+        if(!rows.length){box.innerHTML='<p>目前没有待审核投稿。</p>';return;}
+        box.innerHTML=rows.map(raw=>{
+            const flight=raw;
+            return `<article class="sa-review-queue-card"><img src="${escapeSACommunityHTML(flight.image||"")}" alt="投稿展品" loading="lazy"><div><h3>#${Number(flight.id)} · ${escapeSACommunityHTML(flight.airline||"")} ${escapeSACommunityHTML(flight.flight||"")}</h3><p>投稿人：${escapeSACommunityHTML(flight.username||"未知")} · ${escapeSACommunityHTML(flight.date||"")}</p><p>分配审核人：${Number(flight.reviewer_id)||"未分配"}</p><p>${escapeSACommunityHTML(flight.story||"暂无故事")}</p><a href="detail.html?id=${Number(flight.id)}" target="_blank" rel="noopener">在新窗口查看展品</a><div class="sa-review-actions"><button type="button" onclick="saApproveFlight(${Number(flight.id)})">批准</button><button type="button" class="danger-button" onclick="saRejectFlight(${Number(flight.id)})">拒绝</button></div></div></article>`;
+        }).join("");
+    }catch(error){box.textContent=`加载失败：${error.message||"请重试"}`;}
+}
+
 async function loadSAIncompleteFlights(){
     const box=document.getElementById("saIncompleteFlights");
     if(!box)return;
     try{
-        const response=await fetch(`${API}/api/sa/flights?sa_id=${encodeURIComponent(user.id)}`,{credentials:"include",cache:"no-store"});
+        const response=await apiFetch(`${API}/api/sa/flights?sa_id=${encodeURIComponent(user.id)}`,{credentials:"include",cache:"no-store"});
         const rows=await response.json();
         if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"展品信息读取失败");
         const incomplete=rows.map(bpmSafeRecord).map(flight=>{
@@ -639,7 +657,7 @@ async function deleteSAFlight(id){
 
 
     const res =
-    await fetch(
+    await apiFetch(
         `${API}/api/sa/delete-flight`,
         {
             method:"POST",
@@ -698,7 +716,7 @@ async function loadAdminRequests(){
     try{
 
 
-        const res = await fetch(
+        const res = await apiFetch(
             `${API}/api/sa/admin-requests?sa_id=${user.id}`
         );
 
@@ -779,7 +797,7 @@ async function loadUsers(){
     try{
 
 
-        const res = await fetch(
+        const res = await apiFetch(
             `${API}/api/sa/users?sa_id=${user.id}`
         );
 
@@ -799,16 +817,13 @@ async function loadUsers(){
 
 
         data.forEach(x=>{
-            x=bpmSafeRecord(x);
-
-
             box.innerHTML+=`
             <article class="card sa-staff-card" data-staff-user="${Number(x.id)}">
               <div><h3>${escapeSACommunityHTML(x.username)}</h3><p>账号 ID ${Number(x.id)} · ${x.role==="superadministrator"?"站主 SA":"普通管理员"}</p></div>
               <p>可直接编辑已有平台和链接，删除后保存；也可添加新社媒资料。公开页面会分别显示平台名称与链接。</p>
               <div class="sa-staff-social-links" data-staff-social-links>${parseStaffSocialLinks(x).map(staffSocialRow).join("")}</div>
               <div class="site-photo-card-actions"><button type="button" data-add-staff-social>添加社交链接</button><button type="button" data-save-staff-social="${Number(x.id)}">保存社交链接</button>
-              ${x.role==="administrator"?`<button type="button" class="demote-admin-btn" onclick="openDemoteModal(${Number(x.id)}, '${String(x.username).replace(/'/g,"\\'")}')">移除管理员</button>`:""}</div>
+              ${x.role==="administrator"?`<button type="button" class="demote-admin-btn" data-demote-admin="${Number(x.id)}" data-demote-name="${escapeSACommunityHTML(x.username)}">移除管理员</button>`:""}</div>
             </article>`;
 
 
@@ -825,12 +840,12 @@ async function loadUsers(){
 
 async function loadPublicLinks(){
   const input=document.getElementById('officialWechatUrl');if(!input)return;
-  try{const response=await fetch(`${API}/api/sa/public-links`,{credentials:'include',cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'加载失败');input.value=data.wechat||'';}
+  try{const response=await apiFetch(`${API}/api/sa/public-links`,{credentials:'include',cache:'no-store'}),data=await response.json();if(!response.ok)throw Error(data.error||'加载失败');input.value=data.wechat||'';}
   catch(error){const status=document.getElementById('officialWechatUrlStatus');if(status)status.textContent=`公众号链接加载失败：${error.message}`;}
 }
 document.getElementById('saveOfficialWechatUrl')?.addEventListener('click',async event=>{
   const button=event.currentTarget,input=document.getElementById('officialWechatUrl'),status=document.getElementById('officialWechatUrlStatus');button.disabled=true;
-  try{const response=await fetch(`${API}/api/sa/public-links`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({wechat:input.value.trim()})}),data=await response.json();if(!response.ok)throw Error(data.error||'保存失败');status.textContent='公众号链接已保存';}
+  try{const response=await apiFetch(`${API}/api/sa/public-links`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({wechat:input.value.trim()})}),data=await response.json();if(!response.ok)throw Error(data.error||'保存失败');status.textContent='公众号链接已保存';}
   catch(error){status.textContent=error.message||'保存失败';}
   finally{button.disabled=false;}
 });
@@ -861,7 +876,7 @@ async function loadAccountDeletionRequests(){
     const box=document.getElementById("accountDeletionRequests");
     if(!box)return;
     try{
-        const res=await fetch(`${API}/api/sa/account-deletion-requests?sa_id=${user.id}`);
+        const res=await apiFetch(`${API}/api/sa/account-deletion-requests?sa_id=${user.id}`);
         const data=await res.json();
         if(!res.ok)throw Error(data.error||"加载失败");
         if(!data.length){box.textContent="暂无注销申请";return;}
@@ -877,56 +892,20 @@ async function loadAccountDeletionRequests(){
 
 
 async function approveAdmin(id,user_id){
-
-    const res = await fetch(
-        `${API}/api/sa/admin-request/approve`,
-        {
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                sa_id:user.id,
-                request_id:id,
-                user_id:user_id
-            })
-        }
-    );
-
-
-    showToast("管理员申请已处理");
-
-    loadAdminRequests();
-    loadUsers();
-
+    try{
+        const response=await apiFetch(`${API}/api/sa/admin-request/approve`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,request_id:id,user_id})});
+        const result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");
+        showToast("管理员申请已批准");await Promise.all([loadAdminRequests(),loadUsers()]);
+    }catch(error){showToast(error.message||"管理员申请处理失败");}
 }
-
-
 
 async function rejectAdmin(id){
-
-    const res = await fetch(
-        `${API}/api/sa/admin-request/reject`,
-        {
-            method:"POST",
-            headers:{
-                "Content-Type":"application/json"
-            },
-            body:JSON.stringify({
-                sa_id:user.id,
-                request_id:id
-            })
-        }
-    );
-
-
-    showToast("申请已拒绝");
-
-    loadAdminRequests();
-
+    try{
+        const response=await apiFetch(`${API}/api/sa/admin-request/reject`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,request_id:id})});
+        const result=await response.json();if(!response.ok)throw Error(result.error||"处理失败");
+        showToast("申请已拒绝");await loadAdminRequests();
+    }catch(error){showToast(error.message||"拒绝申请失败");}
 }
-
-
 
 
 // ==========================
@@ -940,6 +919,8 @@ loadReviewerSchedule();
 loadFlightCorrections();
 
 loadSitePhotoManager();
+
+loadSAReviewQueue();
 
 loadSAIncompleteFlights();
 
@@ -1027,7 +1008,7 @@ async function confirmDemote(){
     }
 
 
-    const res=await fetch(
+    const res=await apiFetch(
         `${API}/api/sa/demote`,
         {
             method:"POST",
@@ -1075,6 +1056,20 @@ async function confirmDemote(){
 // SA 展品 ID 查询
 // ==========================
 
+async function saSaveHiddenFlight(flightId,button){
+    const editor=button.closest(".sa-hidden-flight-edit");
+    const value=key=>editor.querySelector(`[data-hidden-edit="${key}"]`).value.trim();
+    const body={flight_id:Number(flightId),airline:value("airline"),flight:value("flight"),airport:value("airport"),date:value("date"),story:value("story"),image:value("image")};
+    button.disabled=true;
+    try{
+        const response=await apiFetch(`${API}/api/admin/edit`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        const result=await response.json();
+        if(!response.ok)throw Error(result.error||"保存失败");
+        showToast("已下架展品已更新");
+        document.getElementById("searchSAFlight")?.click();
+    }catch(error){showToast(error.message||"保存失败");button.disabled=false;}
+}
+
 const searchSAFlight =
 document.getElementById("searchSAFlight");
 
@@ -1107,7 +1102,7 @@ if(searchSAFlight){
         try{
 
             const res =
-            await fetch(
+            await apiFetch(
                 `${API}/api/flight/${encodeURIComponent(id)}`
             );
 
@@ -1126,6 +1121,18 @@ if(searchSAFlight){
 
             const status =
                 String(x.status || "");
+
+            const hiddenEdit = status === "hidden" ? `
+              <details class="sa-hidden-flight-edit">
+                <summary>编辑已下架展品（仅 SA）</summary>
+                <label>航空公司 / 运营公司<input data-hidden-edit="airline" value="${x.airline||""}"></label>
+                <label>航班 / 班次<input data-hidden-edit="flight" value="${x.flight||""}"></label>
+                <label>机场 / 出发地点<input data-hidden-edit="airport" value="${x.airport||""}"></label>
+                <label>日期<input type="date" data-hidden-edit="date" value="${x.date||""}"></label>
+                <label>故事<textarea rows="4" data-hidden-edit="story">${x.story||""}</textarea></label>
+                <label>图片地址<input type="url" data-hidden-edit="image" value="${x.image||""}"></label>
+                <button type="button" onclick="saSaveHiddenFlight(${Number(x.id)},this)">保存展品修改</button>
+              </details>` : "";
 
 
             let reviewButtons = "";
@@ -1215,6 +1222,8 @@ if(searchSAFlight){
                 ${reviewButtons}
             </div>
 
+            ${hiddenEdit}
+
             <button
             class="danger-button"
             onclick="deleteSAFlight(${Number(x.id)})">
@@ -1255,11 +1264,11 @@ document.addEventListener("DOMContentLoaded", function(){
     const loadAnnouncementHistory=async()=>{
         const box=document.getElementById("saAnnouncementHistory");if(!box)return;
         try{
-            const response=await fetch(`${API}/api/sa/announcements?sa_id=${encodeURIComponent(user.id)}`,{cache:"no-store",credentials:"include"}),rows=await response.json();
+            const response=await apiFetch(`${API}/api/sa/announcements?sa_id=${encodeURIComponent(user.id)}`,{cache:"no-store",credentials:"include"}),rows=await response.json();
             if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"公告加载失败");
             const escape=value=>String(value??"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
             box.innerHTML=rows.map(item=>{const deleted=!!item.deleted_at,hidden=!!Number(item.hidden);return `<article class="bpm-panel bpm-announcement-history-item ${deleted?'is-deleted':''}" data-announcement-card data-source="${escape(item.source)}" data-id="${Number(item.id)}"><header><small>${escape(item.created_at||"")} · ${item.source==='update'?'历史置顶事项':'公告'} · ${deleted?'已移入回收站':hidden?'已隐藏':'展示中'}</small></header><label>标题<input data-announcement-title maxlength="120" value="${escape(item.title||item.version||'公告')}"></label><label>内容<textarea data-announcement-content maxlength="10000" rows="4">${escape(item.content||'')}</textarea></label><div class="bpm-announcement-history-actions">${deleted?'<button type="button" data-announcement-action="restore">恢复</button>':`<button type="button" data-announcement-action="edit">保存修改</button><button type="button" data-announcement-action="${hidden?'show':'hide'}">${hidden?'重新展示':'隐藏'}</button><button type="button" class="secondary-button" data-announcement-action="delete">移入回收站</button>`}</div></article>`;}).join("")||"暂无历史公告";
-            box.onclick=async event=>{const button=event.target.closest('[data-announcement-action]');if(!button)return;const card=button.closest('[data-announcement-card]'),action=button.dataset.announcementAction;if(action==='delete'&&!confirm('将这条公告移入回收站？之后仍可恢复。'))return;button.disabled=true;try{const payload={sa_id:user.id,source:card.dataset.source,id:Number(card.dataset.id),action};if(action==='edit'){payload.title=card.querySelector('[data-announcement-title]').value;payload.content=card.querySelector('[data-announcement-content]').value;}const result=await fetch(`${API}/api/sa/announcements/manage`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(res=>res.json().then(data=>{if(!res.ok)throw Error(data.error||'保存失败');return data;}));if(result.success){showToast(action==='edit'?'公告已修改':action==='hide'?'公告已隐藏':action==='show'?'公告已重新展示':action==='delete'?'公告已移入回收站':'公告已恢复');await loadAnnouncementHistory();}}catch(error){showToast(error.message||'操作失败');button.disabled=false;}};
+            box.onclick=async event=>{const button=event.target.closest('[data-announcement-action]');if(!button)return;const card=button.closest('[data-announcement-card]'),action=button.dataset.announcementAction;if(action==='delete'&&!confirm('将这条公告移入回收站？之后仍可恢复。'))return;button.disabled=true;try{const payload={sa_id:user.id,source:card.dataset.source,id:Number(card.dataset.id),action};if(action==='edit'){payload.title=card.querySelector('[data-announcement-title]').value;payload.content=card.querySelector('[data-announcement-content]').value;}const result=await apiFetch(`${API}/api/sa/announcements/manage`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(res=>res.json().then(data=>{if(!res.ok)throw Error(data.error||'保存失败');return data;}));if(result.success){showToast(action==='edit'?'公告已修改':action==='hide'?'公告已隐藏':action==='show'?'公告已重新展示':action==='delete'?'公告已移入回收站':'公告已恢复');await loadAnnouncementHistory();}}catch(error){showToast(error.message||'操作失败');button.disabled=false;}};
         }catch(error){box.textContent=error.message||"公告加载失败";}
     };
     loadAnnouncementHistory();
@@ -1306,7 +1315,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
             try{
 
-                const res = await fetch(
+                const res = await apiFetch(
                     `${API}/api/sa/announcement`,
                     {
                         method:"POST",
@@ -1402,7 +1411,7 @@ document.addEventListener("DOMContentLoaded", function(){
 
             try{
 
-                const res = await fetch(
+                const res = await apiFetch(
                     `${API}/api/sa/update`,
                     {
                         method:"POST",
@@ -1561,7 +1570,7 @@ async function saApproveFlight(flightId){
     try{
 
         const res =
-        await fetch(
+        await apiFetch(
             `${API}/api/admin/approve`,
             {
                 method:"POST",
@@ -1595,9 +1604,9 @@ async function saApproveFlight(flightId){
 
         showToast("SA 已批准展品");
 
-        document.getElementById(
-            "searchSAFlight"
-        ).click();
+        await loadSAReviewQueue();
+        const search=document.getElementById("flightSearchId");
+        if(search?.value.trim())document.getElementById("searchSAFlight")?.click();
 
 
     }catch(e){
@@ -1641,7 +1650,7 @@ async function saRejectFlight(flightId){
     try{
 
         const res =
-        await fetch(
+        await apiFetch(
             `${API}/api/admin/reject`,
             {
                 method:"POST",
@@ -1676,9 +1685,9 @@ async function saRejectFlight(flightId){
 
         showToast("SA 已拒绝展品");
 
-        document.getElementById(
-            "searchSAFlight"
-        ).click();
+        await loadSAReviewQueue();
+        const search=document.getElementById("flightSearchId");
+        if(search?.value.trim())document.getElementById("searchSAFlight")?.click();
 
 
     }catch(e){

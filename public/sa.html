@@ -7,18 +7,24 @@
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
   <script src="theme.js?v=20261011-browser-nav"></script>
-<link rel="stylesheet" href="features.css?v=20261011-incomplete-exhibits">
+<link rel="stylesheet" href="features.css?v=20261011-sa-review">
 <meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
 </head>
 
 <body>
-<header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum</div><nav><a href="https://bpmuseum.org.cn/">展厅</a><a href="console.html">管理中心</a><a href="admin-login.html">登录</a></nav></header>
+<header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · SA 工作区</div><nav><a href="admin-settings.html">登录设置</a></nav></header>
 <main class="bpm-sa-page">
 <section class="bpm-page-hero"><span>站主工作台</span><h1>SA 控制台</h1><p id="welcome">正在加载账户状态…</p><a class="bpm-sa-shortcut" href="moderation.html">打开社区举报、处罚与申诉管理 →</a></section>
 
 <nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
-<a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
 </nav>
+
+<section class="sa-panel" id="saReviewQueuePanel">
+<h2>SA 审核</h2>
+<p>这里汇总所有待审核投稿，包括分配给普通管理员和 SA 的稿件。SA 可在此批准、拒绝或覆盖审核结果。</p>
+<div id="saReviewQueue" aria-live="polite">正在加载待审核投稿…</div>
+</section>
 
 <section class="sa-panel" id="saSecurityPanel">
 <h2><span data-bpm-icon="lock"></span> SA 二次验证</h2>
@@ -221,7 +227,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="review-rules.js"></script>
 <script src="image-compression.js?v=20261006-upload-cap"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
-<script src="sa.js?v=20261011-incomplete-exhibits"></script>
+<script src="sa.js?v=20261011-sa-review"></script>
 
 
 

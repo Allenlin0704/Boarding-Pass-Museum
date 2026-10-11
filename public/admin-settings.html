@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>登录设置 · BoardingPassMuseum</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="style.css?v=20261011-login-settings">
+  <link rel="stylesheet" href="features.css?v=20261011-login-settings">
+  <link rel="stylesheet" href="site-polish.css?v=20261011-login-settings">
+  <script src="security.js?v=5"></script>
+  <script src="theme.js?v=20261011-login-settings"></script>
+</head>
+<body>
+  <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · 管理入口</div><nav><a href="console.html">返回管理中心</a></nav></header>
+  <main class="account-page">
+    <section class="account-card">
+      <p class="bpm-console-kicker">管理员账户</p>
+      <h1>登录设置</h1>
+      <p id="adminSettingsIdentity">正在验证管理员身份…</p>
+      <p id="adminSettingsStatus" role="status" aria-live="polite"></p>
+      <label for="adminCurrentPassword">当前账户密码（添加 Passkey 或设置 PIN 时验证）</label>
+      <input id="adminCurrentPassword" type="password" autocomplete="current-password">
+    </section>
+
+    <section class="account-card">
+      <h2>Passkey 登录</h2>
+      <p>使用设备的面容、指纹或屏幕锁定方式登录。新设备的 Passkey 会绑定到你的管理员账号。</p>
+      <button id="addAdminPasskey" type="button">添加这台设备的 Passkey</button>
+      <p id="adminPasskeyStatus" role="status" aria-live="polite"></p>
+      <div id="adminPasskeyList">正在读取 Passkey…</div>
+    </section>
+
+    <section class="account-card">
+      <h2>管理员 PIN</h2>
+      <p>设置或更换 6 位 PIN，用于管理员专属登录。连续输错 5 次会暂时锁定。</p>
+      <label for="adminNewPin">新 PIN（6 位数字）</label>
+      <input id="adminNewPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="6" pattern="[0-9]{6}">
+      <button id="saveAdminPin" type="button">保存 PIN</button>
+      <p id="adminPinStatus" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="account-card oauth-actions" data-oauth="link" hidden>
+      <h2>绑定 GitHub</h2>
+      <p>绑定后可从管理员专属登录页使用 GitHub 登录。GitHub 账户只能绑定到一个站内账号。</p>
+      <button type="button" data-provider="github" hidden>绑定 GitHub</button>
+    </section>
+  </main>
+  <script src="oauth.js?v=20261011-admin-login-settings"></script>
+  <script src="admin-login-settings.js?v=20261011-admin-login-settings"></script>
+</body>
+</html>

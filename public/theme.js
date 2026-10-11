@@ -3,7 +3,7 @@
     // Keep management pages on their dedicated host. The API separately binds
     // staff sessions to that host, so this navigation guard is not the security boundary.
     const adminHost = "admin.bpmuseum.org.cn";
-    const adminHtmlPaths = ["/admin-login.html", "/admin-oauth-complete.html", "/console.html", "/admin.html", "/sa.html", "/moderation.html"];
+    const adminHtmlPaths = ["/admin-login.html", "/admin-oauth-complete.html", "/console.html", "/admin.html", "/sa.html", "/moderation.html", "/admin-settings.html"];
     const adminPaths = new Set([...adminHtmlPaths,...adminHtmlPaths.map(path=>path.replace(/\.html$/,""))]);
     const currentPath = location.pathname.toLowerCase();
     const onAdminHost = location.hostname.toLowerCase() === adminHost;
@@ -14,7 +14,7 @@
         location.replace("/admin-login.html");
         return;
     }
-    const protectedAdminPage = onAdminHost && ["/console.html","/console","/admin.html","/admin","/sa.html","/sa","/moderation.html","/moderation"].includes(currentPath);
+    const protectedAdminPage = onAdminHost && ["/console.html","/console","/admin.html","/admin","/sa.html","/sa","/moderation.html","/moderation","/admin-settings.html","/admin-settings"].includes(currentPath);
     if (protectedAdminPage && sessionStorage.getItem("bpm_admin_entry_authenticated") !== "1") {
         location.replace(`/admin-login.html?next=${encodeURIComponent(currentPath.slice(1) + location.search + location.hash)}`);
         return;
