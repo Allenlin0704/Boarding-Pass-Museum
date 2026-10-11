@@ -118,6 +118,12 @@ function updateSubmissionType(){
   const recognition=document.querySelector(".ai-recognition-controls");
   if(recognition)recognition.hidden=rail;
 }
+function setDepartureCountryFromAirport(airport){
+  const select=document.getElementById("departureCountry"),code=String(airport?.country||"").toUpperCase();
+  if(!select||!code)return;
+  const apply=()=>{if([...select.options].some(option=>option.value===code)&&!select.value){select.value=code;select.dispatchEvent(new Event("change",{bubbles:true}));window.bpmRefreshIsoCountryPicker?.(select);}};
+  if(select.options.length>1)apply();else window.bpmIsoCountriesReady?.then(apply);
+}
 submissionTypeInput?.addEventListener("change",updateSubmissionType);
 updateSubmissionType();
 
@@ -197,6 +203,7 @@ function restoreDraft(){
     if(submissionTypeInput)submissionTypeInput.value=draft.submission_type||"boarding_pass";
     updateSubmissionType();
     for(const [id,value] of [["ticketFormat",draft.ticket_format],["cabinClass",draft.cabin_class],["routeScope",draft.route_scope],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value!==undefined&&value!=="")input.value=value;}
+    window.bpmIsoCountriesReady?.then(()=>{for(const [id,value] of [["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const select=document.getElementById(id);if(select&&value)select.value=value;window.bpmRefreshIsoCountryPicker?.(select);}});
     document.querySelectorAll('input[name="specialTag"]').forEach(input=>input.checked=(draft.special_tags||[]).includes(input.value));
     window.bpmSubmitDraft = draft;
     setDraftStatus("已恢复未提交草稿；图片需重新选择。");
@@ -210,6 +217,7 @@ function hydrateDraftSelections(){
   const find = (list, code) => list.find(item => code && [item.iata, item.icao].includes(code));
   selectedAirline = find(airlines, draft.airline_code) || selectedAirline;
   selectedAirport = find(airports, draft.airport_code) || selectedAirport;
+  if(selectedAirport)setDepartureCountryFromAirport(selectedAirport);
   selectedIssueAirport = find(airports, draft.issue_airport_code) || selectedIssueAirport;
   selectedRailOperator=railOperators.find(item=>item.iata===draft.rail_operator_code)||selectedRailOperator;
 }
@@ -274,16 +282,6 @@ fetch(
     data => {
 
         airports = data;
-
-        const countries=new Map();
-        data.forEach(item=>{
-          const code=String(item.country||"").trim();
-          let name=String(item.country_cn||item.country_en||code).trim();
-          try{const locale=window.BPM_LANGUAGE==="en"?"en":window.BPM_LANGUAGE==="zh-TW"?"zh-TW":"zh-CN";if(/^[A-Z]{2}$/.test(code))name=new Intl.DisplayNames([locale],{type:"region"}).of(code)||name;}catch{}
-          if(code&&name&&!countries.has(code))countries.set(code,name);
-        });
-        const countryOptions=document.getElementById("countryOptions");
-        if(countryOptions)countryOptions.innerHTML=[...countries].sort((a,b)=>a[1].localeCompare(b[1],"zh-CN")).map(([code,name])=>`<option value="${name}" label="${code}"></option>`).join("");
 
         hydrateDraftSelections();
 
@@ -606,6 +604,7 @@ if(type==="airport"){
 
 
 selectedAirport = item;
+setDepartureCountryFromAirport(item);
 
 
 airportInput.value =
@@ -719,7 +718,7 @@ async function assistFlight(){
   try{
     const localAirline=inferAirlineFromFlight(flight);if(localAirline){selectedAirline=localAirline;airlineInput.value=displayName(localAirline);}
     const response=await fetch(`https://api.bpmuseum.org.cn/api/flight-assist?flight=${encodeURIComponent(flight)}&date=${encodeURIComponent(date)}`),data=await response.json();
-    if(response.ok&&data.found){const airline=matchCatalog(airlines,data.airline),airport=matchCatalog(airports,data.airport);if(airline){selectedAirline=airline;airlineInput.value=displayName(airline);}if(airport){selectedAirport=airport;airportInput.value=displayName(airport);}flightAssistStatus.textContent="已根据馆内审核记录补全，请核对后提交";}
+    if(response.ok&&data.found){const airline=matchCatalog(airlines,data.airline),airport=matchCatalog(airports,data.airport);if(airline){selectedAirline=airline;airlineInput.value=displayName(airline);}if(airport){selectedAirport=airport;airportInput.value=displayName(airport);setDepartureCountryFromAirport(airport);}flightAssistStatus.textContent="已根据馆内审核记录补全，请核对后提交";}
     else flightAssistStatus.textContent=localAirline?"已识别航空公司；馆内暂无该航班的出发机场记录，请手动选择":"暂无可靠记录，请手动选择航司和机场";
     queueDraftSave();
   }catch{flightAssistStatus.textContent="自动补全暂不可用，请手动填写";}finally{flightAssistBtn.disabled=false;}
@@ -761,7 +760,7 @@ async function recognizeTicket(){
     const fields=data.fields||{};
     const airline=findCatalogItem(airlines,fields.airline_iata||fields.airline_icao,fields.airline_name),departure=findCatalogItem(airports,fields.departure_airport_iata||fields.departure_airport_icao,fields.departure_airport_name),issue=findCatalogItem(airports,fields.issue_airport_iata||fields.issue_airport_icao,fields.issue_airport_name);
     if(airline){selectedAirline=airline;airlineInput.value=displayName(airline);}
-    if(departure){selectedAirport=departure;airportInput.value=displayName(departure);}
+    if(departure){selectedAirport=departure;airportInput.value=displayName(departure);setDepartureCountryFromAirport(departure);}
     if(issue){selectedIssueAirport=issue;issueAirportInput.value=displayName(issue);}
     const flight=String(fields.flight_number||"").trim().toUpperCase();if(/^[A-Z0-9][A-Z0-9 -]{1,11}$/.test(flight))document.getElementById("flight").value=flight;
     if(/^\d{4}-\d{2}-\d{2}$/.test(String(fields.flight_date||"")))document.getElementById("date").value=fields.flight_date;
@@ -803,6 +802,7 @@ clearDraftBtn?.addEventListener("click", () => {
 [airlineInput, airportInput, issueAirportInput, document.getElementById("flight"), document.getElementById("date"), document.getElementById("story"), railOperatorInput, document.getElementById("railTrainNumber"), document.getElementById("railDate"), document.getElementById("railDepartureStation"), document.getElementById("railArrivalStation"), document.getElementById("departureCountry"), document.getElementById("arrivalCountry")]
   .filter(Boolean).forEach(field => field.addEventListener("input", queueDraftSave));
 for(const field of [submissionTypeInput,document.getElementById("ticketFormat"),routeScopeInput,document.getElementById("railTicketFormat"),...document.querySelectorAll('input[name="specialTag"]')].filter(Boolean))field.addEventListener("change",queueDraftSave);
+for(const field of [document.getElementById("departureCountry"),document.getElementById("arrivalCountry")].filter(Boolean))field.addEventListener("change",queueDraftSave);
 
 window.addEventListener("pagehide", () => saveDraft(false));
 
@@ -960,9 +960,12 @@ return;
 
 if(isRail){
   if(!selectedRailOperator){showToast("请选择火车运营公司");return;}
-  for(const [id,label] of [["railDepartureStation","出发车站"],["departureCountry","出发国家 / 地区"],["railArrivalStation","到达车站"],["arrivalCountry","到达国家 / 地区"]]){
+  for(const [id,label] of [["railDepartureStation","出发车站"],["railArrivalStation","到达车站"]]){
     if(!document.getElementById(id)?.value.trim()){showToast(`请填写${label}`);return;}
   }
+}
+for(const [id,label] of [["departureCountry","出发国家 / 地区"],["arrivalCountry","到达国家 / 地区"]]){
+  if(!document.getElementById(id)?.value){showToast(`请选择${label}`);document.querySelector(`#${id}`)?.parentElement?.querySelector(".iso-country-trigger")?.focus();return;}
 }
 
 
@@ -1084,8 +1087,8 @@ let flightData = {
 submission_type:rail?"rail_ticket":"boarding_pass",
 ticket_format:rail?document.getElementById("railTicketFormat").value:document.getElementById("ticketFormat").value,
 cabin_class:rail?"":(document.getElementById("cabinClass")?.value||"economy"),
-departure_country:rail?document.getElementById("departureCountry").value.trim():(selectedAirport?.country_cn||""),
-arrival_country:rail?document.getElementById("arrivalCountry").value.trim():(selectedAirport?.country_cn||""),
+departure_country:document.getElementById("departureCountry").value,
+arrival_country:document.getElementById("arrivalCountry").value,
 special_tags:rail?[]:[...document.querySelectorAll('input[name="specialTag"]:checked')].map(input=>input.value),
 route_scope:rail?"":(routeScopeInput?.value||""),
 

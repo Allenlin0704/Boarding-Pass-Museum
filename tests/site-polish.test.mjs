@@ -20,7 +20,7 @@ test('the shared visual system loads after page styles on every styled public pa
 
 test('the service worker precaches the shared design stylesheet in a fresh shell cache', () => {
   const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(worker, /bpmuseum-shell-v27/);
+  assert.match(worker, /bpmuseum-shell-v28/);
   assert.match(worker, /'\/site-polish\.css'/);
   assert.match(worker, /'\/admin-login\.html'/);
 });
@@ -46,6 +46,26 @@ test('SA exhibit search comes before the repair queue and both correction flows 
   assert.match(script, /data-sa-incomplete-id/);
   assert.match(script, /api\/admin\/edit/);
   assert.match(script, /flight_updates:flightUpdates/);
+  assert.match(html, /data-sa-catalog-input="airline"/);
+  assert.match(html, /data-sa-catalog-input="airport"/);
+  assert.match(script, /airlines-global\.json/);
+  assert.match(script, /airports-global\.json/);
+  assert.match(html, /到达车站/);
+  assert.doesNotMatch(html, /到达机场/);
+  assert.match(html,/saStepupCountdown/);
+  assert.match(html,/saStepupDialog/);
+  assert.match(script,/bpmShowSAStepup/);
+});
+
+test('submission and SA edit forms use searchable ISO alpha-2 country pickers',()=>{
+  const submit=readFileSync(new URL('../public/submit.html',import.meta.url),'utf8');
+  const picker=readFileSync(new URL('../public/iso-country-picker.js',import.meta.url),'utf8');
+  const countries=JSON.parse(readFileSync(new URL('../public/data/countries-iso3166.json',import.meta.url),'utf8'));
+  assert.equal(countries.length,249);
+  for(const [code,name] of [['FR','法兰西共和国'],['US','美利坚合众国'],['AS','美属萨摩亚'],['PF','法属波利尼西亚'],['HK','香港特别行政区']])assert.equal(countries.find(row=>row.code===code)?.name_cn,name);
+  assert.match(submit,/id="departureCountry" data-iso-country/);
+  assert.match(submit,/id="arrivalCountry" data-iso-country/);
+  assert.match(picker,/name_cn/);assert.match(picker,/name_tw/);assert.match(picker,/name_en/);assert.match(picker,/role","listbox/);
 });
 
 test('client login keeps the public account experience separate from the management entry', () => {

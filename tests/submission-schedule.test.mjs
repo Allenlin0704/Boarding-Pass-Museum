@@ -23,7 +23,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   assert.equal(saved.airport_iata,'BJP');
   assert.ok([1,2].includes(saved.reviewer_id));
   for(let index=0;index<19;index++){
-    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
+    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',departure_country:'CN',arrival_country:'CN',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
     assert.equal(response.status,200);
   }
   assert.equal(db.prepare('SELECT social_share_consent FROM flights WHERE flight=?').get('EA0').social_share_consent,1);
@@ -35,7 +35,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
 
 test('submission requires both rules acceptance and social-share authorization',async()=>{
   const {call,db}=fixture();
-  const payload={airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true};
+  const payload={airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
   let response=await call('/api/submit',{...payload,rules_consent:false},3);
   assert.equal(response.status,400);
   response=await call('/api/submit',{...payload,social_share_consent:false},3);

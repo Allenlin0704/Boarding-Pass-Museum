@@ -13,7 +13,7 @@
 </title>
 
 <link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
-<link rel="stylesheet" href="features.css?v=20261006-assist-tags">
+<link rel="stylesheet" href="features.css?v=20261011-iso-picker-countdown">
 <link rel="stylesheet" href="submit-page.css?v=20260930-mobile-polish">
 <link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
   <script src="theme.js?v=20261011-acknowledgements"></script>
@@ -105,9 +105,13 @@
   <h2 class="submit-field-wide">火车票信息</h2>
   <div class="submit-field"><label for="railOperatorSearch">运营公司</label><input id="railOperatorSearch" placeholder="搜索运营公司，例如 CR、DB、Acela"><div id="railOperatorResults" class="submit-search-results"></div></div>
   <div class="submit-field"><label for="railTrainNumber">车次</label><input id="railTrainNumber" maxlength="30" placeholder="例如 G101、ICE 123、Acela 2150"></div>
-  <div class="submit-field"><label for="railDepartureStation">出发车站</label><input id="railDepartureStation" maxlength="200" placeholder="输入车站名称"><label for="departureCountry">出发国家 / 地区</label><input id="departureCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区"><datalist id="countryOptions"></datalist></div>
-  <div class="submit-field"><label for="railArrivalStation">到达车站</label><input id="railArrivalStation" maxlength="200" placeholder="输入车站名称"><label for="arrivalCountry">到达国家 / 地区</label><input id="arrivalCountry" list="countryOptions" maxlength="100" placeholder="选择或输入国家 / 地区"></div>
+  <div class="submit-field"><label for="railDepartureStation">出发车站</label><input id="railDepartureStation" maxlength="200" placeholder="输入车站名称"></div>
+  <div class="submit-field"><label for="railArrivalStation">到达车站</label><input id="railArrivalStation" maxlength="200" placeholder="输入车站名称"></div>
   <div class="submit-field"><label for="railDate">乘车日期</label><input id="railDate" type="date"><label for="railTicketFormat">车票形式</label><select id="railTicketFormat"><option value="paper">纸质车票</option><option value="digital">电子车票</option></select></div>
+</div>
+<div class="submit-fields-grid submit-country-fields">
+  <div class="submit-field"><label for="departureCountry">出发国家 / 地区 <span class="submit-optional">Departure country / region</span></label><select id="departureCountry" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></div>
+  <div class="submit-field"><label for="arrivalCountry">到达国家 / 地区 <span class="submit-optional">Arrival country / region</span></label><select id="arrivalCountry" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></div>
 </div>
 </section>
 
@@ -190,7 +194,8 @@ BoardingPassMuseum © 2026
 <script src="config.js"></script>
 
 <script src="notice.js?v=20260930-popup-fix"></script>
-<script src="submit.js?v=20261011-entity-locale"></script>
+<script src="iso-country-picker.js?v=20261011-iso"></script>
+<script src="submit.js?v=20261011-iso-country"></script>
 
 <footer class="bpm-footer">
 

@@ -33,7 +33,7 @@ test('mainland recognition uses Doubao and returns sanitized fields from edited 
 
 test('boarding-pass route scope, cabin class and markers are stored; invalid cabin classes are rejected',async()=>{
   const {call,db}=fixture();
-  const payload={submission_type:'boarding_pass',ticket_format:'digital',cabin_class:'first_class',route_scope:'regional',airline:'China Southern Airlines (CZ)',airline_iata:'CZ',airport:'Guangzhou Baiyun (CAN)',airport_iata:'CAN',flight:'CZ123',date:'2026-10-01',image:'https://images.bpmuseum.org.cn/tickets/example.jpg',special_tags:['business','premium_economy','silver','special_assistance','transfer','other']};
+  const payload={submission_type:'boarding_pass',ticket_format:'digital',cabin_class:'first_class',route_scope:'regional',departure_country:'CN',arrival_country:'HK',airline:'China Southern Airlines (CZ)',airline_iata:'CZ',airport:'Guangzhou Baiyun (CAN)',airport_iata:'CAN',flight:'CZ123',date:'2026-10-01',image:'https://images.bpmuseum.org.cn/tickets/example.jpg',special_tags:['business','premium_economy','silver','special_assistance','transfer','other']};
   const response=await call('/api/submit',{...payload,rules_consent:true,social_share_consent:true},3),data=await response.json();
   assert.equal(response.status,200);assert.equal(data.success,true);
   const saved=db.prepare('SELECT route_scope,cabin_class,special_tags,status FROM flights WHERE id=?').get(data.flight_id);
@@ -43,6 +43,8 @@ test('boarding-pass route scope, cabin class and markers are stored; invalid cab
   assert.equal(saved.status,'screening');
   const invalid=await call('/api/submit',{...payload,cabin_class:'fake_class',rules_consent:true,social_share_consent:true},3);
   assert.equal(invalid.status,400);
+  const invalidCountry=await call('/api/submit',{...payload,departure_country:'ZZ',rules_consent:true,social_share_consent:true},3);
+  assert.equal(invalidCountry.status,400);
 });
 
 test('all regions use Doubao, missing Doubao configuration fails closed, and non-JPEG uploads are rejected',async()=>{
@@ -116,4 +118,9 @@ test('SA can edit, hide, restore and soft-delete earlier announcements',async()=
   assert.equal((await call('/api/sa/announcements/manage',{sa_id:1,source:'announcement',id:1,action:'restore'},1)).status,200);
   const restored=await (await call('/api/announcements')).json();assert.equal(restored.some(item=>item.title==='新标题'),true);
   assert.equal(db.prepare('SELECT deleted_at FROM announcements WHERE id=1').get().deleted_at,null);
+  db.prepare("INSERT INTO updates(id,title,content) VALUES(7,'旧置顶','旧动态')").run();
+  const history=await (await call('/api/sa/announcements?sa_id=1',undefined,1)).json();
+  assert.equal(history.find(item=>item.id===7&&item.source==='update').version,'');
+  assert.equal((await call('/api/sa/announcements/manage',{sa_id:1,source:'update',id:7,action:'edit',title:'旧事项改成公告',content:'已修改'},1)).status,200);
+  assert.deepEqual({...db.prepare('SELECT title,content FROM updates WHERE id=7').get()},{title:'旧事项改成公告',content:'已修改'});
 });

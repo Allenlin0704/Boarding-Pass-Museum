@@ -1,4 +1,8 @@
 import { isSA, isAdmin, reply } from './security.mjs';
+import { ISO_COUNTRY_CODES } from './iso-country-codes.mjs';
+const normalizedCode=value=>String(value??'').trim().toUpperCase();
+const validCatalogCode=value=>typeof value==='string'&&value.length<=6&&(/^[A-Z0-9-]*$/.test(value.trim().toUpperCase()));
+const validCountry=value=>typeof value==='string'&&ISO_COUNTRY_CODES.has(value);
 export async function reviewRoute(request,env,url,user) {
   const path=url.pathname;
   if(request.method==='GET'&&/^\/api\/flight\/\d+$/.test(path)) {
@@ -37,8 +41,12 @@ export async function reviewRoute(request,env,url,user) {
     const routeScope=rail?'':String(body.route_scope||'domestic');
     const cabinClass=rail?'':String(body.cabin_class||'economy');
     const allowedTags=['business','premium_economy','first_class','silver','gold','platinum','special_assistance','transfer','other','two_cabin'];
-    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket'].includes(body.submission_type||'boarding_pass')||!['paper','digital'].includes(body.ticket_format||'paper')||(!rail&&!['domestic','international','regional'].includes(routeScope))||(!rail&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||(rail&&(!body.departure_country||!body.arrival_country||!body.route)))return reply({error:'投稿格式无效'},400);
-    const admins=await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND s.allocation_percent>0 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator')) ORDER BY (SELECT COUNT(*) FROM flights WHERE reviewer_id=u.id AND created_at>=s.updated_at)*1.0/s.allocation_percent,s.sort_order,u.id LIMIT 1`).first();
+    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket'].includes(body.submission_type||'boarding_pass')||!['paper','digital'].includes(body.ticket_format||'paper')||(!rail&&!['domestic','international','regional'].includes(routeScope))||(!rail&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||!validCountry(body.arrival_country)||(rail&&!body.route))return reply({error:'投稿格式无效，请选择有效的 ISO 国家 / 地区'},400);
+    // Staff submissions always go to the SA queue. The SA's own submission is
+    // assigned to account 1 as well, so it remains an explicit self-review.
+    const admins=isAdmin(user)
+      ? {id:1}
+      : await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND s.allocation_percent>0 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator')) ORDER BY (SELECT COUNT(*) FROM flights WHERE reviewer_id=u.id AND created_at>=s.updated_at)*1.0/s.allocation_percent,s.sort_order,u.id LIMIT 1`).first();
     const inserted=await env.DB.prepare(`INSERT INTO flights(user_id,airline,flight,route,date,aircraft,airport,issue_airport,image,story,status,reviewer_id,submission_type,ticket_format,cabin_class,departure_country,arrival_country,special_tags,social_share_consent,rules_consent,airline_iata,airline_icao,airport_iata,airport_icao,route_scope) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',cabinClass,String(body.departure_country||''),String(body.arrival_country||''),JSON.stringify(body.special_tags||[]),1,1,airlineIata,airlineIcao,airportIata,airportIcao,routeScope).run();
     return reply({success:true,flight_id:inserted.meta.last_row_id});
@@ -74,7 +82,7 @@ export async function reviewRoute(request,env,url,user) {
   if(path==='/api/my/restore') {
     const body=await request.json(),flightId=Number(body.flight_id);
     if(!Number.isSafeInteger(flightId)||flightId<=0)return reply({error:'无效的展品 ID'},400);
-    const reviewer=await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id
+    const reviewer=isAdmin(user)?{id:1}:await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id
       WHERE s.active=1 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator'))
       ORDER BY (SELECT COUNT(*) FROM flights WHERE status='screening' AND reviewer_id=u.id),s.sort_order,u.id LIMIT 1`).first();
     const result=await env.DB.prepare("UPDATE flights SET status='screening',reject_reason=NULL,reviewer_id=? WHERE id=? AND user_id=? AND status='hidden'")
@@ -99,10 +107,12 @@ export async function reviewRoute(request,env,url,user) {
     const correction=await env.DB.prepare("SELECT * FROM flight_corrections WHERE id=? AND status='pending'").bind(id).first();
     if(!correction)return reply({error:'纠错不存在或已处理'},409);
     const updates=body.flight_updates;
-    const fields=['submission_type','airline','flight','airport','date','route','route_scope','departure_country','arrival_country','image','story'];
+    const fields=['submission_type','airline','airline_iata','airline_icao','flight','airport','airport_iata','airport_icao','date','route','route_scope','departure_country','arrival_country','image','story'];
     if(updates!==undefined){
       if(status!=='accepted'||!updates||typeof updates!=='object'||Array.isArray(updates))return reply({error:'纠错修改信息无效'},400);
       for(const field of fields)if(updates[field]!==undefined&&typeof updates[field]!=='string')return reply({error:'展品字段格式错误'},400);
+      for(const field of ['airline_iata','airline_icao','airport_iata','airport_icao'])if(updates[field]!==undefined&&!validCatalogCode(updates[field]))return reply({error:'航司或机场代码格式错误'},400);
+      for(const field of ['departure_country','arrival_country'])if(updates[field]!==undefined&&updates[field]!==''&&!validCountry(updates[field]))return reply({error:'国家或地区必须使用 ISO 3166-1 两位代码'},400);
       if(updates.submission_type!==undefined&&!['boarding_pass','rail_ticket'].includes(updates.submission_type))return reply({error:'投稿类型无效'},400);
       if(updates.route_scope!==undefined&&!['','domestic','international','regional'].includes(updates.route_scope))return reply({error:'航线范围无效'},400);
       if((updates.airline||'').length>200||(updates.flight||'').length>30||(updates.airport||'').length>200||(updates.route||'').length>200||(updates.departure_country||'').length>100||(updates.arrival_country||'').length>100||(updates.story||'').length>5000)return reply({error:'展品字段超出长度限制'},400);
@@ -112,8 +122,8 @@ export async function reviewRoute(request,env,url,user) {
       const existing=await env.DB.prepare('SELECT * FROM flights WHERE id=?').bind(correction.flight_id).first();
       if(!existing)return reply({error:'关联展品不存在'},404);
       const value=field=>updates[field]===undefined?(existing[field]??''):updates[field];
-      statements.push(env.DB.prepare("UPDATE flights SET submission_type=?,airline=?,flight=?,airport=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,image=?,story=? WHERE id=? AND EXISTS(SELECT 1 FROM flight_corrections WHERE id=? AND status='accepted')")
-        .bind(value('submission_type'),value('airline'),value('flight'),value('airport'),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('image'),value('story'),correction.flight_id,id));
+      statements.push(env.DB.prepare("UPDATE flights SET submission_type=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,image=?,story=? WHERE id=? AND EXISTS(SELECT 1 FROM flight_corrections WHERE id=? AND status='accepted')")
+        .bind(value('submission_type'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('image'),value('story'),correction.flight_id,id));
     }
     statements.push(env.DB.prepare("INSERT INTO notifications(user_id,content) SELECT ?,? WHERE changes()>0").bind(correction.user_id,`你对展品 #${correction.flight_id} 的纠错已${status==='accepted'?'采纳':'处理'}：${decision}`));
     const results=await env.DB.batch(statements);
@@ -147,14 +157,16 @@ export async function reviewRoute(request,env,url,user) {
     // reviewers may still correct an exhibit assigned to them while screening.
     if(flight.status==='hidden'&&!isSA(user))return reply({error:'只有 SA 可以修改已下架展品'},403);
     if(!isSA(user)&&(flight.status!=='screening'||Number(flight.reviewer_id)!==Number(user.id)))return reply({error:'只能修改分配给自己的待审展品'},403);
-    const fields=['submission_type','airline','flight','airport','date','route','route_scope','departure_country','arrival_country','story','image'];
+    const fields=['submission_type','airline','airline_iata','airline_icao','flight','airport','airport_iata','airport_icao','date','route','route_scope','departure_country','arrival_country','story','image'];
     for(const field of fields) if(body[field]!==undefined&&typeof body[field]!=='string')return reply({error:'字段格式错误'},400);
+    for(const field of ['airline_iata','airline_icao','airport_iata','airport_icao'])if(body[field]!==undefined&&!validCatalogCode(body[field]))return reply({error:'航司或机场代码格式错误'},400);
+    for(const field of ['departure_country','arrival_country'])if(body[field]!==undefined&&body[field]!==''&&!validCountry(body[field]))return reply({error:'国家或地区必须使用 ISO 3166-1 两位代码'},400);
     if(body.submission_type!==undefined&&!['boarding_pass','rail_ticket'].includes(body.submission_type))return reply({error:'投稿类型无效'},400);
     if(body.route_scope!==undefined&&!['','domestic','international','regional'].includes(body.route_scope))return reply({error:'航线范围无效'},400);
     if((body.airline||'').length>200||(body.flight||'').length>30||(body.airport||'').length>200||(body.route||'').length>200||(body.departure_country||'').length>100||(body.arrival_country||'').length>100||(body.story||'').length>5000)return reply({error:'字段超出长度限制'},400);
     const value=field=>body[field]===undefined?(flight[field]??''):body[field];
-    const result=await env.DB.prepare(`UPDATE flights SET submission_type=?,airline=?,flight=?,airport=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
-      .bind(value('submission_type'),value('airline'),value('flight'),value('airport'),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('story'),value('image'),Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
+    const result=await env.DB.prepare(`UPDATE flights SET submission_type=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
+      .bind(value('submission_type'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('story'),value('image'),Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
     return result.meta.changes?reply({success:true}):reply({error:'展品状态已变化，请刷新后重试'},409);
   }
   if(path==='/api/appeal') {

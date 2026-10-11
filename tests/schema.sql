@@ -3,7 +3,7 @@ CREATE TABLE flights(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER NOT NU
 CREATE TABLE email_codes(id INTEGER PRIMARY KEY,email TEXT,code TEXT,expires_at TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE favorites(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER);
 CREATE TABLE appeals(id INTEGER PRIMARY KEY,user_id INTEGER,flight_id INTEGER,reason TEXT,status TEXT DEFAULT 'pending',created_at TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE updates(id INTEGER PRIMARY KEY,title TEXT,version TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE updates(id INTEGER PRIMARY KEY,title TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE announcements(id INTEGER PRIMARY KEY,title TEXT,version TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,idempotency_key TEXT);
 CREATE UNIQUE INDEX announcements_idempotency_key_unique ON announcements(idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE TABLE admin_requests(id INTEGER PRIMARY KEY,user_id INTEGER,reason TEXT,social TEXT,status TEXT DEFAULT 'pending',created_at TEXT DEFAULT CURRENT_TIMESTAMP);

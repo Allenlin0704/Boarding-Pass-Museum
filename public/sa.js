@@ -1,4 +1,4 @@
-const apiFetch=(input,init={})=>fetch(input,{...init,credentials:"include"});
+const apiFetch=async(input,init={})=>{const response=await fetch(input,{...init,credentials:"include"});if(response.status===428)window.bpmShowSAStepup?.();return response;};
 const API = "https://api.bpmuseum.org.cn";
 
 const user = JSON.parse(
@@ -1068,6 +1068,57 @@ async function confirmDemote(){
 // ==========================
 
 let saFlightEditContext=null;
+const saEditCatalogs={airline:[],airport:[]};
+let saIsoCountries=[];
+let saEditCatalogPromise=null;
+async function loadSAEditCatalogs(){
+    if(saEditCatalogPromise)return saEditCatalogPromise;
+    saEditCatalogPromise=Promise.all([
+        fetch("/data/airlines-global.json",{cache:"force-cache"}).then(response=>{if(!response.ok)throw Error("航司数据库加载失败");return response.json();}),
+        fetch("/data/airports-global.json",{cache:"force-cache"}).then(response=>{if(!response.ok)throw Error("机场数据库加载失败");return response.json();}),
+        window.bpmIsoCountriesReady||fetch("/data/countries-iso3166.json",{cache:"force-cache"}).then(response=>{if(!response.ok)throw Error("国家/地区列表加载失败");return response.json();})
+    ]).then(([airlines,airports,countries])=>{saEditCatalogs.airline=airlines;saEditCatalogs.airport=airports;saIsoCountries=countries;}).catch(error=>{saEditCatalogPromise=null;throw error;});
+    return saEditCatalogPromise;
+}
+function saEditDisplayEntity(item){
+    const name=window.BPM_LANGUAGE==="en"?(item.name_en||item.name_cn||""):(item.name_cn||item.name_en||"");
+    return item.iata?`${name} (${item.iata})`:name;
+}
+function saEditFindEntity(kind,value,code){
+    const list=saEditCatalogs[kind],valueText=String(value||"").trim().toLowerCase(),suffixCode=valueText.match(/\(([a-z0-9]{2,4})\)\s*$/i)?.[1]||"",codeText=String(code||suffixCode).trim().toUpperCase();
+    if(codeText){const byCode=list.find(item=>[item.iata,item.icao].some(part=>String(part||"").toUpperCase()===codeText));if(byCode)return byCode;}
+    return list.find(item=>[item.name_cn,item.name_en,item.iata,item.icao].some(part=>String(part||"").trim().toLowerCase()===valueText))
+        ||list.find(item=>[item.name_cn,item.name_en].some(part=>part&&valueText&&valueText.includes(String(part).trim().toLowerCase())));
+}
+function saEditCountryCode(value){
+    const text=String(value||"").trim(),upper=text.toUpperCase();
+    if(saIsoCountries.some(country=>country.code===upper))return upper;
+    const matched=saIsoCountries.find(country=>[country.name_cn,country.name_tw,country.name_en].some(name=>{const candidate=String(name||"").trim().toLocaleLowerCase();return candidate===text.toLocaleLowerCase()||(candidate.length>1&&text.toLocaleLowerCase().includes(candidate));}));
+    if(matched)return matched.code;
+    try{return saIsoCountries.find(country=>["zh-CN","zh-TW","en"].some(locale=>new Intl.DisplayNames([locale],{type:"region"}).of(country.code)?.toLocaleLowerCase()===text.toLocaleLowerCase()))?.code||"";}catch{return "";}
+}
+function bindSAEntityPicker(kind){
+    const form=document.getElementById("saFlightEditForm"),input=form?.querySelector(`[data-sa-catalog-input="${kind}"]`),results=form?.querySelector(`[data-sa-catalog-results="${kind}"]`);
+    if(!input||!results||input.dataset.pickerBound)return;
+    input.dataset.pickerBound="1";
+    const codeFields=kind==="airline"?["airline_iata","airline_icao"]:["airport_iata","airport_icao"];
+    const setCodes=item=>{form.querySelector(`[data-edit-flight="${codeFields[0]}"]`).value=item?.iata||"";form.querySelector(`[data-edit-flight="${codeFields[1]}"]`).value=item?.icao||"";};
+    input.addEventListener("input",()=>{
+        setCodes(null);results.replaceChildren();const query=input.value.trim().toLowerCase();if(query.length<2)return;
+        const matches=saEditCatalogs[kind].filter(item=>[item.name_cn,item.name_en,item.iata,item.icao].some(part=>String(part||"").toLowerCase().includes(query))).slice(0,10);
+        for(const item of matches){const button=document.createElement("button");button.type="button";button.className="search-result";button.textContent=saEditDisplayEntity(item);button.addEventListener("click",()=>{input.value=saEditDisplayEntity(item);setCodes(item);results.replaceChildren();});results.append(button);}
+    });
+}
+function setSAEditMode(type){
+    const rail=type==="rail_ticket";
+    document.querySelectorAll("[data-sa-rail-field]").forEach(element=>element.hidden=!rail);
+    document.querySelectorAll("[data-sa-air-field]").forEach(element=>element.hidden=rail);
+    const airlineLabel=document.querySelector('[data-sa-catalog-input="airline"]'),airportLabel=document.querySelector('[data-sa-catalog-input="airport"]');
+    if(airlineLabel){airlineLabel.placeholder=rail?"输入铁路运营公司":"搜索航司名称、IATA 或 ICAO";}
+    if(airportLabel){airportLabel.placeholder=rail?"输入出发车站":"搜索机场名称、IATA 或 ICAO";}
+    const routeLabel=document.querySelector('[data-edit-flight="route"]')?.closest("label")?.querySelector("span");
+    if(routeLabel)routeLabel.textContent=rail?"到达车站":"";
+}
 async function loadSAFlightById(flightId){
     let response=await apiFetch(`${API}/api/flight/${encodeURIComponent(flightId)}`,{cache:"no-store"});
     if(response.ok)return bpmSafeRecord(await response.json());
@@ -1080,10 +1131,19 @@ async function loadSAFlightById(flightId){
 }
 async function openSAFlightEditorById(flightId,options={}){
     const flight=await loadSAFlightById(flightId);
+    await loadSAEditCatalogs();
     const dialog=document.getElementById("saFlightEditDialog"),form=document.getElementById("saFlightEditForm");
     form.querySelector("#saveSAFlightEdit").disabled=false;
     saFlightEditContext={flightId:Number(flight.id),correctionId:Number(options.correctionId)||null};
     form.querySelectorAll("[data-edit-flight]").forEach(input=>input.value=flight[input.dataset.editFlight]??(input.dataset.editFlight==="submission_type"?"boarding_pass":""));
+    for(const kind of ["airline","airport"]){
+        const input=form.querySelector(`[data-sa-catalog-input="${kind}"]`),codeKey=kind==="airline"?"airline_iata":"airport_iata",match=saEditFindEntity(kind,flight[kind],flight[codeKey]);
+        if(match){input.value=saEditDisplayEntity(match);form.querySelector(`[data-edit-flight="${codeKey}"]`).value=match.iata||"";form.querySelector(`[data-edit-flight="${kind==="airline"?"airline_icao":"airport_icao"}"]`).value=match.icao||"";}
+    }
+    bindSAEntityPicker("airline");bindSAEntityPicker("airport");
+    setSAEditMode(flight.submission_type||"boarding_pass");
+    if((flight.submission_type||"boarding_pass")==="boarding_pass")form.querySelector('[data-edit-flight="route"]').value="";
+    for(const key of ["departure_country","arrival_country"]){const select=form.querySelector(`[data-edit-flight="${key}"]`);select.value=saEditCountryCode(flight[key]);window.bpmRefreshIsoCountryPicker?.(select);}
     const decisionField=form.querySelector("[data-correction-decision-field]");
     decisionField.hidden=!saFlightEditContext.correctionId;
     document.getElementById("saFlightEditTitle").textContent=`编辑展品 #${Number(flight.id)}`;
@@ -1099,6 +1159,7 @@ document.getElementById("saFlightEditForm")?.addEventListener("submit",async eve
     if(!saFlightEditContext)return;
     const form=event.currentTarget,save=form.querySelector("#saveSAFlightEdit"),flightUpdates={};
     form.querySelectorAll("[data-edit-flight]").forEach(input=>flightUpdates[input.dataset.editFlight]=input.value.trim());
+    if(flightUpdates.submission_type==="boarding_pass")flightUpdates.route="";
     save.disabled=true;
     try{
         const correctionId=saFlightEditContext.correctionId;

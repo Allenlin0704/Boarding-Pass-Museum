@@ -11,6 +11,20 @@ test('restore: owner and hidden status required; requeue and clear rejection', a
   assert.equal(flight.status,'screening'); assert.equal(flight.reject_reason,null); assert.equal(flight.reviewer_id,1);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11})).status,409);
 });
+test('staff submissions always enter SA review, including SA self-review',async()=>{
+  const {call,db}=fixture();
+  db.prepare('DELETE FROM reviewer_schedule').run();
+  db.prepare("INSERT INTO reviewer_schedule(user_id,active,sort_order,allocation_percent) VALUES(2,1,0,50),(5,1,1,50)").run();
+  const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',departure_country:'CN',arrival_country:'JP',airline:'Example Air',flight:'EA123',airport:'PEK',date:'2026-10-11',image:'https://images.bpmuseum.org.cn/tickets/example.jpg',rules_consent:true,social_share_consent:true};
+  const admin=await call('/api/submit',payload,2),adminData=await admin.json();
+  const sa=await call('/api/submit',payload,1),saData=await sa.json();
+  assert.equal(admin.status,200);assert.equal(sa.status,200);
+  assert.equal(db.prepare('SELECT reviewer_id FROM flights WHERE id=?').get(adminData.flight_id).reviewer_id,1);
+  assert.equal(db.prepare('SELECT reviewer_id FROM flights WHERE id=?').get(saData.flight_id).reviewer_id,1);
+  const queue=await (await call('/api/admin/pending?admin_id=1',undefined,1)).json();
+  assert.ok(queue.some(flight=>flight.id===adminData.flight_id));
+  assert.ok(queue.some(flight=>flight.id===saData.flight_id));
+});
 test('SA can see all pending and approve/reject own submission and override results', async () => {
   const {db,call}=fixture();
   assert.equal((await (await call('/api/admin/pending?admin_id=1')).json()).length,2);
@@ -42,21 +56,21 @@ test('only SA can edit hidden exhibits; ordinary admins can edit only assigned s
   const assigned={...edit,flight_id:10,admin_id:2};
   assert.equal((await call('/api/admin/edit',assigned,2)).status,200);
 });
-test('SA can repair missing fields on any exhibit without changing review status',async()=>{
+test('SA can repair missing fields and canonical airline/airport codes without changing review status',async()=>{
   const {call,db}=fixture();
-  const response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'boarding_pass',airline:'Example Air',flight:'EA202',airport:'PEK',date:'2026-10-11',route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',image:'https://images.bpmuseum.org.cn/tickets/ea202.jpg',story:'Corrected by SA'});
+  const response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'boarding_pass',airline:'Example Air',airline_iata:'EA',airline_icao:'EXA',flight:'EA202',airport:'Beijing Capital International Airport (PEK)',airport_iata:'pek',airport_icao:'ZBAA',date:'2026-10-11',route:'',route_scope:'international',departure_country:'',arrival_country:'',image:'https://images.bpmuseum.org.cn/tickets/ea202.jpg',story:'Corrected by SA'});
   assert.equal(response.status,200);
-  const saved=db.prepare('SELECT airline,flight,airport,route,route_scope,departure_country,arrival_country,status FROM flights WHERE id=13').get();
-  assert.deepEqual({...saved},{airline:'Example Air',flight:'EA202',airport:'PEK',route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',status:'approved'});
+  const saved=db.prepare('SELECT airline,airline_iata,airline_icao,flight,airport,airport_iata,airport_icao,route,route_scope,departure_country,arrival_country,status FROM flights WHERE id=13').get();
+  assert.deepEqual({...saved},{airline:'Example Air',airline_iata:'EA',airline_icao:'EXA',flight:'EA202',airport:'Beijing Capital International Airport (PEK)',airport_iata:'PEK',airport_icao:'ZBAA',route:'',route_scope:'international',departure_country:'',arrival_country:'',status:'approved'});
   assert.equal((await call('/api/admin/edit',{admin_id:2,flight_id:13,route_scope:'domestic'},2)).status,403);
 });
 test('accepting a correction can update exhibit fields and keeps its status',async()=>{
   const {call,db}=fixture();
   db.prepare("INSERT INTO flight_corrections(id,flight_id,user_id,message) VALUES(1,13,3,'航线应为北京到东京')").run();
-  const response=await call('/api/sa/flight-corrections/resolve',{sa_id:1,correction_id:1,status:'accepted',decision:'已核对并修正航线',flight_updates:{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP'}});
+  const response=await call('/api/sa/flight-corrections/resolve',{sa_id:1,correction_id:1,status:'accepted',decision:'已核对并修正航线',flight_updates:{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',airline:'中国东方航空 (MU)',airline_iata:'MU',airport:'上海虹桥国际机场 (SHA)',airport_iata:'SHA'}});
   assert.equal(response.status,200);
-  const flight=db.prepare('SELECT route,route_scope,departure_country,arrival_country,status FROM flights WHERE id=13').get();
-  assert.deepEqual({...flight},{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',status:'approved'});
+  const flight=db.prepare('SELECT route,route_scope,departure_country,arrival_country,airline_iata,airport_iata,status FROM flights WHERE id=13').get();
+  assert.deepEqual({...flight},{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',airline_iata:'MU',airport_iata:'SHA',status:'approved'});
   assert.equal(db.prepare('SELECT status FROM flight_corrections WHERE id=1').get().status,'accepted');
 });
 test('admin applications: submission, SA listing, approval and rejection', async () => {

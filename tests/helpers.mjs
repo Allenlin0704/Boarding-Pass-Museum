@@ -11,7 +11,7 @@ export function fixture() {
     INSERT INTO users(id,role,username,email) VALUES(1,'superadministrator','SA','sa@example.test'),(2,'administrator','Admin','a@example.test'),(3,'user','User','u@example.test'),(4,'superadministrator','Invalid SA','i@example.test'),(5,'administrator','Other admin','b@example.test');
     INSERT INTO flights(id,user_id,status,reviewer_id,reject_reason) VALUES(10,1,'pending',2,NULL),(11,3,'hidden',1,'old reason'),(12,3,'pending',5,NULL),(13,3,'approved',2,NULL);
     CREATE TABLE admin_requests(id INTEGER PRIMARY KEY,user_id INTEGER,reason TEXT,social TEXT,status TEXT DEFAULT 'pending');
-    CREATE TABLE updates(id INTEGER PRIMARY KEY,title TEXT,version TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
+    CREATE TABLE updates(id INTEGER PRIMARY KEY,title TEXT,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
   db.exec(`CREATE TABLE community_posts(id INTEGER PRIMARY KEY,user_id INTEGER,title TEXT,content TEXT,status TEXT DEFAULT 'visible',created_at TEXT DEFAULT CURRENT_TIMESTAMP,moderation_reason TEXT);
     CREATE TABLE community_likes(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER);
     CREATE TABLE community_comments(id INTEGER PRIMARY KEY,post_id INTEGER,user_id INTEGER,content TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);

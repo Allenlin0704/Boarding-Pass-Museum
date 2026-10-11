@@ -1853,7 +1853,7 @@ if(url.pathname==="/api/sa/announcements"&&request.method==="GET"){
 const sa=await requireSA(env,url.searchParams.get("sa_id"));
 if(!sa)return Response.json({error:"No permission"},{status:403,headers});
 const result=await env.DB.prepare(`SELECT id,title,version,content,created_at,hidden,deleted_at,'announcement' AS source FROM announcements
-  UNION ALL SELECT id,title,version,content,created_at,hidden,deleted_at,'update' AS source FROM updates
+  UNION ALL SELECT id,title,'' AS version,content,created_at,hidden,deleted_at,'update' AS source FROM updates
   ORDER BY created_at DESC`).all();
 return Response.json(result.results||[],{headers});
 }
@@ -1869,7 +1869,7 @@ if(action==='edit'){
   if(!title||!content||title.length>120||content.length>10000)return Response.json({error:"标题和内容不能为空，标题最多 120 字，内容最多 10000 字"},{status:400,headers});
   result=source==='announcement'
     ?await env.DB.prepare("UPDATE announcements SET title=?,version=?,content=? WHERE id=? AND deleted_at IS NULL").bind(title,title,content,id).run()
-    :await env.DB.prepare("UPDATE updates SET title=?,version=?,content=? WHERE id=? AND deleted_at IS NULL").bind(title,title,content,id).run();
+    :await env.DB.prepare("UPDATE updates SET title=?,content=? WHERE id=? AND deleted_at IS NULL").bind(title,content,id).run();
 }else if(action==='hide'||action==='show'){
   result=await env.DB.prepare(`UPDATE ${table} SET hidden=? WHERE id=? AND deleted_at IS NULL`).bind(action==='hide'?1:0,id).run();
 }else if(action==='delete'){
