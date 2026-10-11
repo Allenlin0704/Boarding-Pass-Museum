@@ -172,11 +172,11 @@ document.getElementById("sitePhotoDirectUploadForm")?.addEventListener("submit",
   if(![form.elements.show_home,form.elements.show_login,form.elements.show_register].some(input=>input.checked)){status.textContent="至少选择一个展示位置。";return;}
   button.disabled=true;status.textContent="正在压缩并上传照片…";
   try{
-    const compressed=await window.bpmCompressImageFile(file,{maxBytes:4*1024*1024,maxEdge:2600,quality:.9}),data=new FormData(form);
-    data.set("image",compressed,"homepage-photo.jpg");data.set("sa_id",String(user.id));
+    const compressed=await window.bpmCompressImageFile(file),data=new FormData(form);
+    data.set("image",compressed,"homepage-photo.webp");data.set("sa_id",String(user.id));
     const response=await apiFetch(`${API}/api/sa/site-photos/upload`,{method:"POST",credentials:"include",body:data}),result=await response.json();
     if(!response.ok)throw Error(result.error||"照片上传失败");
-    form.reset();status.textContent=`已压缩至 ${(compressed.size/1024/1024).toFixed(2)} MB，并加入排期。`;
+    form.reset();status.textContent=`已压缩为 WebP，最长边不超过 1280px，${(compressed.size/1024/1024).toFixed(2)} MB，并加入排期。`;
     await loadSitePhotoManager();
   }catch(error){status.textContent=error.message||"照片上传失败";}
   finally{button.disabled=false;}

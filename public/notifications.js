@@ -68,9 +68,9 @@ photoUploadForm?.addEventListener('submit',async event=>{
   try{
     const form=new FormData(photoUploadForm);form.set('license_confirmed',photoUploadForm.elements.license_confirmed.checked?'1':'0');
     const source=photoUploadForm.elements.image.files[0];
-    const compressed=await window.bpmCompressImageFile(source,{maxBytes:4*1024*1024,maxEdge:2600,quality:.9});
-    form.set('image',compressed,'homepage-photo.jpg');
-    status.textContent=`已压缩至 ${(compressed.size/1024/1024).toFixed(2)} MB，正在上传并送交 SA 审核…`;
+    const compressed=await window.bpmCompressImageFile(source);
+    form.set('image',compressed,'homepage-photo.webp');
+    status.textContent=`已压缩为 WebP，最长边不超过 1280px，${(compressed.size/1024/1024).toFixed(2)} MB，正在上传并送交 SA 审核…`;
     const response=await fetch(`${noticeAPI}/api/admin/site-photo-requests/${id}/submit`,{method:'POST',credentials:'include',body:form}),result=await response.json();
     if(!response.ok)throw Error(result.error||'提交失败');
     photoUploadDialog.close();await loadPhotoInvitations();window.alert('照片已送交 SA 审核，通过后才会加入每日轮播。');

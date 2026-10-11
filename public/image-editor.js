@@ -18,7 +18,7 @@
     position: document.getElementById("watermarkPosition")?.value || "bottom-right"
   });
   const saveWatermarkSettings = () => {
-    try { sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify({...watermarkSettings(), maxImageMB: document.getElementById("imageCompressionLimit")?.value || "4"})); } catch {}
+    try { sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify(watermarkSettings())); } catch {}
   };
   const persistImage = async (key, legacyKey, options) => {
     const blob = await window.bpmExportEditorBlob?.(options);
@@ -70,12 +70,10 @@
     window.addEventListener("bpm-image-source-ready",()=>{if(sourceStatus)sourceStatus.hidden=true;});
     document.getElementById("reselectEditorImage")?.addEventListener("click",()=>sourcePicker?.click());
     window.setTimeout(()=>{if(!window.bpmGetEditorSource?.())showPicker();},1200);
-    const limitInput=document.getElementById("imageCompressionLimit"),compressionStatus=document.getElementById("imageCompressionStatus");
-    try{const saved=JSON.parse(sessionStorage.getItem("bpmImageEditorWatermarkSettings")||"{}");if(["2","3","4"].includes(saved.maxImageMB))limitInput.value=saved.maxImageMB;}catch{}
-    limitInput?.addEventListener("change",saveWatermarkSettings);
+    const compressionStatus=document.getElementById("imageCompressionStatus");
     document.getElementById("previewImageCompression")?.addEventListener("click",async event=>{
       const button=event.currentTarget;button.disabled=true;
-      try{const maxBytes=Number(limitInput?.value||4)*1024*1024,blob=await window.bpmExportEditorBlob?.({maxEdge:2600,type:"image/jpeg",quality:.9,maxBytes});if(!blob)throw Error("请先选择图片");compressionStatus.textContent=`压缩预览：${(blob.size/1024/1024).toFixed(2)} MB，符合 ${limitInput.value} MB 上限。`;}
+      try{const blob=await window.bpmExportEditorBlob?.({maxEdge:1280,maxBytes:1024*1024,type:"image/webp",quality:.9});if(!blob)throw Error("请先选择图片");compressionStatus.textContent=`WebP 预览：${(blob.size/1024/1024).toFixed(2)} MB，最长边不超过 1280px。`;}
       catch(error){compressionStatus.textContent=error.message;}
       finally{button.disabled=false;}
     });
@@ -90,7 +88,7 @@
         saveWatermarkSettings();
         try { sessionStorage.removeItem("bpmImageEditorResult"); } catch {}
         await window.bpmImageHandoff?.remove("result").catch(() => {});
-        await persistImage("result", "bpmImageEditorResult", { maxEdge: 2600, type: "image/jpeg", quality: 0.9, maxBytes: Number(limitInput?.value||4)*1024*1024 });
+        await persistImage("result", "bpmImageEditorResult", { maxEdge: 1280, type: "image/webp", quality: 0.9, maxBytes: 1024*1024 });
         try { sessionStorage.removeItem("bpmImageEditorReturn"); } catch {}
         location.replace(returnTo);
       } catch (error) {

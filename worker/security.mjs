@@ -1,5 +1,6 @@
 const PUBLIC_WRITES = new Set(['/api/login','/api/account/admin-pin/login','/api/account/admin-pin/setup','/api/register','/api/send-code','/api/account/reset/send-code','/api/account/reset-password','/api/passkey/login/options','/api/passkey/login/verify','/api/oauth/apple/start','/api/oauth/microsoft/start','/api/oauth/github/start','/api/oauth/apple/callback','/api/translate/story','/wechat']);
-export const IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+export const IMAGE_UPLOAD_MAX_BYTES = 1024 * 1024;
+export const IMAGE_UPLOAD_MAX_EDGE = 1280;
 export const ADMIN_ORIGIN = 'https://admin.bpmuseum.org.cn';
 const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),b=>b.toString(16).padStart(2,'0')).join('');
 export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
@@ -293,23 +294,43 @@ export function responseHeaders(request,response) {
 export async function boundedRequest(request) {
   if(['GET','HEAD','OPTIONS'].includes(request.method)||!request.body) return request;
   const path=new URL(request.url).pathname;
-  const max=path==='/api/flight-assist/recognize'?2.5*1024*1024:path==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path)?6*1024*1024:64*1024;
+  const max=path==='/api/flight-assist/recognize'||path==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path)?IMAGE_UPLOAD_MAX_BYTES+64*1024:64*1024;
   const reader=request.body.getReader(),chunks=[];let length=0;
   while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>max){await reader.cancel();throw new RangeError('请求过大');}chunks.push(value);}
   const bytes=new Uint8Array(length);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   return new Request(request.url,{method:request.method,headers:request.headers,body:bytes});
 }
+
+export function webpDimensions(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 25 ||
+      new TextDecoder().decode(bytes.subarray(0,4)) !== 'RIFF' ||
+      new TextDecoder().decode(bytes.subarray(8,12)) !== 'WEBP') return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (view.getUint32(4, true) !== bytes.length - 8) return null;
+  const chunk = new TextDecoder().decode(bytes.subarray(12,16));
+  let width=0,height=0;
+  if (chunk === 'VP8X' && bytes.length >= 30 && view.getUint32(16,true) >= 10) {
+    width=1+bytes[24]+(bytes[25]<<8)+(bytes[26]<<16);
+    height=1+bytes[27]+(bytes[28]<<8)+(bytes[29]<<16);
+  } else if (chunk === 'VP8L' && bytes.length >= 25 && bytes[20] === 0x2f) {
+    width=1+bytes[21]+((bytes[22]&0x3f)<<8);
+    height=1+(bytes[22]>>6)+(bytes[23]<<2)+((bytes[24]&0x0f)<<10);
+  } else if (chunk === 'VP8 ' && bytes.length >= 30) {
+    let frame=-1;
+    for(let i=20;i<=Math.min(bytes.length-7,40);i++)if(bytes[i]===0x9d&&bytes[i+1]===0x01&&bytes[i+2]===0x2a){frame=i;break;}
+    if(frame>=0){width=view.getUint16(frame+3,true)&0x3fff;height=view.getUint16(frame+5,true)&0x3fff;}
+  }
+  return width>0&&height>0?{width,height}:null;
+}
+
 export async function uploadImage(request,env) {
   const form=await request.formData(),file=form.get('image');
-  const metro=form.get('submission_type')==='metro_ticket',maxBytes=metro?2*1024*1024:IMAGE_UPLOAD_MAX_BYTES;
-  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>maxBytes) return reply({error:metro?'地铁票图片必须压缩至 2 MB 以内':'请选择5 MB以内的图片'},400);
+  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>IMAGE_UPLOAD_MAX_BYTES) return reply({error:'图片处理后须为 1280px 以内、1 MB 以下的 WebP'},400);
   const bytes=new Uint8Array(await file.arrayBuffer());
-  const png=bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71;
-  const jpeg=bytes[0]===255&&bytes[1]===216&&bytes[2]===255;
-  const webp=new TextDecoder().decode(bytes.slice(0,4))==='RIFF'&&new TextDecoder().decode(bytes.slice(8,12))==='WEBP';
-  const ext=png?'png':jpeg?'jpg':webp?'webp':null;
-  if(!ext) return reply({error:'仅支持 PNG、JPEG、WebP 图片'},400);
-  const key=`tickets/${crypto.randomUUID()}.${ext}`;
-  await env.IMAGES.put(key,bytes,{httpMetadata:{contentType:ext==='jpg'?'image/jpeg':`image/${ext}`,contentDisposition:'inline'}});
+  const dimensions=webpDimensions(bytes);
+  if(!dimensions)return reply({error:'服务器只接受有效的 WebP 图片，请重新处理后上传'},415);
+  if(Math.max(dimensions.width,dimensions.height)>IMAGE_UPLOAD_MAX_EDGE)return reply({error:'图片最长边不得超过 1280 像素，请重新处理后上传'},400);
+  const key=`tickets/${crypto.randomUUID()}.webp`;
+  await env.IMAGES.put(key,bytes,{httpMetadata:{contentType:'image/webp',contentDisposition:'inline'}});
   return reply({success:true,url:`https://images.bpmuseum.org.cn/${key}`});
 }

@@ -1,36 +1,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {fixture} from './helpers.mjs';
+import {fixture,webpBytes} from './helpers.mjs';
 import {aiFailureStatus} from '../worker/ai-provider.mjs';
 
 function recognizeRequest(image,identity=3,consent=true,country='CN'){
   const form=new FormData();
   if(consent)form.append('consent','1');
-  form.append('image',new Blob([image],{type:'image/jpeg'}),'edited-ticket.jpg');
+  form.append('image',new Blob([image],{type:'image/webp'}),'edited-ticket.webp');
   const request=new Request('https://test.invalid/api/flight-assist/recognize',{method:'POST',headers:{Cookie:`bpm_session=${String(identity).repeat(64)}`},body:form});
   request.cf={country};
   return request;
 }
 
-test('Cloudflare vision recognizes only the edited JPEG and returns sanitized fields',async()=>{
+test('Cloudflare vision recognizes only the edited WebP and returns sanitized fields',async()=>{
   const {worker,env,db}=fixture();
   let sent,usedModel,runOptions;
   env.AI={run:async(model,input,options)=>{usedModel=model;sent=input;runOptions=options;return {response:JSON.stringify({airline_name:'Air China',airline_iata:'ca',flight_number:'CA 123',flight_date:'2026-08-17',departure_airport_name:'Beijing Capital International Airport',departure_airport_iata:'PEK',issue_airport_iata:'PEK',route_scope:'international',passenger_name:'should not return'})};}};
-  const response=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255,1,2,3])),env),data=await response.json();
+  const response=await worker.fetch(recognizeRequest(webpBytes()),env),data=await response.json();
   assert.equal(response.status,200);
   assert.deepEqual(data.fields,{airline_name:'Air China',airline_iata:'CA',airline_icao:'',flight_number:'CA 123',flight_date:'2026-08-17',departure_airport_name:'Beijing Capital International Airport',departure_airport_iata:'PEK',departure_airport_icao:'',issue_airport_name:'',issue_airport_iata:'PEK',issue_airport_icao:'',route_scope:'international'});
   assert.equal(JSON.stringify(data).includes('should not return'),false);
   assert.equal(usedModel,'@cf/google/gemma-4-26b-a4b-it');
   assert.deepEqual(runOptions,{rejectIfBusy:true});
   assert.deepEqual(sent.chat_template_kwargs,{enable_thinking:false});
-  assert.equal(sent.messages[0].content[1].image_url.url.startsWith('data:image/jpeg;base64,'),true);
+  assert.equal(sent.messages[0].content[1].image_url.url.startsWith('data:image/webp;base64,'),true);
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM auth_limits').get().count,2);
 });
 
 test('boarding-pass route scope, cabin class and markers are stored; invalid cabin classes are rejected',async()=>{
   const {call,db}=fixture();
-  const payload={submission_type:'boarding_pass',ticket_format:'digital',cabin_class:'first_class',route_scope:'regional',departure_country:'CN',arrival_country:'HK',airline:'China Southern Airlines (CZ)',airline_iata:'CZ',airport:'Guangzhou Baiyun (CAN)',airport_iata:'CAN',flight:'CZ123',date:'2026-10-01',image:'https://images.bpmuseum.org.cn/tickets/example.jpg',special_tags:['business','premium_economy','silver','special_assistance','transfer','other']};
+  const payload={submission_type:'boarding_pass',ticket_format:'digital',cabin_class:'first_class',route_scope:'regional',departure_country:'CN',arrival_country:'HK',airline:'China Southern Airlines (CZ)',airline_iata:'CZ',airport:'Guangzhou Baiyun (CAN)',airport_iata:'CAN',flight:'CZ123',date:'2026-10-01',image:'https://images.bpmuseum.org.cn/tickets/example.webp',special_tags:['business','premium_economy','silver','special_assistance','transfer','other']};
   const response=await call('/api/submit',{...payload,rules_consent:true,social_share_consent:true},3),data=await response.json();
   assert.equal(response.status,200);assert.equal(data.success,true);
   const saved=db.prepare('SELECT route_scope,cabin_class,special_tags,status FROM flights WHERE id=?').get(data.flight_id);
@@ -46,10 +46,10 @@ test('boarding-pass route scope, cabin class and markers are stored; invalid cab
   assert.equal(invalidCountry.status,400);
 });
 
-test('all regions use Cloudflare AI, missing binding fails closed, and non-JPEG uploads are rejected',async()=>{
+test('all regions use Cloudflare AI, missing binding fails closed, and non-WebP inputs are rejected',async()=>{
   const {worker,env}=fixture();
   env.AI={run:async()=>({response:'{}'})};
-  const accepted=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,true,'US'),env);
+  const accepted=await worker.fetch(recognizeRequest(webpBytes(),3,true,'US'),env);
   assert.equal(accepted.status,200);
   const providerRequest=new Request('https://test.invalid/api/ai/provider');providerRequest.cf={country:'HK'};
   const domesticProvider=await worker.fetch(providerRequest,env);
@@ -57,10 +57,10 @@ test('all regions use Cloudflare AI, missing binding fails closed, and non-JPEG 
   const overseasRequest=new Request('https://test.invalid/api/ai/provider');overseasRequest.cf={country:'SG'};
   const overseasProvider=await worker.fetch(overseasRequest,env);
   assert.equal((await overseasProvider.json()).provider,'cloudflare');
-  const noConsent=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,false,'US'),env);
+  const noConsent=await worker.fetch(recognizeRequest(webpBytes(),3,false,'US'),env);
   assert.equal(noConsent.status,400);
   env.AI=undefined;
-  const unavailable=await worker.fetch(recognizeRequest(Uint8Array.from([255,216,255]),3,true,'US'),env);
+  const unavailable=await worker.fetch(recognizeRequest(webpBytes(),3,true,'US'),env);
   assert.equal(unavailable.status,503);
   env.AI={run:async()=>({response:'{}'})};
   const response=await worker.fetch(recognizeRequest(Uint8Array.from([137,80,78,71]),3,true,'CN'),env);

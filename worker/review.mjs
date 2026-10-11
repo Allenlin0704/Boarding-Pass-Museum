@@ -4,8 +4,8 @@ const normalizedCode=value=>String(value??'').trim().toUpperCase();
 const validCatalogCode=value=>typeof value==='string'&&value.length<=6&&(/^[A-Z0-9-]*$/.test(value.trim().toUpperCase()));
 const validCountry=value=>typeof value==='string'&&ISO_COUNTRY_CODES.has(value);
 const checkMetroImage=async(env,image)=>{
-  if(typeof image!=='string'||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(image))return {ok:false,unavailable:false};
-  try{const object=await env.IMAGES?.head?.(new URL(image).pathname.replace(/^\//,''));return {ok:!!object&&Number.isFinite(Number(object.size))&&Number(object.size)<=2*1024*1024,unavailable:false};}
+  if(typeof image!=='string'||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.webp$/.test(image))return {ok:false,unavailable:false};
+  try{const object=await env.IMAGES?.head?.(new URL(image).pathname.replace(/^\//,''));return {ok:!!object&&Number.isFinite(Number(object.size))&&Number(object.size)<=1024*1024&&object.httpMetadata?.contentType==='image/webp',unavailable:false};}
   catch{return {ok:false,unavailable:true};}
 };
 export async function reviewRoute(request,env,url,user) {
@@ -49,11 +49,11 @@ export async function reviewRoute(request,env,url,user) {
     const cabinClass=transit?'':String(body.cabin_class||'');
     const allowedTags=['business','premium_economy','first_class','silver','gold','platinum','special_assistance','transfer','other','two_cabin'];
     const localScope=metro||(!transit&&routeScope==='domestic');
-    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket','metro_ticket'].includes(submissionType)||!['paper','digital'].includes(body.ticket_format||'paper')||(!transit&&!['domestic','international','regional'].includes(routeScope))||(!transit&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||(!localScope&&!validCountry(body.arrival_country))||(transit&&!body.route))return reply({error:'投稿格式无效，请选择有效的 ISO 国家 / 地区'},400);
+    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket','metro_ticket'].includes(submissionType)||!['paper','digital'].includes(body.ticket_format||'paper')||(!transit&&!['domestic','international','regional'].includes(routeScope))||(!transit&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.webp$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||(!localScope&&!validCountry(body.arrival_country))||(transit&&!body.route))return reply({error:'投稿格式无效，请使用已上传的 WebP 图片并填写有效的 ISO 国家 / 地区'},400);
     if(metro){
       const checked=await checkMetroImage(env,body.image);
       if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
-      if(!checked.ok)return reply({error:'地铁票图片必须压缩至 2 MB 以内后重新上传'},413);
+      if(!checked.ok)return reply({error:'图片必须为不超过 1 MB 的 WebP 格式'},413);
     }
     // Staff submissions always go to the SA queue. The SA's own submission is
     // assigned to account 1 as well, so it remains an explicit self-review.
@@ -144,7 +144,7 @@ export async function reviewRoute(request,env,url,user) {
       if(value('submission_type')==='metro_ticket'){
         const checked=await checkMetroImage(env,value('image'));
         if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
-        if(!checked.ok)return reply({error:'地铁票图片必须压缩至 2 MB 以内后重新上传'},413);
+        if(!checked.ok)return reply({error:'图片必须为不超过 1 MB 的 WebP 格式'},413);
       }
       statements.push(env.DB.prepare("UPDATE flights SET submission_type=?,ticket_format=?,cabin_class=?,cabin_class_verified=CASE WHEN ?=1 THEN 1 ELSE cabin_class_verified END,special_tags=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,image=?,story=? WHERE id=? AND EXISTS(SELECT 1 FROM flight_corrections WHERE id=? AND status='accepted')")
         .bind(value('submission_type'),value('ticket_format'),value('cabin_class'),updates.cabin_class!==undefined&&!['rail_ticket','metro_ticket'].includes(value('submission_type'))?1:0,value('special_tags'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('image'),value('story'),correction.flight_id,id));
@@ -198,7 +198,7 @@ export async function reviewRoute(request,env,url,user) {
     if(value('submission_type')==='metro_ticket'){
       const checked=await checkMetroImage(env,value('image'));
       if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
-      if(!checked.ok)return reply({error:'地铁票图片必须压缩至 2 MB 以内后重新上传'},413);
+        if(!checked.ok)return reply({error:'图片必须为不超过 1 MB 的 WebP 格式'},413);
     }
     const result=await env.DB.prepare(`UPDATE flights SET submission_type=?,ticket_format=?,cabin_class=?,cabin_class_verified=CASE WHEN ?=1 THEN 1 ELSE cabin_class_verified END,special_tags=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
       .bind(value('submission_type'),value('ticket_format'),value('cabin_class'),body.cabin_class!==undefined&&!['rail_ticket','metro_ticket'].includes(value('submission_type'))?1:0,value('special_tags'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('story'),value('image'),Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();

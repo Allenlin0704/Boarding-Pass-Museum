@@ -2,6 +2,14 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import worker from '../worker/index.js';
+export function webpBytes({width=32,height=32,size=30}={}) {
+  if(size<30)throw new RangeError('WebP fixture must be at least 30 bytes');
+  const bytes=new Uint8Array(size),ascii=(value,offset)=>{for(let i=0;i<value.length;i++)bytes[offset+i]=value.charCodeAt(i);};
+  ascii('RIFF',0);new DataView(bytes.buffer).setUint32(4,size-8,true);ascii('WEBPVP8X',8);new DataView(bytes.buffer).setUint32(16,10,true);
+  const w=width-1,h=height-1;
+  bytes[24]=w&255;bytes[25]=(w>>8)&255;bytes[26]=(w>>16)&255;bytes[27]=h&255;bytes[28]=(h>>8)&255;bytes[29]=(h>>16)&255;
+  return bytes;
+}
 export function fixture() {
   const db = new DatabaseSync(':memory:');
   db.exec(`CREATE TABLE users(id INTEGER PRIMARY KEY,role TEXT,username TEXT,email TEXT,password TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,avatar TEXT,bio TEXT,social_media TEXT,equipment TEXT,favorite_airlines TEXT,favorite_airports TEXT);

@@ -13,7 +13,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   response=await call('/api/sa/reviewer-schedule',{reviewer_allocations:[{user_id:2,percent:65},{user_id:1,percent:30}]},1);
   assert.equal(response.status,400,'allocation percentages must add up to exactly 100');
   const before=new Map(db.prepare('SELECT reviewer_id,COUNT(*) AS count FROM flights WHERE reviewer_id IN (1,2) GROUP BY reviewer_id').all().map(row=>[row.reviewer_id,row.count]));
-  response=await call('/api/submit',{submission_type:'rail_ticket',ticket_format:'digital',departure_country:'CN',arrival_country:'DE',airline:'China Railway CR',airline_iata:'CR',flight:'G101',airport:'北京南站',airport_iata:'BJP',route:'上海虹桥站',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
+  response=await call('/api/submit',{submission_type:'rail_ticket',ticket_format:'digital',departure_country:'CN',arrival_country:'DE',airline:'China Railway CR',airline_iata:'CR',flight:'G101',airport:'北京南站',airport_iata:'BJP',route:'上海虹桥站',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.webp',special_tags:[],rules_consent:true,social_share_consent:true},3);
   assert.equal(response.status,200);
   const saved=db.prepare('SELECT * FROM flights WHERE user_id=3 ORDER BY id DESC LIMIT 1').get();
   assert.equal(saved.submission_type,'rail_ticket');
@@ -23,7 +23,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   assert.equal(saved.airport_iata,'BJP');
   assert.ok([1,2].includes(saved.reviewer_id));
   for(let index=0;index<19;index++){
-    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',departure_country:'CN',arrival_country:'CN',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
+    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',departure_country:'CN',arrival_country:'CN',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.webp',special_tags:[],rules_consent:true,social_share_consent:true},3);
     assert.equal(response.status,200);
   }
   assert.equal(db.prepare('SELECT social_share_consent FROM flights WHERE flight=?').get('EA0').social_share_consent,1);
@@ -35,7 +35,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
 
 test('submission requires both rules acceptance and social-share authorization',async()=>{
   const {call,db}=fixture();
-  const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
+  const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.webp',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
   let response=await call('/api/submit',{...payload,rules_consent:false},3);
   assert.equal(response.status,400);
   response=await call('/api/submit',{...payload,social_share_consent:false},3);
@@ -47,19 +47,27 @@ test('submission requires both rules acceptance and social-share authorization',
   assert.deepEqual({...saved},{rules_consent:1,social_share_consent:1});
 });
 
-test('domestic boarding passes and metro tickets do not require arrival country; metro images stay within 2 MB',async()=>{
+test('new exhibit submissions cannot reference original JPEG/PNG files as uploaded images',async()=>{
+  const {call,db}=fixture();
+  const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA43',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/original.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
+  const response=await call('/api/submit',payload,3);
+  assert.equal(response.status,400);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM flights WHERE flight=?').get('EA43').n,0);
+});
+
+test('domestic boarding passes and metro tickets do not require arrival country; metro images stay within 1 MB WebP',async()=>{
   const {call,db,env}=fixture();
-  env.IMAGES={head:async()=>({size:2*1024*1024})};
-  const common={ticket_format:'paper',departure_country:'CN',airline:'Metro Transit',airline_iata:'MT',flight:'Line 2',airport:'人民广场站',route:'虹桥火车站',date:'2026-10-11',image:'https://images.bpmuseum.org.cn/tickets/metro.jpg',special_tags:[],rules_consent:true,social_share_consent:true};
+  env.IMAGES={head:async()=>({size:1024*1024,httpMetadata:{contentType:'image/webp'}})};
+  const common={ticket_format:'paper',departure_country:'CN',airline:'Metro Transit',airline_iata:'MT',flight:'Line 2',airport:'人民广场站',route:'虹桥火车站',date:'2026-10-11',image:'https://images.bpmuseum.org.cn/tickets/metro.webp',special_tags:[],rules_consent:true,social_share_consent:true};
   let response=await call('/api/submit',{...common,submission_type:'metro_ticket'},3);
   assert.equal(response.status,200);
   let saved=db.prepare('SELECT submission_type,departure_country,arrival_country FROM flights WHERE submission_type=? ORDER BY id DESC LIMIT 1').get('metro_ticket');
   assert.deepEqual({...saved},{submission_type:'metro_ticket',departure_country:'CN',arrival_country:''});
-  env.IMAGES.head=async()=>({size:2*1024*1024+1});
-  response=await call('/api/submit',{...common,submission_type:'metro_ticket',image:'https://images.bpmuseum.org.cn/tickets/too-large.jpg'},3);
+  env.IMAGES.head=async()=>({size:1024*1024+1,httpMetadata:{contentType:'image/webp'}});
+  response=await call('/api/submit',{...common,submission_type:'metro_ticket',image:'https://images.bpmuseum.org.cn/tickets/too-large.webp'},3);
   assert.equal(response.status,413);
   response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'metro_ticket',image:common.image},1);
-  assert.equal(response.status,413,'SA edits cannot bypass the metro-ticket image limit');
+  assert.equal(response.status,413,'SA edits cannot bypass the global image limit');
   response=await call('/api/submit',{...common,submission_type:'boarding_pass',route_scope:'domestic',cabin_class:'economy',flight:'EA10',airport:'PEK',airline:'Example Air',airline_iata:'EA',arrival_country:''},3);
   assert.equal(response.status,200);
   saved=db.prepare('SELECT route_scope,arrival_country FROM flights WHERE flight=?').get('EA10');
@@ -68,9 +76,9 @@ test('domestic boarding passes and metro tickets do not require arrival country;
 
 test('profile writes bind to the authenticated user, and owner corrections reach SA', async()=>{
   const {call,db}=fixture();
-  let response=await call('/api/account/profile',{user_id:1,avatar:'https://images.bpmuseum.org.cn/tickets/avatar.jpg',avatar_shape:'square',bio:'My profile'},3);
+  let response=await call('/api/account/profile',{user_id:1,avatar:'https://images.bpmuseum.org.cn/tickets/avatar.webp',avatar_shape:'square',bio:'My profile'},3);
   assert.equal(response.status,403,'a profile write cannot target another account');
-  response=await call('/api/account/profile',{user_id:3,avatar:'https://images.bpmuseum.org.cn/tickets/avatar.jpg',avatar_shape:'square',bio:'My profile'},3);
+  response=await call('/api/account/profile',{user_id:3,avatar:'https://images.bpmuseum.org.cn/tickets/avatar.webp',avatar_shape:'square',bio:'My profile'},3);
   assert.equal(response.status,200);
   assert.equal(db.prepare('SELECT avatar FROM users WHERE id=1').get().avatar,null);
   assert.equal(db.prepare('SELECT avatar_shape FROM users WHERE id=3').get().avatar_shape,'square');

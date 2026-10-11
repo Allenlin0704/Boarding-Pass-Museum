@@ -12,9 +12,9 @@ document.getElementById('acceptPublish').onclick=async()=>{
   const button=document.getElementById('acceptPublish');button.disabled=true;
   try {
     let image='';const file=document.getElementById('postImage').files[0];
-    if(file){if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>30*1024*1024)throw Error('请选择 30 MB 以内的 PNG、JPEG 或 WebP 原图');
-      const compressed=await window.bpmCompressImageFile(file,{maxBytes:4*1024*1024,maxEdge:2600,quality:.9});
-      const data=new FormData();data.append('image',compressed,'community-photo.jpg');const res=await fetch(`${api}/api/upload-image`,{method:'POST',body:data});const result=await res.json();if(!res.ok)throw Error(result.error||'图片上传失败');image=result.url;}
+    if(file){if(file.size>30*1024*1024)throw Error('原图不能超过 30 MB');
+      const compressed=await window.bpmCompressImageFile(file);
+      const data=new FormData();data.append('image',compressed,'community-photo.webp');const res=await fetch(`${api}/api/upload-image`,{method:'POST',body:data});const result=await res.json();if(!res.ok)throw Error(result.error||'图片上传失败');image=result.url;}
     const res=await fetch(`${api}/api/community/posts`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:document.getElementById('postTitle').value.trim(),content:document.getElementById('postContent').value.trim(),image,rules_version:'2026-09-06'})});
     const result=await res.json();if(!res.ok)throw Error(result.error||'发布失败');location.href='community.html';
   }catch(error){dialog.close();message.textContent=error.message;}finally{button.disabled=false;}

@@ -131,7 +131,7 @@ function updateSubmissionType(){
   const heading=document.getElementById("transitSubmissionHeading"),numberLabel=document.getElementById("transitNumberLabel"),imageHint=document.getElementById("ticketImageSizeHint");
   if(heading)heading.textContent=metro?localizedChoiceText("地铁票信息","Metro ticket details","地鐵票資訊"):localizedChoiceText("火车票信息","Rail ticket details","火車票資訊");
   if(numberLabel)numberLabel.textContent=metro?localizedChoiceText("线路 / 票号","Line / ticket number","路線／票號"):localizedChoiceText("车次","Train number","車次");
-  if(imageHint)imageHint.textContent=metro?localizedChoiceText("地铁票最终图片必须压缩到 2 MB 以内；上传前会自动压缩。","Metro ticket images are automatically compressed to 2 MB or less before upload.","地鐵票最終圖片會在上傳前自動壓縮至 2 MB 以內。"):localizedChoiceText("单张图片上传上限 5 MB；最终图片会先压缩，目标为 4 MB 内。","Original images may be up to 5 MB; the submitted image is compressed to 4 MB or less.","單張圖片上傳上限 5 MB；最終圖片會先壓縮至 4 MB 以內。");
+  if(imageHint)imageHint.textContent=localizedChoiceText("支持 JPEG/JPG/PNG 原图；提交前会统一压缩为最长边不超过 1280px、1 MB 以内的 WebP。","JPEG/JPG/PNG originals are accepted; uploads are converted to WebP, max 1280 px on the longest side and 1 MB.","支援 JPEG/JPG/PNG 原圖；提交前會統一壓縮為最長邊不超過 1280px、1 MB 以內的 WebP。");
   updateArrivalCountryField();
 }
 function operatorsForSubmissionType(){return submissionTypeInput?.value==="metro_ticket"?metroOperators:railOperators;}
@@ -770,9 +770,9 @@ async function recognizeTicket(){
   if(!canvas||!canvas.width||!canvas.height){setRecognitionStatus(localizedChoiceText("请先选择并处理票据图片。","Choose and edit a ticket image first.","請先選擇並處理票據圖片。"));return;}
   if(recognizeTicketBtn)recognizeTicketBtn.disabled=true;setRecognitionStatus(localizedChoiceText("正在识别已处理的票面…","Reading the edited ticket…","正在辨識已處理的票面…"));
   try{
-    const blob=await (window.bpmCompressCanvas?window.bpmCompressCanvas(canvas,{maxBytes:2*1024*1024,maxEdge:1800,quality:.82}):new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",.78)));
-    if(!blob||blob.size>2*1024*1024)throw Error(localizedChoiceText("处理后的图片仍超过 2 MB，请先压缩。","The edited image is still larger than 2 MB. Compress it first.","處理後的圖片仍超過 2 MB，請先壓縮。"));
-    const form=new FormData();form.append("image",blob,"edited-ticket.jpg");form.append("consent","1");
+    const blob=await window.bpmCompressCanvas(canvas,{maxBytes:1024*1024,maxEdge:1280,quality:.82});
+    if(!blob||blob.size>1024*1024||blob.type!=="image/webp")throw Error(localizedChoiceText("处理后的图片需为 1 MB 以内的 WebP。","The edited image must be WebP and no larger than 1 MB.","處理後的圖片須為 1 MB 以內的 WebP。"));
+    const form=new FormData();form.append("image",blob,"edited-ticket.webp");form.append("consent","1");
     const response=await fetch("https://api.bpmuseum.org.cn/api/flight-assist/recognize",{method:"POST",body:form}),data=await response.json();
     if(!response.ok)throw Error(data.error||localizedChoiceText("识别失败，请稍后重试。","Recognition failed. Try again later.","辨識失敗，請稍後重試。"));
     const fields=data.fields||{};
@@ -1026,11 +1026,9 @@ return;
 
 
 
-const imageMaxBytes=isMetro?2*1024*1024:4*1024*1024;
-const blob = await (window.bpmCompressCanvas
-  ? window.bpmCompressCanvas(canvas, { maxBytes: imageMaxBytes, maxEdge: 2600, quality: 0.9 })
-  : new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.82)));
-if(!blob || blob.size > imageMaxBytes) throw new Error(isMetro?localizedChoiceText("地铁票图片仍超过 2 MB，请裁剪后重试。","Metro ticket image is still over 2 MB. Crop it and try again.","地鐵票圖片仍超過 2 MB，請裁切後重試。"):"图片仍超过 4 MB，请打开图片编辑器压缩后重试");
+const imageMaxBytes=1024*1024;
+const blob = await window.bpmCompressCanvas(canvas, { maxBytes: imageMaxBytes, maxEdge: 1280, quality: 0.9 });
+if(!blob || blob.size > imageMaxBytes || blob.type!=="image/webp") throw new Error(localizedChoiceText("图片需压缩为 1280px、1 MB 以内的 WebP，请裁剪后重试。","The image must be WebP, at most 1280 px and 1 MB. Crop it and try again.","圖片須壓縮為 1280px、1 MB 以內的 WebP，請裁切後重試。"));
 
 
 
@@ -1043,7 +1041,7 @@ formData.append(
 
 blob,
 
-"ticket.jpg"
+"ticket.webp"
 
 );
 formData.append("submission_type",submissionType);

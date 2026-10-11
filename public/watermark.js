@@ -62,11 +62,14 @@ if (imageInput && canvas) {
 
     imageInput.addEventListener(
         "change",
-        function () {
+        async function () {
 
             const file = this.files[0];
 
             if (!file) return;
+
+            try { await window.bpmValidateImageFile(file); }
+            catch (error) { window.alert(error.message || "仅支持 JPEG/JPG/PNG 图片"); this.value = ""; return; }
 
 
             const reader = new FileReader();

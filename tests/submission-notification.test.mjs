@@ -12,7 +12,7 @@ test('submission, restore and withdrawal each notify the authenticated submitter
     return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
   };
   try{
-    const submitted=await call('/api/submit',{user_id:3,submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'示例航空',flight:'MU5309',route:'PEK',date:'2026-09-27',airport:'PVG',departure_country:'CN',arrival_country:'CN',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',rules_consent:true,social_share_consent:true},3);
+    const submitted=await call('/api/submit',{user_id:3,submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'示例航空',flight:'MU5309',route:'PEK',date:'2026-09-27',airport:'PVG',departure_country:'CN',arrival_country:'CN',image:'https://images.bpmuseum.org.cn/tickets/test.webp',rules_consent:true,social_share_consent:true},3);
     assert.equal(submitted.status,200);
     const {flight_id:id}=await submitted.json();
     assert.equal(messages.length,1);

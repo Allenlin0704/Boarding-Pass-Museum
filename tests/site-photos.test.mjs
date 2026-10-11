@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {fixture} from './helpers.mjs';
+import {fixture,webpBytes} from './helpers.mjs';
 import {beijingWeekday} from '../worker/site-photos.mjs';
 
 test('weekday selection switches at midnight in Beijing time',()=>{
@@ -43,7 +43,7 @@ test('photo invitations, rights-confirmed upload, SA approval, and placement upd
   assert.equal((await call(`/api/admin/site-photo-invitations/${invitation.id}/respond`,{response:'accepted'},2)).status,200);
 
   const form=new FormData();
-  form.set('image',new Blob([new Uint8Array([0xff,0xd8,0xff,0xd9])],{type:'image/jpeg'}),'camera.jpg');
+  form.set('image',new Blob([webpBytes()],{type:'image/webp'}),'camera.webp');
   form.set('credit','测试摄影者');
   form.set('show_home','1');
   form.set('show_login','0');
@@ -54,7 +54,7 @@ test('photo invitations, rights-confirmed upload, SA approval, and placement upd
   }),env);
   assert.equal(upload.status,200,await upload.clone().text());
   assert.equal(stored.length,1);
-  assert.match(stored[0].key,/^tickets\/[a-f0-9-]+\.jpg$/);
+  assert.match(stored[0].key,/^tickets\/[a-f0-9-]+\.webp$/);
   assert.equal(db.prepare('SELECT status FROM site_photo_requests WHERE id=?').get(invitation.id).status,'pending_review');
 
   const deniedReview=await call(`/api/sa/site-photo-requests/${invitation.id}/decision`,{decision:'approved',show_home:true,weekday:1},2);
@@ -87,7 +87,7 @@ test('photo submission requires explicit rights consent and an accepted invitati
   db.prepare("INSERT INTO site_photo_requests(admin_id,invited_by,status) VALUES(2,1,'invited')").run();
   env.IMAGES={async put(){assert.fail('image must not upload without accepted invitation');}};
   const form=new FormData();
-  form.set('image',new Blob([new Uint8Array([0xff,0xd8,0xff,0xd9])],{type:'image/jpeg'}),'camera.jpg');
+  form.set('image',new Blob([webpBytes()],{type:'image/webp'}),'camera.webp');
   form.set('credit','Test photographer');
   form.set('show_home','1');
   form.set('license_confirmed','0');
@@ -108,7 +108,7 @@ test('SA can directly upload a compressed homepage photo; regular admins cannot'
   const {worker,env,db}=fixture();
   const stored=[];env.IMAGES={async put(key,bytes){stored.push({key,bytes});}};
   db.prepare('UPDATE site_cover_photos SET active=0,show_home=0,show_login=0,show_register=0 WHERE sort_order=1').run();
-  const makeRequest=identity=>{const form=new FormData();form.set('image',new Blob([new Uint8Array([0xff,0xd8,0xff,0xd9])],{type:'image/jpeg'}),'homepage.jpg');form.set('credit','站主照片');form.set('weekday','1');form.set('show_home','1');form.set('license_confirmed','1');return worker.fetch(new Request('https://test.invalid/api/sa/site-photos/upload',{method:'POST',headers:{Cookie:`bpm_session=${String(identity).repeat(64)}`},body:form}),env);};
+  const makeRequest=identity=>{const form=new FormData();form.set('image',new Blob([webpBytes()],{type:'image/webp'}),'homepage.webp');form.set('credit','站主照片');form.set('weekday','1');form.set('show_home','1');form.set('license_confirmed','1');return worker.fetch(new Request('https://test.invalid/api/sa/site-photos/upload',{method:'POST',headers:{Cookie:`bpm_session=${String(identity).repeat(64)}`},body:form}),env);};
   assert.equal((await makeRequest(2)).status,403);
   const response=await makeRequest(1);assert.equal(response.status,200,await response.clone().text());
   const result=await response.json();assert.ok(result.id);assert.equal(stored.length,1);
