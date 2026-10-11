@@ -16,11 +16,11 @@
 <link rel="stylesheet" href="features.css?v=20261011-iso-picker-countdown">
 <link rel="stylesheet" href="submit-page.css?v=20260930-mobile-polish">
 <link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
-  <script src="theme.js?v=20261011-acknowledgements"></script>
+  <script src="theme.js?v=20261011-light-contrast-metro"></script>
 
 
 
-  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
+  <link rel="stylesheet" href="site-polish.css?v=20261011-light-contrast-metro">
 </head>
 
 
@@ -70,8 +70,8 @@
 <a class="submit-back-link" href="index.html">← 返回展厅</a>
 <section class="submit-hero">
   <h1>投稿至展厅</h1>
-  <p>上传登机牌或火车票，补充行程信息，并在提交前处理票面隐私。</p>
-  <div class="submit-hero-meta"><span>登机牌与火车票均可投稿</span><span>请遮挡姓名、票号和二维码</span></div>
+  <p>上传登机牌、火车票或地铁票，补充行程信息，并在提交前处理票面隐私。</p>
+  <div class="submit-hero-meta"><span>登机牌、火车票与地铁票均可投稿</span><span>请遮挡姓名、票号和二维码</span></div>
 </section>
 
 <section class="submit-form submit-flow" aria-label="投稿表单">
@@ -83,7 +83,7 @@
 
 <div class="submit-type-picker">
   <label for="submissionType">票据类型</label>
-  <select id="submissionType"><option value="boarding_pass">登机牌</option><option value="rail_ticket">火车票</option></select>
+  <select id="submissionType"><option value="boarding_pass" data-i18n="submit.type.boarding">登机牌</option><option value="rail_ticket" data-i18n="submit.type.rail">火车票</option><option value="metro_ticket" data-i18n="submit.type.metro">地铁票</option></select>
   <p>请按票面信息填写；提交后将进入人工审核。</p>
 </div>
 
@@ -102,16 +102,16 @@
   <fieldset class="special-tags"><legend data-i18n="submit.baggageTags">行李及服务标记（可选）</legend><p data-i18n="submit.baggageTagsHint">按票面或行李牌实际标记选择；登机牌上连在一起的行李提取凭证属于票面内容，不是此处的标记。</p><label><input type="checkbox" name="specialTag" value="business"> <span data-i18n="submit.tag.business">公务舱</span></label><label><input type="checkbox" name="specialTag" value="premium_economy"> <span data-i18n="submit.tag.premiumEconomy">超级经济舱</span></label><label><input type="checkbox" name="specialTag" value="first_class"> <span data-i18n="submit.tag.first">头等舱</span></label><label><input type="checkbox" name="specialTag" value="silver"> <span data-i18n="submit.tag.silver">银卡</span></label><label><input type="checkbox" name="specialTag" value="gold"> <span data-i18n="submit.tag.gold">金卡</span></label><label><input type="checkbox" name="specialTag" value="platinum"> <span data-i18n="submit.tag.platinum">白金卡</span></label><label><input type="checkbox" name="specialTag" value="special_assistance"> <span data-i18n="submit.tag.assistance">特殊保障</span></label><label><input type="checkbox" name="specialTag" value="transfer"> <span data-i18n="submit.tag.transfer">转机</span></label><label><input type="checkbox" name="specialTag" value="other"> <span data-i18n="submit.tag.other">其他</span></label></fieldset>
 </div>
 <div id="railSubmissionFields" class="submit-fields-grid" hidden>
-  <h2 class="submit-field-wide">火车票信息</h2>
+  <h2 class="submit-field-wide" id="transitSubmissionHeading">火车票信息</h2>
   <div class="submit-field"><label for="railOperatorSearch">运营公司</label><input id="railOperatorSearch" placeholder="搜索运营公司，例如 CR、DB、Acela"><div id="railOperatorResults" class="submit-search-results"></div></div>
-  <div class="submit-field"><label for="railTrainNumber">车次</label><input id="railTrainNumber" maxlength="30" placeholder="例如 G101、ICE 123、Acela 2150"></div>
+  <div class="submit-field"><label for="railTrainNumber" id="transitNumberLabel">车次</label><input id="railTrainNumber" maxlength="30" placeholder="例如 G101、ICE 123、Acela 2150"></div>
   <div class="submit-field"><label for="railDepartureStation">出发车站</label><input id="railDepartureStation" maxlength="200" placeholder="输入车站名称"></div>
   <div class="submit-field"><label for="railArrivalStation">到达车站</label><input id="railArrivalStation" maxlength="200" placeholder="输入车站名称"></div>
   <div class="submit-field"><label for="railDate">乘车日期</label><input id="railDate" type="date"><label for="railTicketFormat">车票形式</label><select id="railTicketFormat"><option value="paper">纸质车票</option><option value="digital">电子车票</option></select></div>
 </div>
 <div class="submit-fields-grid submit-country-fields">
   <div class="submit-field"><label for="departureCountry">出发国家 / 地区 <span class="submit-optional">Departure country / region</span></label><select id="departureCountry" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></div>
-  <div class="submit-field"><label for="arrivalCountry">到达国家 / 地区 <span class="submit-optional">Arrival country / region</span></label><select id="arrivalCountry" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></div>
+  <div class="submit-field" id="arrivalCountryField"><label for="arrivalCountry">到达国家 / 地区 <span class="submit-optional">Arrival country / region</span></label><select id="arrivalCountry" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></div>
 </div>
 </section>
 
@@ -127,7 +127,7 @@
   <div class="image-editor-preview-column">
     <label class="submit-upload-label" for="ticketImage">选择票据图片</label>
     <input id="ticketImage" type="file" accept="image/*">
-    <p>单张图片上传上限 5 MB；最终图片会先压缩，目标为 4 MB 内。</p>
+    <p id="ticketImageSizeHint">单张图片上传上限 5 MB；最终图片会先压缩，目标为 4 MB 内。</p>
     <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开图片编辑器</button><canvas id="watermarkCanvas"></canvas></div>
     <div class="ai-recognition-controls">
       <label class="ai-privacy-consent"><input id="aiPrivacyConsent" type="checkbox"> <span>我已在本机处理并遮挡个人信息，并同意将处理后的图片发送给 <span data-bpm-ai-slot>本地区 AI 服务</span> 识别。</span></label>
@@ -195,7 +195,7 @@ BoardingPassMuseum © 2026
 
 <script src="notice.js?v=20260930-popup-fix"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="submit.js?v=20261011-iso-country"></script>
+<script src="submit.js?v=20261011-domestic-country-metro"></script>
 
 <footer class="bpm-footer">
 

@@ -18,9 +18,20 @@ const railEntities=[
 ];
 const railEntityByCode=new Map(railEntities.map(entry=>[entry.code,entry]));
 const railEntityByAlias=new Map(railEntities.flatMap(entry=>entry.aliases.map(alias=>[normalizeEntity(alias),entry])));
+const metroEntities=[
+  {code:"BJ",zhCN:"北京地铁",zhTW:"北京地鐵",en:"Beijing Subway"},{code:"SH",zhCN:"上海地铁",zhTW:"上海地鐵",en:"Shanghai Metro"},
+  {code:"GZ",zhCN:"广州地铁",zhTW:"廣州地鐵",en:"Guangzhou Metro"},{code:"SZ",zhCN:"深圳地铁",zhTW:"深圳地鐵",en:"Shenzhen Metro"},
+  {code:"MTR",zhCN:"香港港鐵",zhTW:"香港港鐵",en:"MTR Hong Kong"},{code:"TM",zhCN:"東京地下鐵",zhTW:"東京地下鐵",en:"Tokyo Metro"},
+  {code:"LU",zhCN:"伦敦地铁",zhTW:"倫敦地鐵",en:"London Underground"},{code:"NYC",zhCN:"纽约市地铁",zhTW:"紐約市地鐵",en:"New York City Subway"}
+];
+const metroEntityByCode=new Map(metroEntities.map(entry=>[entry.code,entry]));
 function railEntity(record){
   if(record?.submission_type!=="rail_ticket")return null;
   return railEntityByCode.get(String(record?.airline_iata||"").trim().toUpperCase())||railEntityByAlias.get(normalizeEntity(record?.airline));
+}
+function metroEntity(record){
+  if(record?.submission_type!=="metro_ticket")return null;
+  return metroEntityByCode.get(String(record?.airline_iata||"").trim().toUpperCase())||null;
 }
 function addEntityRows(kind,rows){
   const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
@@ -40,6 +51,7 @@ const entityIndexReady=fetch("/data/entity-aliases.json",{cache:"force-cache"}).
 function entityIdentity(kind,record){
   const isAirline=kind==="airline",raw=String(record?.[kind]||"").trim();
   const rail=kind==="airline"?railEntity(record):null;if(rail)return `rail:${rail.code}`;
+  const metro=kind==="airline"?metroEntity(record):null;if(metro)return `metro:${metro.code}`;
   const iata=String(record?.[isAirline?"airline_iata":"airport_iata"]||"").trim().toUpperCase();
   const icao=String(record?.[isAirline?"airline_icao":"airport_icao"]||"").trim().toUpperCase();
   const byCode=isAirline?entityIndex.airlinesByCode:entityIndex.airportsByCode;
@@ -56,6 +68,8 @@ function entityLabel(kind,record){
   const identity=entityIdentity(kind,record),code=identity.split(":").at(-1);
   const rail=identity.startsWith("rail:")?railEntityByCode.get(code):null;
   if(rail){const locale=window.BPM_LANGUAGE==="zh-CN"?rail.zhCN:window.BPM_LANGUAGE==="zh-TW"?rail.zhTW:rail.en;return `${locale} (${rail.code})`;}
+  const metro=identity.startsWith("metro:")?metroEntityByCode.get(code):null;
+  if(metro){const locale=window.BPM_LANGUAGE==="zh-CN"?metro.zhCN:window.BPM_LANGUAGE==="zh-TW"?metro.zhTW:metro.en;return `${locale} (${metro.code})`;}
   const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
   const entry=byCode.get(code);
   if(!entry){
@@ -71,6 +85,8 @@ function entitySearchNames(kind,record){
   const identity=entityIdentity(kind,record),code=identity.split(":").at(-1);
   const rail=identity.startsWith("rail:")?railEntityByCode.get(code):null;
   if(rail)return [record?.[kind],rail.zhCN,rail.zhTW,rail.en,rail.code].filter(Boolean).join(" ");
+  const metro=identity.startsWith("metro:")?metroEntityByCode.get(code):null;
+  if(metro)return [record?.[kind],metro.zhCN,metro.zhTW,metro.en,metro.code].filter(Boolean).join(" ");
   const byCode=kind==="airline"?entityIndex.airlinesByCode:entityIndex.airportsByCode;
   const entry=byCode.get(code);
   return [record?.[kind],entry?.nameCn,entry?.nameEn,entry?.code].filter(Boolean).join(" ");
@@ -206,12 +222,13 @@ function applyMuseumFilter(){
     if(!Array.isArray(tags)) tags = [];
     const categoryMatches = !category
       || (category === "boarding_pass" && (f.submission_type || "boarding_pass") === "boarding_pass")
-      || (category === "rail_ticket" && f.submission_type === "rail_ticket");
+      || (category === "rail_ticket" && f.submission_type === "rail_ticket")
+      || (category === "metro_ticket" && f.submission_type === "metro_ticket");
     return text.includes(keyword)
       && (!airline || entityIdentity("airline",f) === airline)
       && categoryMatches
       && (!baggageTag || tags.includes(baggageTag))
-      && (!format || (f.submission_type !== "rail_ticket" && (f.ticket_format || "paper") === format))
+      && (!format || (f.submission_type === "boarding_pass" && (f.ticket_format || "paper") === format))
       && (!airport || entityIdentity("airport",f) === airport)
       && (!year || String(f.date || "").startsWith(year));
 
@@ -420,24 +437,24 @@ function renderMuseum() {
       const storyForAttribute=bpmSafeRecord({value:rawStory}).value;
       const storyTranslationLinks=rawStory.trim()?`<div class="story-translate-links" data-bpm-flight-id="${Number(flight.id)||0}" data-bpm-story="${storyForAttribute}"><span>${english?"Translate public story text with ":traditional?"使用":"使用"}<span data-bpm-ai-slot>AI</span>${english?" after you click (public story text is sent)":traditional?" 翻譯（點擊後會傳送公開故事文字）":" 翻译（点击后会发送公开故事文本）"}</span><button type="button" data-bpm-translate="en">${translateLabels[0]}</button><button type="button" data-bpm-translate="zh-TW">${translateLabels[1]}</button><p class="story-translation-output" hidden aria-live="polite"></p></div>`:"";
       flight=bpmSafeRecord(flight);
-      const isRail=flight.submission_type==="rail_ticket";
+      const isRail=flight.submission_type==="rail_ticket",isMetro=flight.submission_type==="metro_ticket",isTransit=isRail||isMetro;
       let specialTags=flight.special_tags||[];
       if(typeof specialTags==="string"){
         try{specialTags=JSON.parse(specialTags);}catch{specialTags=[];}
       }
       if(!Array.isArray(specialTags))specialTags=[];
       const labels=english
-        ? {rail:"Rail ticket",boarding:"Boarding pass",digital:"Electronic boarding pass",paper:"Paper boarding pass",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station",domestic:"Domestic route",international:"International route",regional:"Regional route",business:"Business class",premium_economy:"Premium economy",first_class:"First class",silver:"Silver",gold:"Gold",platinum:"Platinum",special_assistance:"Special assistance",transfer:"Transfer",other:"Other",legacyTwoCabin:"Two-cabin baggage"}
+        ? {rail:"Rail ticket",metro:"Metro ticket",boarding:"Boarding pass",digital:"Electronic boarding pass",paper:"Paper boarding pass",electronicTicket:"Electronic ticket",paperTicket:"Paper ticket",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station",domestic:"Domestic route",international:"International route",regional:"Regional route",business:"Business class",premium_economy:"Premium economy",first_class:"First class",silver:"Silver",gold:"Gold",platinum:"Platinum",special_assistance:"Special assistance",transfer:"Transfer",other:"Other",legacyTwoCabin:"Two-cabin baggage"}
         : traditional
-          ? {rail:"火車票",boarding:"登機牌",digital:"電子登機牌",paper:"紙本登機牌",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站",domestic:"國內航線",international:"國際航線",regional:"地區航線",business:"商務艙",premium_economy:"超級經濟艙",first_class:"頭等艙",silver:"銀卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"轉機",other:"其他",legacyTwoCabin:"兩艙行李"}
-          : {rail:"火车票",boarding:"登机牌",digital:"电子登机牌",paper:"纸质登机牌",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站",domestic:"国内航线",international:"国际航线",regional:"地区航线",business:"公务舱",premium_economy:"超级经济舱",first_class:"头等舱",silver:"银卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"转机",other:"其他",legacyTwoCabin:"两舱行李"};
+          ? {rail:"火車票",metro:"地鐵票",boarding:"登機牌",digital:"電子登機牌",paper:"紙本登機牌",electronicTicket:"電子車票",paperTicket:"紙本車票",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站",domestic:"國內航線",international:"國際航線",regional:"地區航線",business:"商務艙",premium_economy:"超級經濟艙",first_class:"頭等艙",silver:"銀卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"轉機",other:"其他",legacyTwoCabin:"兩艙行李"}
+          : {rail:"火车票",metro:"地铁票",boarding:"登机牌",digital:"电子登机牌",paper:"纸质登机牌",electronicTicket:"电子车票",paperTicket:"纸质车票",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站",domestic:"国内航线",international:"国际航线",regional:"地区航线",business:"公务舱",premium_economy:"超级经济舱",first_class:"头等舱",silver:"银卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"转机",other:"其他",legacyTwoCabin:"两舱行李"};
       const cabinLabels=english?{economy:"Economy",premium_economy:"Premium economy",business:"Business",first_class:"First class (Business suite)",other:"Other"}:traditional?{economy:"經濟艙",premium_economy:"超級經濟艙",business:"商務艙",first_class:"頭等艙（豪華商務艙）",other:"其他"}:{economy:"经济舱",premium_economy:"超级经济舱",business:"公务舱",first_class:"头等舱（豪华公务舱）",other:"其他"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
       const tagIcons={business:"armchair",premium_economy:"armchair",first_class:"armchair",silver:"circle",gold:"circle",platinum:"circle",special_assistance:"alert",transfer:"repeat",other:"file",two_cabin:"armchair"};
       const specialBadges=specialTags.filter(tag=>tagIcons[tag]).map(tag=>badge(tagIcons[tag],labels[tag]||labels.legacyTwoCabin)).join("");
-      const routeScopeBadge=!isRail&&labels[flight.route_scope]?badge("globe",labels[flight.route_scope]):"";
-      const cabinBadge=!isRail&&cabinLabels[flight.cabin_class]?badge("armchair",cabinLabels[flight.cabin_class]):"";
+      const routeScopeBadge=!isTransit&&labels[flight.route_scope]?badge("globe",labels[flight.route_scope]):"";
+      const cabinBadge=!isTransit&&cabinLabels[flight.cabin_class]?badge("armchair",cabinLabels[flight.cabin_class]):"";
 
       let card =
         document.createElement("div");
@@ -461,23 +478,23 @@ function renderMuseum() {
           data-preview="${flight.image || ''}"
         >
 
-        ${badge(isRail?"train":"plane",isRail?labels.rail:labels.boarding)}
+        ${badge(isMetro?"train":isRail?"train":"plane",isMetro?labels.metro:isRail?labels.rail:labels.boarding)}
 
           <span class="tag" data-user-content>
           ${airlineLabel || labels.operator}
         </span>
 
-        ${!isRail?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${cabinBadge}${specialBadges}`:``}
+        ${isTransit?badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.electronicTicket:labels.paperTicket):`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${cabinBadge}${specialBadges}`}
 
         <h3>
           ${flight.flight || ""}
         </h3>
 
         <p>
-          ${inlineIcon("pin")} <span>${isRail?labels.departureStation:labels.departureAirport}：</span><span data-user-content>${airportLabel || ""}</span>
+          ${inlineIcon("pin")} <span>${isTransit?labels.departureStation:labels.departureAirport}：</span><span data-user-content>${airportLabel || ""}</span>
         </p>
 
-        ${isRail&&flight.route?`<p>${inlineIcon("pin")} ${labels.arrivalStation}：${flight.route}</p>`:""}
+        ${isTransit&&flight.route?`<p>${inlineIcon("pin")} ${labels.arrivalStation}：${flight.route}</p>`:""}
 
         <p>
           ${inlineIcon("calendar")} ${flight.date || ""}

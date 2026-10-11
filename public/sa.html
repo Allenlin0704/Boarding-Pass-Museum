@@ -6,9 +6,9 @@
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
-  <script src="theme.js?v=20261011-acknowledgements"></script>
+  <script src="theme.js?v=20261011-light-contrast-metro"></script>
 <link rel="stylesheet" href="features.css?v=20261011-iso-picker-countdown2">
-<meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
+<meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261011-light-contrast-metro">
 </head>
 
 <body>
@@ -173,7 +173,7 @@ placeholder="输入展品 ID"
     <header><h2 id="saFlightEditTitle">编辑展品信息</h2><button type="button" id="closeSAFlightEdit" aria-label="关闭编辑窗口">关闭</button></header>
     <p id="saFlightEditHint">修改后保存，展品审核状态不会改变。</p>
     <div class="sa-flight-edit-grid">
-      <label>投稿类型<select data-edit-flight="submission_type"><option value="boarding_pass">登机牌</option><option value="rail_ticket">火车票</option></select></label>
+      <label>投稿类型<select data-edit-flight="submission_type"><option value="boarding_pass">登机牌</option><option value="rail_ticket">火车票</option><option value="metro_ticket">地铁票</option></select></label>
       <label>航空公司 / 运营公司<div class="sa-edit-picker"><input data-edit-flight="airline" data-sa-catalog-input="airline" maxlength="200" autocomplete="off" placeholder="搜索航司名称、IATA 或 ICAO"><div class="sa-edit-picker-results" data-sa-catalog-results="airline"></div><input type="hidden" data-edit-flight="airline_iata"><input type="hidden" data-edit-flight="airline_icao"></div></label>
       <label>航班号 / 车次<input data-edit-flight="flight" maxlength="30"></label>
       <label>出发机场 / 车站<div class="sa-edit-picker"><input data-edit-flight="airport" data-sa-catalog-input="airport" maxlength="200" autocomplete="off" placeholder="搜索机场名称、IATA 或 ICAO"><div class="sa-edit-picker-results" data-sa-catalog-results="airport"></div><input type="hidden" data-edit-flight="airport_iata"><input type="hidden" data-edit-flight="airport_icao"></div></label>
@@ -244,6 +244,15 @@ onclick="markSelectedRed('noticeContent')"
 </button>
 <details class="sa-announcement-history-details">
 <summary>查看历史公告</summary>
+<div class="sa-announcement-bulk-tools" role="group" aria-label="批量管理公告">
+  <label><input type="checkbox" id="selectAllAnnouncements"> 全选当前列表</label>
+  <span id="selectedAnnouncementCount" role="status">已选 0 条</span>
+  <button type="button" data-announcement-bulk-action="edit">批量保存修改</button>
+  <button type="button" data-announcement-bulk-action="hide">批量隐藏</button>
+  <button type="button" data-announcement-bulk-action="show">批量重新展示</button>
+  <button type="button" data-announcement-bulk-action="delete">批量移入回收站</button>
+  <button type="button" data-announcement-bulk-action="restore">批量恢复</button>
+</div>
 <div id="saAnnouncementHistory" class="bpm-list-grid">正在加载历史公告…</div>
 </details>
 
@@ -286,7 +295,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="image-compression.js?v=20261006-upload-cap"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="sa.js?v=20261011-iso-country"></script>
+<script src="sa.js?v=20261011-bulk-announcements-metro"></script>
 
 
 

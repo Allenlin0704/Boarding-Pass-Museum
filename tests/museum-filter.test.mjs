@@ -18,6 +18,7 @@ test('gallery filters distinguish rail tickets, ticket format and special marker
   vm.runInContext(`flights=[
     {id:1,submission_type:'boarding_pass',ticket_format:'paper',special_tags:'[]'},
     {id:2,submission_type:'rail_ticket',ticket_format:'paper',special_tags:'[]'},
+    {id:3,submission_type:'metro_ticket',ticket_format:'paper',special_tags:'[]'},
     {id:3,submission_type:'boarding_pass',ticket_format:'digital',special_tags:'["transfer"]'},
     {id:4,submission_type:'boarding_pass',ticket_format:'paper',special_tags:'["two_cabin"]'}
   ]`,context);
@@ -27,6 +28,7 @@ test('gallery filters distinguish rail tickets, ticket format and special marker
     return Array.from(vm.runInContext('displayFlights.map(item=>item.id)',context));
   };
   assert.deepEqual(filter('museumType','rail_ticket'),[2]);
+  assert.deepEqual(filter('museumType','metro_ticket'),[3]);
   assert.deepEqual(filter('museumType','transfer'),[]);
   assert.deepEqual(filter('museumBaggageTag','transfer'),[3]);
   assert.deepEqual(filter('museumBaggageTag','two_cabin'),[4]);

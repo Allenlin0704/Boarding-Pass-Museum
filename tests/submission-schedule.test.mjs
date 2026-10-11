@@ -47,6 +47,25 @@ test('submission requires both rules acceptance and social-share authorization',
   assert.deepEqual({...saved},{rules_consent:1,social_share_consent:1});
 });
 
+test('domestic boarding passes and metro tickets do not require arrival country; metro images stay within 2 MB',async()=>{
+  const {call,db,env}=fixture();
+  env.IMAGES={head:async()=>({size:2*1024*1024})};
+  const common={ticket_format:'paper',departure_country:'CN',airline:'Metro Transit',airline_iata:'MT',flight:'Line 2',airport:'人民广场站',route:'虹桥火车站',date:'2026-10-11',image:'https://images.bpmuseum.org.cn/tickets/metro.jpg',special_tags:[],rules_consent:true,social_share_consent:true};
+  let response=await call('/api/submit',{...common,submission_type:'metro_ticket'},3);
+  assert.equal(response.status,200);
+  let saved=db.prepare('SELECT submission_type,departure_country,arrival_country FROM flights WHERE submission_type=? ORDER BY id DESC LIMIT 1').get('metro_ticket');
+  assert.deepEqual({...saved},{submission_type:'metro_ticket',departure_country:'CN',arrival_country:''});
+  env.IMAGES.head=async()=>({size:2*1024*1024+1});
+  response=await call('/api/submit',{...common,submission_type:'metro_ticket',image:'https://images.bpmuseum.org.cn/tickets/too-large.jpg'},3);
+  assert.equal(response.status,413);
+  response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'metro_ticket',image:common.image},1);
+  assert.equal(response.status,413,'SA edits cannot bypass the metro-ticket image limit');
+  response=await call('/api/submit',{...common,submission_type:'boarding_pass',route_scope:'domestic',flight:'EA10',airport:'PEK',airline:'Example Air',airline_iata:'EA',arrival_country:''},3);
+  assert.equal(response.status,200);
+  saved=db.prepare('SELECT route_scope,arrival_country FROM flights WHERE flight=?').get('EA10');
+  assert.deepEqual({...saved},{route_scope:'domestic',arrival_country:''});
+});
+
 test('profile writes bind to the authenticated user, and owner corrections reach SA', async()=>{
   const {call,db}=fixture();
   let response=await call('/api/account/profile',{user_id:1,avatar:'https://images.bpmuseum.org.cn/tickets/avatar.jpg',avatar_shape:'square',bio:'My profile'},3);

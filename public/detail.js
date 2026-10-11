@@ -55,6 +55,8 @@ return;
 }
 
 
+const transit=data.submission_type==="rail_ticket"||data.submission_type==="metro_ticket",metro=data.submission_type==="metro_ticket";
+const labels=window.BPM_LANGUAGE==="en"?{operator:"Operator",flight:metro?"Line / ticket number":"Train number",departure:"Departure station",arrival:"Arrival station",date:"Date",submitter:"Contributor",status:"Status"}:window.BPM_LANGUAGE==="zh-TW"?{operator:transit?"營運業者":"航空公司",flight:metro?"路線／票號":transit?"車次":"航班",departure:transit?"出發車站":"出發機場",arrival:"抵達車站",date:"日期",submitter:"投稿人",status:"狀態"}:{operator:transit?"运营公司":"航司",flight:metro?"线路 / 票号":transit?"车次":"航班",departure:transit?"出发车站":"机场",arrival:"到达车站",date:"日期",submitter:"投稿人",status:"状态"};
 detail.innerHTML=`
 
 <h1>
@@ -72,20 +74,20 @@ class="detail-image"
 >
 
 
-<p><strong>航司：</strong><span data-user-content>${data.airline || ""}</span></p>
+<p><strong>${labels.operator}：</strong><span data-user-content>${data.airline || ""}</span></p>
 
-<p><strong>航班：</strong><span data-user-content>${data.flight || ""}</span></p>
+<p><strong>${labels.flight}：</strong><span data-user-content>${data.flight || ""}</span></p>
 
-<p><strong>机场：</strong><span data-user-content>${data.airport || ""}</span></p>
+<p><strong>${labels.departure}：</strong><span data-user-content>${data.airport || ""}</span></p>
 
-<p><strong>登机牌签发机场：</strong><span data-user-content>${data.issue_airport || "无"}</span></p>
+${transit&&data.route?`<p><strong>${labels.arrival}：</strong><span data-user-content>${data.route}</span></p>`:!transit?`<p><strong>登机牌签发机场：</strong><span data-user-content>${data.issue_airport || "无"}</span></p>`:""}
 
-<p><strong>日期：</strong>${data.date || ""}</p>
+<p><strong>${labels.date}：</strong>${data.date || ""}</p>
 
-${data.submission_type!=="rail_ticket"&&cabinNames[data.cabin_class]?`<p><strong>${window.BPM_LANGUAGE==="en"?"Cabin class":window.BPM_LANGUAGE==="zh-TW"?"艙等":"舱等"}：</strong>${cabinNames[data.cabin_class]}</p>`:""}
+${!transit&&cabinNames[data.cabin_class]?`<p><strong>${window.BPM_LANGUAGE==="en"?"Cabin class":window.BPM_LANGUAGE==="zh-TW"?"艙等":"舱等"}：</strong>${cabinNames[data.cabin_class]}</p>`:""}
 
 <p>
-<strong>投稿人：</strong>
+<strong>${labels.submitter}：</strong>
 <a href="profile.html?id=${data.user_id}">
 <span data-user-content>${data.username || ""}</span>
 </a>
@@ -93,7 +95,7 @@ ${data.submission_type!=="rail_ticket"&&cabinNames[data.cabin_class]?`<p><strong
 
 ${Number(data.social_share_consent)===1?`<button type="button" class="bpm-share-trigger" data-share-flight="${Number(data.id)}">${window.BPM_LANGUAGE==="en"?"Create share card":window.BPM_LANGUAGE==="zh-TW"?"製作分享卡":"生成分享卡"}</button>`:""}
 
-<p><strong>状态：</strong>${data.status || ""}</p>
+<p><strong>${labels.status}：</strong>${data.status || ""}</p>
 
 
 ${

@@ -20,9 +20,20 @@ test('the shared visual system loads after page styles on every styled public pa
 
 test('the service worker precaches the shared design stylesheet in a fresh shell cache', () => {
   const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(worker, /bpmuseum-shell-v30/);
+  assert.match(worker, /bpmuseum-shell-v31/);
   assert.match(worker, /'\/site-polish\.css'/);
   assert.match(worker, /'\/admin-login\.html'/);
+});
+
+test('SA announcements support bulk operations and light-theme buttons keep dark text',()=>{
+  const html=readFileSync(new URL('../public/sa.html',import.meta.url),'utf8');
+  const script=readFileSync(new URL('../public/sa.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/site-polish.css',import.meta.url),'utf8');
+  assert.match(html,/selectAllAnnouncements/);
+  assert.match(html,/data-announcement-bulk-action="edit"/);
+  assert.match(script,/data-announcement-select/);
+  assert.match(script,/data-announcement-bulk-action/);
+  assert.match(css,/html\.light-theme #submitBtn[\s\S]*?color:\s*#14272f/);
 });
 
 test('about page credits the used projects and providers and links to the public source repository', () => {

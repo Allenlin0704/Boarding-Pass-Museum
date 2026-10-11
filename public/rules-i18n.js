@@ -7,8 +7,9 @@
     <p>These rules apply to all submissions and reviews on BoardingPassMuseum. We value authentic records, lawful content, respect for copyright, and protection of personal information. Past rule updates remain available in site announcements.</p>
     <h2>Submission categories</h2>
     <ul>
-      <li><strong>Boarding passes:</strong> Paper and electronic civil-aviation boarding passes from routes worldwide are accepted. Select the format and domestic, international, or regional route scope shown, then enter the airline, flight number, departure airport, and date. An arrival airport is not required.</li>
+      <li><strong>Boarding passes:</strong> Paper and electronic civil-aviation boarding passes from routes worldwide are accepted. Select the format and domestic, international, or regional route scope shown, then enter the airline, flight number, departure airport, and date. An arrival airport is not required. Domestic routes do not ask for an arrival country or region.</li>
       <li><strong>Rail tickets:</strong> Authentic railway tickets are accepted. Enter the operator, train number, departure and arrival stations, and the country or region at each end. For international trips, select both countries separately.</li>
+      <li><strong>Metro tickets:</strong> Authentic metro tickets are accepted. Enter the operator, line or ticket number, departure and arrival stations, date, and departure country or region. The final image is automatically compressed to 2 MB or less.</li>
       <li><strong>Cabin, membership, and service markers:</strong> Choose business class, premium economy, first class, silver, gold, platinum, special assistance, transfer, or other when supported by the ticket or baggage tag. These are exhibit filters, not submission categories. A baggage-claim receipt attached to a boarding pass is part of the ticket image, not a baggage marker. Every selected marker must match the image.</li>
     </ul>
     <p>Do not submit the same ticket more than once, forged tickets, another person’s ticket without permission, or an image that does not match the selected category. The operator, flight or train number, location, and date must agree with the ticket.</p>
@@ -38,8 +39,9 @@
     <p>本規則適用於 BoardingPassMuseum 的所有投稿與審核作業。本站重視資料真實、內容合法、尊重著作權及保護個人隱私。歷次規則更新會保留於網站公告。</p>
     <h2>投稿類別</h2>
     <ul>
-      <li><strong>登機牌：</strong>接受全球航線的民航紙本及電子登機牌。請依票面選擇形式及國內、國際或地區航線，並填寫航空公司、航班、出發機場及日期；不必填寫抵達機場。</li>
+      <li><strong>登機牌：</strong>接受全球航線的民航紙本及電子登機牌。請依票面選擇形式及國內、國際或地區航線，並填寫航空公司、航班、出發機場及日期；不必填寫抵達機場。國內航線不會要求填寫抵達國家／地區。</li>
       <li><strong>火車票：</strong>接受真實鐵路客票。請填寫營運公司、車次、出發與抵達車站，以及兩端的國家或地區。跨國行程請分別選擇兩端國家。</li>
+      <li><strong>地鐵票：</strong>接受真實地鐵票。請填寫營運業者、路線或票號、出發與抵達車站、日期及出發國家或地區。最終圖片會自動壓縮至 2 MB 以內。</li>
       <li><strong>艙等、會員與服務標記：</strong>依票面或行李牌實際資訊選擇商務艙、超級經濟艙、頭等艙、銀卡、金卡、白金卡、特殊保障、轉機或其他。這些是展品篩選標記，不是投稿類別。登機牌上連在一起的行李提領憑證屬於票面內容，不是行李標記。所選標記須與圖片相符。</li>
     </ul>
     <p>請勿重複投稿同一張票據、偽造票據、未經許可投稿他人票據，或上傳與所選類別不符的圖片。營運公司、航班或車次、地點及日期應與票面一致。</p>

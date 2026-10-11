@@ -301,7 +301,8 @@ export async function boundedRequest(request) {
 }
 export async function uploadImage(request,env) {
   const form=await request.formData(),file=form.get('image');
-  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>IMAGE_UPLOAD_MAX_BYTES) return reply({error:'请选择5 MB以内的图片'},400);
+  const metro=form.get('submission_type')==='metro_ticket',maxBytes=metro?2*1024*1024:IMAGE_UPLOAD_MAX_BYTES;
+  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>maxBytes) return reply({error:metro?'地铁票图片必须压缩至 2 MB 以内':'请选择5 MB以内的图片'},400);
   const bytes=new Uint8Array(await file.arrayBuffer());
   const png=bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71;
   const jpeg=bytes[0]===255&&bytes[1]===216&&bytes[2]===255;

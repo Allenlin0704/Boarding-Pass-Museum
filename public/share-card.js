@@ -1,9 +1,9 @@
 (() => {
   const lang=()=>window.BPM_LANGUAGE||'zh-CN';
   const t={
-    'zh-CN':{button:'生成分享卡',title:'分享这件展品',note:'已授权公开的展品信息会用于生成分享卡。卡片不包含原始票面照片。',download:'下载 PNG',share:'分享…',copy:'复制展品链接',close:'关闭',collection:'登机牌博物馆 · 旅程收藏',date:'日期',departure:'出发地点',rail:'铁路旅程',air:'航空旅程',copied:'展品链接已复制',copyFail:'复制失败，请手动复制链接。',noConsent:'这件展品没有开启社交媒体分享授权。',shareText:'在 BoardingPassMuseum 发现一段旅程。'},
-    'zh-TW':{button:'製作分享卡',title:'分享這件展品',note:'已授權公開的展品資訊會用於製作分享卡。卡片不含原始票面照片。',download:'下載 PNG',share:'分享…',copy:'複製展品連結',close:'關閉',collection:'登機牌博物館 · 旅程收藏',date:'日期',departure:'出發地點',rail:'鐵路旅程',air:'航空旅程',copied:'展品連結已複製',copyFail:'複製失敗，請手動複製連結。',noConsent:'此展品未開啟社群媒體分享授權。',shareText:'在 BoardingPassMuseum 發現一段旅程。'},
-    en:{button:'Create share card',title:'Share this exhibit',note:'This card uses only exhibit details approved for social sharing. It does not include the original ticket image.',download:'Download PNG',share:'Share…',copy:'Copy exhibit link',close:'Close',collection:'BOARDING PASS MUSEUM · JOURNEY COLLECTION',date:'DATE',departure:'DEPARTURE',rail:'RAIL JOURNEY',air:'AIR JOURNEY',copied:'Exhibit link copied',copyFail:'Could not copy. Copy the link manually.',noConsent:'Social sharing is not enabled for this exhibit.',shareText:'Discover a journey at BoardingPassMuseum.'}
+    'zh-CN':{button:'生成分享卡',title:'分享这件展品',note:'已授权公开的展品信息会用于生成分享卡。卡片不包含原始票面照片。',download:'下载 PNG',share:'分享…',copy:'复制展品链接',close:'关闭',collection:'登机牌博物馆 · 旅程收藏',date:'日期',departure:'出发地点',rail:'铁路旅程',metro:'地铁旅程',air:'航空旅程',copied:'展品链接已复制',copyFail:'复制失败，请手动复制链接。',noConsent:'这件展品没有开启社交媒体分享授权。',shareText:'在 BoardingPassMuseum 发现一段旅程。'},
+    'zh-TW':{button:'製作分享卡',title:'分享這件展品',note:'已授權公開的展品資訊會用於製作分享卡。卡片不含原始票面照片。',download:'下載 PNG',share:'分享…',copy:'複製展品連結',close:'關閉',collection:'登機牌博物館 · 旅程收藏',date:'日期',departure:'出發地點',rail:'鐵路旅程',metro:'地鐵旅程',air:'航空旅程',copied:'展品連結已複製',copyFail:'複製失敗，請手動複製連結。',noConsent:'此展品未開啟社群媒體分享授權。',shareText:'在 BoardingPassMuseum 發現一段旅程。'},
+    en:{button:'Create share card',title:'Share this exhibit',note:'This card uses only exhibit details approved for social sharing. It does not include the original ticket image.',download:'Download PNG',share:'Share…',copy:'Copy exhibit link',close:'Close',collection:'BOARDING PASS MUSEUM · JOURNEY COLLECTION',date:'DATE',departure:'DEPARTURE',rail:'RAIL JOURNEY',metro:'METRO JOURNEY',air:'AIR JOURNEY',copied:'Exhibit link copied',copyFail:'Could not copy. Copy the link manually.',noConsent:'Social sharing is not enabled for this exhibit.',shareText:'Discover a journey at BoardingPassMuseum.'}
   };
   const words=()=>t[lang()]||t['zh-CN'];
   let dialog,canvas,activeFlight;
@@ -23,7 +23,7 @@
     const gradient=ctx.createLinearGradient(0,0,w,h);gradient.addColorStop(0,'#071e35');gradient.addColorStop(.58,'#0c3b5b');gradient.addColorStop(1,'#17628a');ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
     ctx.save();ctx.strokeStyle='#b9e9ff18';ctx.lineWidth=2;for(let r=170;r<620;r+=90){ctx.beginPath();ctx.arc(970,160,r,0,Math.PI*2);ctx.stroke();}ctx.restore();
     ctx.fillStyle='#9bd5f3';ctx.font='600 25px system-ui,-apple-system,sans-serif';ctx.fillText(word.collection,76,105);
-    ctx.fillStyle='#ffffff';ctx.font='700 23px system-ui,-apple-system,sans-serif';ctx.fillText(f.submission_type==='rail_ticket'?word.rail:word.air,80,250);
+    ctx.fillStyle='#ffffff';ctx.font='700 23px system-ui,-apple-system,sans-serif';ctx.fillText(f.submission_type==='rail_ticket'?word.rail:f.submission_type==='metro_ticket'?word.metro:word.air,80,250);
     ctx.font='700 90px system-ui,-apple-system,sans-serif';const flight=String(f.flight||`#${f.id||''}`);ctx.fillText(flight.slice(0,18),75,374,925);
     ctx.fillStyle='#d5e9f4';ctx.font='500 36px system-ui,-apple-system,sans-serif';ctx.fillText(String(f.airline||'').slice(0,40),80,440,900);
     rounded(ctx,68,520,944,520,34);ctx.fillStyle='#f6f8fa';ctx.fill();ctx.save();ctx.clip();

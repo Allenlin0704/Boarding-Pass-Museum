@@ -616,19 +616,20 @@ async function loadSAIncompleteFlights(){
         if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"展品信息读取失败");
         const incomplete=rows.map(bpmSafeRecord).map(flight=>{
             const missing=[];
-            const rail=flight.submission_type==="rail_ticket";
+            const rail=flight.submission_type==="rail_ticket",metro=flight.submission_type==="metro_ticket",transit=rail||metro;
             if(!flight.image)missing.push("展品图片");
-            if(!flight.airline)missing.push(rail?"铁路运营公司":"航空公司");
-            if(!flight.flight)missing.push(rail?"车次":"航班号");
-            if(!flight.date)missing.push(rail?"乘车日期":"飞行日期");
-            if(rail){
+            if(!flight.airline)missing.push(metro?"地铁运营公司":rail?"铁路运营公司":"航空公司");
+            if(!flight.flight)missing.push(metro?"线路或票号":rail?"车次":"航班号");
+            if(!flight.date)missing.push(transit?"乘车日期":"飞行日期");
+            if(transit){
                 if(!flight.airport)missing.push("出发车站");
                 if(!flight.departure_country)missing.push("出发国家或地区");
                 if(!flight.route)missing.push("到达车站");
-                if(!flight.arrival_country)missing.push("到达国家或地区");
+                if(rail&&!flight.arrival_country)missing.push("到达国家或地区");
             }else{
                 if(!flight.airport)missing.push("出发机场");
                 if(!flight.route_scope)missing.push("航线范围");
+                if(flight.route_scope!=="domestic"&&!flight.arrival_country)missing.push("到达国家或地区");
             }
             return {flight,missing};
         }).filter(item=>item.missing.length);
@@ -1110,15 +1111,20 @@ function bindSAEntityPicker(kind){
     });
 }
 function setSAEditMode(type){
-    const rail=type==="rail_ticket";
-    document.querySelectorAll("[data-sa-rail-field]").forEach(element=>element.hidden=!rail);
-    document.querySelectorAll("[data-sa-air-field]").forEach(element=>element.hidden=rail);
+    const rail=type==="rail_ticket",transit=rail||type==="metro_ticket",metro=type==="metro_ticket";
+    document.querySelectorAll("[data-sa-rail-field]").forEach(element=>element.hidden=!transit);
+    document.querySelectorAll("[data-sa-air-field]").forEach(element=>element.hidden=transit);
     const airlineLabel=document.querySelector('[data-sa-catalog-input="airline"]'),airportLabel=document.querySelector('[data-sa-catalog-input="airport"]');
-    if(airlineLabel){airlineLabel.placeholder=rail?"输入铁路运营公司":"搜索航司名称、IATA 或 ICAO";}
-    if(airportLabel){airportLabel.placeholder=rail?"输入出发车站":"搜索机场名称、IATA 或 ICAO";}
+    if(airlineLabel){airlineLabel.placeholder=transit?(metro?"输入地铁运营公司":"输入铁路运营公司"):"搜索航司名称、IATA 或 ICAO";}
+    if(airportLabel){airportLabel.placeholder=transit?"输入出发车站":"搜索机场名称、IATA 或 ICAO";}
     const routeLabel=document.querySelector('[data-edit-flight="route"]')?.closest("label")?.querySelector("span");
-    if(routeLabel)routeLabel.textContent=rail?"到达车站":"";
+    if(routeLabel)routeLabel.textContent=transit?"到达车站":"";
+    const routeScope=document.querySelector('[data-edit-flight="route_scope"]')?.value;
+    const arrivalCountry=document.querySelector('[data-edit-flight="arrival_country"]')?.closest("label");
+    if(arrivalCountry)arrivalCountry.hidden=metro||(!transit&&routeScope==="domestic");
 }
+document.querySelector('[data-edit-flight="submission_type"]')?.addEventListener("change",event=>setSAEditMode(event.target.value));
+document.querySelector('[data-edit-flight="route_scope"]')?.addEventListener("change",()=>setSAEditMode(document.querySelector('[data-edit-flight="submission_type"]')?.value||"boarding_pass"));
 async function loadSAFlightById(flightId){
     let response=await apiFetch(`${API}/api/flight/${encodeURIComponent(flightId)}`,{cache:"no-store"});
     if(response.ok)return bpmSafeRecord(await response.json());
@@ -1350,8 +1356,50 @@ document.addEventListener("DOMContentLoaded", function(){
             const response=await apiFetch(`${API}/api/sa/announcements?sa_id=${encodeURIComponent(user.id)}`,{cache:"no-store",credentials:"include"}),rows=await response.json();
             if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"公告加载失败");
             const escape=value=>String(value??"").replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-            box.innerHTML=rows.map(item=>{const deleted=!!item.deleted_at,hidden=!!Number(item.hidden);return `<article class="bpm-panel bpm-announcement-history-item ${deleted?'is-deleted':''}" data-announcement-card data-source="${escape(item.source)}" data-id="${Number(item.id)}"><header><small>${escape(item.created_at||"")} · ${item.source==='update'?'历史置顶事项':'公告'} · ${deleted?'已移入回收站':hidden?'已隐藏':'展示中'}</small></header><label>标题<input data-announcement-title maxlength="120" value="${escape(item.title||item.version||'公告')}"></label><label>内容<textarea data-announcement-content maxlength="10000" rows="4">${escape(item.content||'')}</textarea></label><div class="bpm-announcement-history-actions">${deleted?'<button type="button" data-announcement-action="restore">恢复</button>':`<button type="button" data-announcement-action="edit">保存修改</button><button type="button" data-announcement-action="${hidden?'show':'hide'}">${hidden?'重新展示':'隐藏'}</button><button type="button" class="secondary-button" data-announcement-action="delete">移入回收站</button>`}</div></article>`;}).join("")||"暂无历史公告";
-            box.onclick=async event=>{const button=event.target.closest('[data-announcement-action]');if(!button)return;const card=button.closest('[data-announcement-card]'),action=button.dataset.announcementAction;if(action==='delete'&&!confirm('将这条公告移入回收站？之后仍可恢复。'))return;button.disabled=true;try{const payload={sa_id:user.id,source:card.dataset.source,id:Number(card.dataset.id),action};if(action==='edit'){payload.title=card.querySelector('[data-announcement-title]').value;payload.content=card.querySelector('[data-announcement-content]').value;}const result=await apiFetch(`${API}/api/sa/announcements/manage`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(res=>res.json().then(data=>{if(!res.ok)throw Error(data.error||'保存失败');return data;}));if(result.success){showToast(action==='edit'?'公告已修改':action==='hide'?'公告已隐藏':action==='show'?'公告已重新展示':action==='delete'?'公告已移入回收站':'公告已恢复');await loadAnnouncementHistory();}}catch(error){showToast(error.message||'操作失败');button.disabled=false;}};
+            box.innerHTML=rows.map(item=>{
+                const deleted=!!item.deleted_at,hidden=!!Number(item.hidden);
+                return `<article class="bpm-panel bpm-announcement-history-item ${deleted?'is-deleted':''}" data-announcement-card data-source="${escape(item.source)}" data-id="${Number(item.id)}" data-deleted="${deleted}" data-hidden="${hidden}">
+                  <header><label class="sa-announcement-select"><input type="checkbox" data-announcement-select aria-label="选择公告 ${escape(item.title||item.version||'')}"><small>${escape(item.created_at||"")} · ${item.source==='update'?'历史置顶事项':'公告'} · ${deleted?'已移入回收站':hidden?'已隐藏':'展示中'}</small></label></header>
+                  <label>标题<input data-announcement-title maxlength="120" value="${escape(item.title||item.version||'公告')}" ${deleted?'disabled':''}></label>
+                  <label>内容<textarea data-announcement-content maxlength="10000" rows="4" ${deleted?'disabled':''}>${escape(item.content||'')}</textarea></label>
+                  <div class="bpm-announcement-history-actions">${deleted?'<button type="button" data-announcement-action="restore">恢复</button>':`<button type="button" data-announcement-action="edit">保存修改</button><button type="button" data-announcement-action="${hidden?'show':'hide'}">${hidden?'重新展示':'隐藏'}</button><button type="button" class="secondary-button" data-announcement-action="delete">移入回收站</button>`}</div>
+                </article>`;
+            }).join("")||"暂无历史公告";
+            const selectedCount=()=>box.querySelectorAll('[data-announcement-select]:checked').length;
+            const updateSelectedCount=()=>{const count=selectedCount(),label=document.getElementById('selectedAnnouncementCount');if(label)label.textContent=`已选 ${count} 条`;};
+            const saveCard=async(card,action)=>{
+                const payload={sa_id:user.id,source:card.dataset.source,id:Number(card.dataset.id),action};
+                if(action==='edit'){payload.title=card.querySelector('[data-announcement-title]').value;payload.content=card.querySelector('[data-announcement-content]').value;}
+                const response=await apiFetch(`${API}/api/sa/announcements/manage`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+                const result=await response.json();if(!response.ok)throw Error(result.error||'保存失败');return result;
+            };
+            box.onchange=event=>{if(event.target.matches('[data-announcement-select]'))updateSelectedCount();};
+            const selectAll=document.getElementById('selectAllAnnouncements');
+            if(selectAll){selectAll.checked=false;selectAll.onchange=()=>{box.querySelectorAll('[data-announcement-select]').forEach(input=>input.checked=selectAll.checked);updateSelectedCount();};}
+            box.onclick=async event=>{
+                const button=event.target.closest('[data-announcement-action]');if(!button)return;
+                const card=button.closest('[data-announcement-card]'),action=button.dataset.announcementAction;
+                if(action==='delete'&&!confirm('将这条公告移入回收站？之后仍可恢复。'))return;
+                button.disabled=true;
+                try{await saveCard(card,action);showToast(action==='edit'?'公告已修改':action==='hide'?'公告已隐藏':action==='show'?'公告已重新展示':action==='delete'?'公告已移入回收站':'公告已恢复');await loadAnnouncementHistory();}
+                catch(error){showToast(error.message||'操作失败');button.disabled=false;}
+            };
+            document.querySelectorAll('[data-announcement-bulk-action]').forEach(button=>{
+                button.onclick=async()=>{
+                    const selected=[...box.querySelectorAll('[data-announcement-select]:checked')].map(input=>input.closest('[data-announcement-card]'));
+                    if(!selected.length){showToast('请先选择公告');return;}
+                    const action=button.dataset.announcementBulkAction;
+                    const eligible=selected.filter(card=>action==='restore'?card.dataset.deleted==='true':card.dataset.deleted!=='true');
+                    if(!eligible.length){showToast(action==='restore'?'所选公告中没有可恢复项':'所选公告中没有可操作项');return;}
+                    if(action==='delete'&&!confirm(`将 ${eligible.length} 条公告移入回收站？之后仍可逐条恢复。`))return;
+                    button.disabled=true;document.querySelectorAll('[data-announcement-bulk-action]').forEach(item=>item.disabled=true);
+                    let succeeded=0,failed=0;
+                    for(const card of eligible){try{await saveCard(card,action);succeeded++;}catch{failed++;}}
+                    showToast(failed?`已完成 ${succeeded} 条，${failed} 条失败，请刷新后检查`:`已批量处理 ${succeeded} 条公告`);
+                    await loadAnnouncementHistory();
+                    document.querySelectorAll('[data-announcement-bulk-action]').forEach(item=>item.disabled=false);
+                };
+            });
         }catch(error){box.textContent=error.message||"公告加载失败";}
     };
     loadAnnouncementHistory();

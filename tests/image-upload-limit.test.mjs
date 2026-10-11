@@ -20,6 +20,23 @@ test('exhibit image upload rejects files over 5 MB before writing to R2', async 
   assert.equal(writes, 0);
 });
 
+test('metro-ticket image upload rejects files over 2 MB before writing to R2', async () => {
+  const { worker, env } = fixture();
+  let writes = 0;
+  env.IMAGES = { async put() { writes++; } };
+  const form = new FormData();
+  const bytes = new Uint8Array(2 * 1024 * 1024 + 1);
+  bytes.set([0xff, 0xd8, 0xff]);
+  form.set('image', new Blob([bytes], { type: 'image/jpeg' }), 'metro-ticket.jpg');
+  form.set('submission_type', 'metro_ticket');
+  const response = await worker.fetch(new Request('https://test.invalid/api/upload-image', {
+    method: 'POST', headers: { Cookie: `bpm_session=${'3'.repeat(64)}` }, body: form
+  }), env);
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /2 MB/);
+  assert.equal(writes, 0);
+});
+
 test('SA homepage photo upload shares the same 5 MB R2 limit', async () => {
   const { worker, env } = fixture();
   let writes = 0;

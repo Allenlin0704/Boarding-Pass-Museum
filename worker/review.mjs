@@ -3,6 +3,11 @@ import { ISO_COUNTRY_CODES } from './iso-country-codes.mjs';
 const normalizedCode=value=>String(value??'').trim().toUpperCase();
 const validCatalogCode=value=>typeof value==='string'&&value.length<=6&&(/^[A-Z0-9-]*$/.test(value.trim().toUpperCase()));
 const validCountry=value=>typeof value==='string'&&ISO_COUNTRY_CODES.has(value);
+const checkMetroImage=async(env,image)=>{
+  if(typeof image!=='string'||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(image))return {ok:false,unavailable:false};
+  try{const object=await env.IMAGES?.head?.(new URL(image).pathname.replace(/^\//,''));return {ok:!!object&&Number.isFinite(Number(object.size))&&Number(object.size)<=2*1024*1024,unavailable:false};}
+  catch{return {ok:false,unavailable:true};}
+};
 export async function reviewRoute(request,env,url,user) {
   const path=url.pathname;
   if(request.method==='GET'&&/^\/api\/flight\/\d+$/.test(path)) {
@@ -34,21 +39,29 @@ export async function reviewRoute(request,env,url,user) {
   if(path==='/api/submit') {
     const body=await request.clone().json();
     if(body.rules_consent!==true||body.social_share_consent!==true)return reply({error:'请先阅读并同意投稿条例及展品社交媒体分享授权'},400);
-    const rail=body.submission_type==='rail_ticket';
+    const submissionType=body.submission_type||'boarding_pass';
+    const transit=submissionType==='rail_ticket'||submissionType==='metro_ticket';
+    const metro=submissionType==='metro_ticket';
     for(const key of ['airline','flight','airport','date','image']) if(typeof body[key]!=='string'||!body[key].trim())return reply({error:'请完整填写运营公司、班次、出发地点、日期并上传图片'},400);
     const optionalCode=(value,max)=>value===undefined||value===''?'':typeof value==='string'&&new RegExp(`^[A-Za-z0-9-]{1,${max}}$`).test(value)?value.toUpperCase():null;
     const airlineIata=optionalCode(body.airline_iata,6),airlineIcao=optionalCode(body.airline_icao,6),airportIata=optionalCode(body.airport_iata,6),airportIcao=optionalCode(body.airport_icao,6);
-    const routeScope=rail?'':String(body.route_scope||'domestic');
-    const cabinClass=rail?'':String(body.cabin_class||'economy');
+    const routeScope=transit?'':String(body.route_scope||'domestic');
+    const cabinClass=transit?'':String(body.cabin_class||'economy');
     const allowedTags=['business','premium_economy','first_class','silver','gold','platinum','special_assistance','transfer','other','two_cabin'];
-    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket'].includes(body.submission_type||'boarding_pass')||!['paper','digital'].includes(body.ticket_format||'paper')||(!rail&&!['domestic','international','regional'].includes(routeScope))||(!rail&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||!validCountry(body.arrival_country)||(rail&&!body.route))return reply({error:'投稿格式无效，请选择有效的 ISO 国家 / 地区'},400);
+    const localScope=metro||(!transit&&routeScope==='domestic');
+    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket','metro_ticket'].includes(submissionType)||!['paper','digital'].includes(body.ticket_format||'paper')||(!transit&&!['domestic','international','regional'].includes(routeScope))||(!transit&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||(!localScope&&!validCountry(body.arrival_country))||(transit&&!body.route))return reply({error:'投稿格式无效，请选择有效的 ISO 国家 / 地区'},400);
+    if(metro){
+      const checked=await checkMetroImage(env,body.image);
+      if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
+      if(!checked.ok)return reply({error:'地铁票图片必须压缩至 2 MB 以内后重新上传'},413);
+    }
     // Staff submissions always go to the SA queue. The SA's own submission is
     // assigned to account 1 as well, so it remains an explicit self-review.
     const admins=isAdmin(user)
       ? {id:1}
       : await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND s.allocation_percent>0 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator')) ORDER BY (SELECT COUNT(*) FROM flights WHERE reviewer_id=u.id AND created_at>=s.updated_at)*1.0/s.allocation_percent,s.sort_order,u.id LIMIT 1`).first();
     const inserted=await env.DB.prepare(`INSERT INTO flights(user_id,airline,flight,route,date,aircraft,airport,issue_airport,image,story,status,reviewer_id,submission_type,ticket_format,cabin_class,departure_country,arrival_country,special_tags,social_share_consent,rules_consent,airline_iata,airline_icao,airport_iata,airport_icao,route_scope) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-      .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',cabinClass,String(body.departure_country||''),String(body.arrival_country||''),JSON.stringify(body.special_tags||[]),1,1,airlineIata,airlineIcao,airportIata,airportIcao,routeScope).run();
+      .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',cabinClass,String(body.departure_country||''),localScope?'':String(body.arrival_country||''),JSON.stringify(body.special_tags||[]),1,1,airlineIata,airlineIcao,airportIata,airportIcao,routeScope).run();
     return reply({success:true,flight_id:inserted.meta.last_row_id});
   }
 
@@ -113,7 +126,7 @@ export async function reviewRoute(request,env,url,user) {
       for(const field of fields)if(updates[field]!==undefined&&typeof updates[field]!=='string')return reply({error:'展品字段格式错误'},400);
       for(const field of ['airline_iata','airline_icao','airport_iata','airport_icao'])if(updates[field]!==undefined&&!validCatalogCode(updates[field]))return reply({error:'航司或机场代码格式错误'},400);
       for(const field of ['departure_country','arrival_country'])if(updates[field]!==undefined&&updates[field]!==''&&!validCountry(updates[field]))return reply({error:'国家或地区必须使用 ISO 3166-1 两位代码'},400);
-      if(updates.submission_type!==undefined&&!['boarding_pass','rail_ticket'].includes(updates.submission_type))return reply({error:'投稿类型无效'},400);
+      if(updates.submission_type!==undefined&&!['boarding_pass','rail_ticket','metro_ticket'].includes(updates.submission_type))return reply({error:'投稿类型无效'},400);
       if(updates.route_scope!==undefined&&!['','domestic','international','regional'].includes(updates.route_scope))return reply({error:'航线范围无效'},400);
       if((updates.airline||'').length>200||(updates.flight||'').length>30||(updates.airport||'').length>200||(updates.route||'').length>200||(updates.departure_country||'').length>100||(updates.arrival_country||'').length>100||(updates.story||'').length>5000)return reply({error:'展品字段超出长度限制'},400);
     }
@@ -122,6 +135,11 @@ export async function reviewRoute(request,env,url,user) {
       const existing=await env.DB.prepare('SELECT * FROM flights WHERE id=?').bind(correction.flight_id).first();
       if(!existing)return reply({error:'关联展品不存在'},404);
       const value=field=>updates[field]===undefined?(existing[field]??''):updates[field];
+      if(value('submission_type')==='metro_ticket'){
+        const checked=await checkMetroImage(env,value('image'));
+        if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
+        if(!checked.ok)return reply({error:'地铁票图片必须压缩至 2 MB 以内后重新上传'},413);
+      }
       statements.push(env.DB.prepare("UPDATE flights SET submission_type=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,image=?,story=? WHERE id=? AND EXISTS(SELECT 1 FROM flight_corrections WHERE id=? AND status='accepted')")
         .bind(value('submission_type'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('image'),value('story'),correction.flight_id,id));
     }
@@ -161,10 +179,15 @@ export async function reviewRoute(request,env,url,user) {
     for(const field of fields) if(body[field]!==undefined&&typeof body[field]!=='string')return reply({error:'字段格式错误'},400);
     for(const field of ['airline_iata','airline_icao','airport_iata','airport_icao'])if(body[field]!==undefined&&!validCatalogCode(body[field]))return reply({error:'航司或机场代码格式错误'},400);
     for(const field of ['departure_country','arrival_country'])if(body[field]!==undefined&&body[field]!==''&&!validCountry(body[field]))return reply({error:'国家或地区必须使用 ISO 3166-1 两位代码'},400);
-    if(body.submission_type!==undefined&&!['boarding_pass','rail_ticket'].includes(body.submission_type))return reply({error:'投稿类型无效'},400);
+    if(body.submission_type!==undefined&&!['boarding_pass','rail_ticket','metro_ticket'].includes(body.submission_type))return reply({error:'投稿类型无效'},400);
     if(body.route_scope!==undefined&&!['','domestic','international','regional'].includes(body.route_scope))return reply({error:'航线范围无效'},400);
     if((body.airline||'').length>200||(body.flight||'').length>30||(body.airport||'').length>200||(body.route||'').length>200||(body.departure_country||'').length>100||(body.arrival_country||'').length>100||(body.story||'').length>5000)return reply({error:'字段超出长度限制'},400);
     const value=field=>body[field]===undefined?(flight[field]??''):body[field];
+    if(value('submission_type')==='metro_ticket'){
+      const checked=await checkMetroImage(env,value('image'));
+      if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
+      if(!checked.ok)return reply({error:'地铁票图片必须压缩至 2 MB 以内后重新上传'},413);
+    }
     const result=await env.DB.prepare(`UPDATE flights SET submission_type=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
       .bind(value('submission_type'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('story'),value('image'),Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
     return result.meta.changes?reply({success:true}):reply({error:'展品状态已变化，请刷新后重试'},409);
