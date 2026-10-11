@@ -53,6 +53,7 @@ test('SA exhibit search comes before the repair queue and both correction flows 
   assert.match(html, /到达车站/);
   assert.doesNotMatch(html, /到达机场/);
   assert.match(html,/saStepupCountdown/);
+  assert.ok(html.indexOf('id="saStepupCountdown"')<html.indexOf('<nav>'), 'timer must survive auth.js rebuilding the menu contents');
   assert.match(html,/saStepupDialog/);
   assert.match(script,/bpmShowSAStepup/);
 });
