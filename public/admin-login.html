@@ -4,8 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#003c6b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="BPM 管理中心">
   <title>管理员专属登录 · BoardingPassMuseum</title>
   <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="manifest" href="admin-manifest.webmanifest">
   <link rel="stylesheet" href="style.css?v=20261010-global-design">
   <link rel="stylesheet" href="features.css?v=20261010-global-design">
   <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
@@ -15,14 +20,19 @@
 <body>
   <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · 管理入口</div><nav><a href="https://bpmuseum.org.cn/">返回展厅</a></nav></header>
   <main class="auth-page">
+    <section class="auth-photo-hero">
+      <span>BOARDINGPASSMUSEUM</span>
+      <h1>站长与管理员入口</h1>
+      <p>仅供通过审核的管理员使用。安全登录后进入展品审核与站点管理。</p>
+    </section>
     <section class="submit-form">
-      <p class="bpm-page-kicker">ADMINISTRATOR ACCESS</p>
       <h1>管理员专属登录</h1>
       <p>管理员和 SA 账号请从此页面登录。首次使用账户密码，之后可设置 PIN 或使用 Passkey。</p>
-      <label for="adminRole">登录身份</label>
-      <select id="adminRole"><option value="administrator">管理员</option><option value="superadministrator">SA</option></select>
-      <label for="loginEmail">邮箱</label>
-      <input id="loginEmail" type="email" autocomplete="username" required>
+      <label for="adminIdentity">登录身份</label>
+      <select id="adminIdentity" autocomplete="username" required>
+        <option value="">正在读取管理员账户…</option>
+      </select>
+      <p class="bpm-muted">选择账户昵称与身份；新管理员获批后会自动显示在这里。</p>
       <label for="loginPassword">密码</label>
       <div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required><button type="button" class="password-toggle" data-password="loginPassword" aria-label="显示密码"><span data-bpm-icon="eye"></span></button></div>
       <a href="https://bpmuseum.org.cn/reset-password.html">忘记密码？</a>
@@ -48,11 +58,15 @@
       <p id="adminLoginHelp" role="status" class="bpm-muted">此入口只接受管理员和超级管理员账号。</p>
     </section>
   </main>
+  <span class="auth-photo-credit">摄影 allenlin</span>
   <script src="notice.js?v=20260930-popup-fix"></script>
-  <script src="login.js?v=20261010-admin-domain"></script>
+  <script src="auth-hero.js?v=20261011-admin-photo2"></script>
+  <script src="admin-identities.js?v=20261011-dropdown1"></script>
+  <script src="login.js?v=20261011-dropdown1"></script>
   <script src="login-passkey.js?v=20261010-admin-domain"></script>
-  <script src="admin-pin-login.js?v=20261010-admin-domain"></script>
+  <script src="admin-pin-login.js?v=20261011-dropdown1"></script>
   <script src="oauth.js?v=20261010-admin-domain"></script>
   <script src="password-toggle.js?v=20260927"></script>
+  <script src="admin-pwa.js?v=20261011-v1"></script>
 </body>
 </html>

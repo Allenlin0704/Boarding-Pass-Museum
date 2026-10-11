@@ -77,12 +77,13 @@ async function limited(env,key,max,seconds) {
 }
 export async function authenticate(request,env,url) {
   const user=await sessionUser(request,env);
-  const protectedRead=url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || url.pathname.startsWith('/api/sa-security/') || ['/api/my-flights','/api/favorites','/api/account/export','/api/account/deletion-request'].includes(url.pathname);
+  const adminIdentityList=url.pathname==='/api/admin/identities'&&request.method==='GET';
+  const protectedRead=!adminIdentityList&&(url.pathname.startsWith('/api/sa/') || url.pathname.startsWith('/api/admin/') || url.pathname.startsWith('/api/sa-security/') || ['/api/my-flights','/api/favorites','/api/account/export','/api/account/deletion-request'].includes(url.pathname));
   const write=!['GET','HEAD','OPTIONS'].includes(request.method);
   if((protectedRead || (write&&!PUBLIC_WRITES.has(url.pathname)))&&!user) return {response:reply({error:'请重新登录',success:false},401)};
   if(url.pathname.startsWith('/api/sa/')&&!isSA(user)) return {response:reply({error:'No permission'},403)};
-  if(url.pathname.startsWith('/api/admin/')&&!isAdmin(user)) return {response:reply({error:'No permission'},403)};
-  if((url.pathname.startsWith('/api/sa/')||url.pathname.startsWith('/api/admin/'))&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
+  if(url.pathname.startsWith('/api/admin/')&&!adminIdentityList&&!isAdmin(user)) return {response:reply({error:'No permission'},403)};
+  if((url.pathname.startsWith('/api/sa/')||(url.pathname.startsWith('/api/admin/')&&!adminIdentityList))&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
   if(url.pathname.startsWith('/api/sa-security/')&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
   if((user?.permanent_ban || (user?.banned_until && new Date(user.banned_until+'Z').getTime()>Date.now())) && (write||protectedRead) && !['/api/logout','/api/community/moderation-appeal',...PUBLIC_WRITES].includes(url.pathname)) return {response:reply({error:'账号已被封禁'},403)};
   const imageUploadPath=url.pathname==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(url.pathname);
@@ -107,6 +108,15 @@ export async function authenticate(request,env,url) {
 }
 export async function accountRoute(request,env,url,user,sendEmail) {
   const path=url.pathname;
+  if(path==='/api/admin/identities'&&request.method==='GET') {
+    if(request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口访问'},403);
+    const ip=request.headers.get('CF-Connecting-IP')||'local';
+    if(await limited(env,`admin-identities:${ip}`,60,60))return reply({error:'请求过于频繁，请稍后重试'},429);
+    const rows=await env.DB.prepare(`SELECT id,username,role FROM users
+      WHERE deleted_at IS NULL AND (role='administrator' OR (id=1 AND role='superadministrator'))
+      ORDER BY CASE WHEN id=1 THEN 0 ELSE 1 END,username COLLATE NOCASE`).all();
+    return reply({identities:rows.results.map(row=>({id:row.id,username:row.username,role:isSA(row)?'superadministrator':'administrator'}))});
+  }
   if(path==='/api/session'&&request.method==='GET') return user?reply({id:user.id,username:user.username,email:user.email,role:isSA(user)?'superadministrator':user.role==='administrator'?'administrator':'user',admin_context:user.auth_context==='admin'}):reply({error:'请重新登录'},401);
   if(path==='/api/account/deletion-request'&&request.method==='GET') {
     if(!user) return reply({error:'请重新登录'},401);
@@ -182,12 +192,16 @@ export async function accountRoute(request,env,url,user,sendEmail) {
   if(!paths.includes(path)||request.method!=='POST') return null;
   const body=await request.json();
   const email=String(body.new_email||body.email||'').trim().toLowerCase();
+  const accountId=Number(body.account_id);
+  const hasAccountId=Number.isSafeInteger(accountId)&&accountId>0;
+  if(body.account_id!==undefined&&!hasAccountId)return reply({error:'请选择有效的管理员账户'},400);
+  if(hasAccountId&&request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口登录'},403);
   const ip=request.headers.get('CF-Connecting-IP')||'local';
   if(await limited(env,`${path}:${ip}`,path.includes('send-code')?8:30,600)) return reply({error:'操作过于频繁，请稍后再试'},429);
   if(path==='/api/account/admin-pin/login') {
     if(request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口登录'},403);
-    if(await limited(env,`admin-pin:${email}:${ip}`,8,900))return reply({error:'PIN 尝试过多，请稍后重试'},429);
-    const found=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
+    if(await limited(env,`admin-pin:${hasAccountId?accountId:email}:${ip}`,8,900))return reply({error:'PIN 尝试过多，请稍后重试'},429);
+    const found=hasAccountId?await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(accountId).first():await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
     if(!found||!isAdmin(found)||found.must_reset_password)return reply({error:'账号或 PIN 错误'},401);
     const actualRole=isSA(found)?'superadministrator':'administrator';
     if(body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);
@@ -206,8 +220,8 @@ export async function accountRoute(request,env,url,user,sendEmail) {
   }
   if(path==='/api/account/admin-pin/setup') {
     if(request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口设置 PIN'},403);
-    if(await limited(env,`admin-pin-setup:${email}:${ip}`,8,900))return reply({error:'尝试过多，请稍后重试'},429);
-    const account=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
+    if(await limited(env,`admin-pin-setup:${hasAccountId?accountId:email}:${ip}`,8,900))return reply({error:'尝试过多，请稍后重试'},429);
+    const account=hasAccountId?await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(accountId).first():await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
     if(!account||!isAdmin(account)||!await passwordMatches(body.password,account.password))return reply({error:'管理员账号或密码错误'},403);
     if(body.admin_role&&(body.admin_role!==(isSA(account)?'superadministrator':'administrator')))return reply({error:'所选管理员身份与账号权限不一致'},403);
     if(!/^\d{6}$/.test(String(body.pin||'')))return reply({error:'PIN 必须为 6 位数字'},400);
@@ -215,10 +229,11 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     return reply({success:true});
   }
   if(path==='/api/login') {
-    if(await limited(env,`login:${email}`,15,900)) return reply({error:'登录尝试过多，请稍后再试'},429);
-    const found=await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
-    if(!found || !await passwordMatches(body.password,found.password)) return reply({error:'账号或密码错误'},401);
     const adminOrigin=request.headers.get('Origin')===ADMIN_ORIGIN;
+    if(body.account_id!==undefined&&!adminOrigin)return reply({error:'请从管理员专属入口登录'},403);
+    if(await limited(env,`login:${hasAccountId?accountId:email}`,15,900)) return reply({error:'登录尝试过多，请稍后再试'},429);
+    const found=hasAccountId?await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(accountId).first():await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
+    if(!found || !await passwordMatches(body.password,found.password)) return reply({error:'账号或密码错误'},401);
     if(isAdmin(found)!==adminOrigin) return reply({error:adminOrigin?'此入口仅供管理员使用':'管理员请使用管理专属入口登录'},403);
     const actualRole=isSA(found)?'superadministrator':'administrator';
     if(adminOrigin&&body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);

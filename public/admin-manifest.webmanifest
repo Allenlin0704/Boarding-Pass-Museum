@@ -1,0 +1,15 @@
+{
+  "id": "/admin-app",
+  "name": "BoardingPassMuseum 管理中心",
+  "short_name": "BPM 管理",
+  "description": "BoardingPassMuseum 管理员与站长专用入口。",
+  "lang": "zh-CN",
+  "start_url": "/admin-login.html?source=installed-app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#003c6b",
+  "theme_color": "#003c6b",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "1254x1254", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

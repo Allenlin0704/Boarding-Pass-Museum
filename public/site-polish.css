@@ -273,3 +273,10 @@ button:disabled {
     transition-duration: .01ms !important;
   }
 }
+.bpm-admin-pwa-install{flex:0 0 auto;min-height:38px;padding:7px 12px;border:1px solid currentColor;border-radius:999px;background:rgba(255,255,255,.12);color:inherit;font:inherit;font-size:13px;font-weight:650;white-space:nowrap;cursor:pointer}
+.bpm-admin-pwa-install:disabled{opacity:.6;cursor:wait}
+.bpm-admin-install-help{box-sizing:border-box;width:min(420px,calc(100% - 28px));padding:24px;border:1px solid var(--bpm-border,#cbd5df);border-radius:20px;background:var(--bpm-card,#fff);color:var(--bpm-text,#152b40);box-shadow:0 20px 70px #001b3640}
+.bpm-admin-install-help h2{margin:0 0 12px;font-size:22px}
+.bpm-admin-install-help p{line-height:1.65}
+.bpm-admin-install-help button{min-height:42px;padding:9px 18px;border:0;border-radius:12px;background:#003c6b;color:#fff;font:inherit;font-weight:650;cursor:pointer}
+.bpm-admin-install-help::backdrop{background:#001b3680;backdrop-filter:blur(3px)}

@@ -54,6 +54,34 @@ test('administrator sessions can only be created and used through the dedicated 
   const preflight=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/admin/pending',{method:'OPTIONS',headers:{Origin:'https://admin.bpmuseum.org.cn','Access-Control-Request-Method':'GET'}}),env);
   assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),'https://admin.bpmuseum.org.cn');
 });
+test('dedicated login identity list reveals only active staff nicknames and roles',async()=>{
+  const {worker,env,db}=fixture();
+  db.prepare("UPDATE users SET deleted_at=datetime('now') WHERE id=5").run();
+  const request=(origin)=>worker.fetch(new Request('https://api.bpmuseum.org.cn/api/admin/identities',{headers:{Origin:origin}}),env);
+  assert.equal((await request('https://bpmuseum.org.cn')).status,403);
+  const response=await request('https://admin.bpmuseum.org.cn');
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.deepEqual(body.identities,[{id:1,username:'SA',role:'superadministrator'},{id:2,username:'Admin',role:'administrator'}]);
+  assert.equal(JSON.stringify(body).includes('@'),false);
+  db.prepare("UPDATE users SET role='user' WHERE id=2").run();
+  const refreshed=await request('https://admin.bpmuseum.org.cn');
+  assert.deepEqual((await refreshed.json()).identities,[{id:1,username:'SA',role:'superadministrator'}]);
+});
+test('admin dropdown account IDs are resolved and authorized by the server',async()=>{
+  const {worker,env,db}=fixture();
+  db.prepare('UPDATE users SET password=? WHERE id=1').run(await passwordHash('sa-test-password'));
+  db.prepare('UPDATE users SET password=? WHERE id=2').run(await passwordHash('admin-test-password'));
+  db.prepare('UPDATE users SET password=? WHERE id=3').run(await passwordHash('user-test-password'));
+  const login=async(account_id,password)=>worker.fetch(new Request('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://admin.bpmuseum.org.cn'},body:JSON.stringify({account_id,password})}),env);
+  const sa=await login(1,'sa-test-password');
+  assert.equal(sa.status,200);assert.equal((await sa.json()).role,'superadministrator');
+  const admin=await login(2,'admin-test-password');
+  assert.equal(admin.status,200);assert.equal((await admin.json()).role,'administrator');
+  assert.equal((await login(3,'user-test-password')).status,403);
+  assert.equal((await login(999,'not-a-password')).status,401);
+  assert.equal((await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://bpmuseum.org.cn'},body:JSON.stringify({account_id:2,password:'admin-test-password'})}),env)).status,403);
+});
 test('staff can set a personal PIN with their password and log in only from the admin host',async()=>{
   const {worker,env,db}=fixture();
   db.prepare('UPDATE users SET password=? WHERE id=2').run(await passwordHash('admin-test-password'));
@@ -66,6 +94,15 @@ test('staff can set a personal PIN with their password and log in only from the 
   assert.equal(publicLogin.status,403);
   const mismatch=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/account/admin-pin/login',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://admin.bpmuseum.org.cn'},body:JSON.stringify({email:'a@example.test',pin:'246810',admin_role:'superadministrator'})}),env);
   assert.equal(mismatch.status,403);
+});
+test('admin PIN setup and login accept the selected internal account ID',async()=>{
+  const {worker,env,db}=fixture();
+  db.prepare('UPDATE users SET password=? WHERE id=2').run(await passwordHash('admin-test-password'));
+  const request=(path,body)=>worker.fetch(new Request('https://api.bpmuseum.org.cn'+path,{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://admin.bpmuseum.org.cn'},body:JSON.stringify(body)}),env);
+  assert.equal((await request('/api/account/admin-pin/setup',{account_id:2,password:'admin-test-password',pin:'135790'})).status,200);
+  const login=await request('/api/account/admin-pin/login',{account_id:2,pin:'135790'});
+  assert.equal(login.status,200);assert.equal((await login.json()).role,'administrator');
+  assert.equal((await request('/api/account/admin-pin/login',{account_id:3,pin:'135790'})).status,401);
 });
 test('cross-site write and form content type are blocked',async()=>{
   const {worker,env}=fixture();
