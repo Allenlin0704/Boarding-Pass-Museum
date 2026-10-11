@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {fixture} from './helpers.mjs';
 
 function recognizeRequest(image,identity=3,consent=true,country='CN'){
@@ -92,6 +93,37 @@ test('public story translation uses Doubao in every region',async()=>{
     const response=await worker.fetch(request,env),data=await response.json();
     assert.equal(response.status,200);assert.equal(data.translated,'Translated story');assert.equal(data.provider,'doubao');
   }finally{globalThis.fetch=originalFetch;}
+});
+
+test('approved exhibit translations are cached per source revision and target language',async()=>{
+  const {worker,env,db}=fixture();env.DOUBAO_API_KEY='test-only';env.DOUBAO_MODEL='doubao-text-test';
+  db.prepare("UPDATE flights SET story='A public travel story',status='approved' WHERE id=13").run();
+  const originalFetch=globalThis.fetch;let calls=0;
+  globalThis.fetch=async()=>{calls++;return Response.json({choices:[{message:{content:'Translated once'}}]});};
+  const request=()=>new Request('https://test.invalid/api/translate/story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({flight_id:13,text:'A public travel story',target:'en'})});
+  try{
+    const first=await (await worker.fetch(request(),env)).json();
+    const second=await (await worker.fetch(request(),env)).json();
+    assert.equal(first.translated,'Translated once');assert.equal(first.cached,false);
+    assert.equal(second.translated,'Translated once');assert.equal(second.cached,true);
+    assert.equal(calls,1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM auth_limits').get().count,1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS count FROM flight_story_translations').get().count,1);
+    const stale=await worker.fetch(new Request('https://test.invalid/api/translate/story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({flight_id:13,text:'Edited source',target:'en'})}),env);
+    assert.equal(stale.status,400);
+    db.prepare("UPDATE flights SET story='Pending story' WHERE id=10").run();
+    const privateStory=await worker.fetch(new Request('https://test.invalid/api/translate/story',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({flight_id:10,text:'Pending story',target:'en'})}),env);
+    assert.equal(privateStory.status,400);
+  }finally{globalThis.fetch=originalFetch;}
+});
+
+test('gallery and detail translation controls send their exhibit IDs for persistent caching',()=>{
+  const theme=readFileSync(new URL('../public/theme.js',import.meta.url),'utf8');
+  const app=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const detail=readFileSync(new URL('../public/detail.js',import.meta.url),'utf8');
+  assert.match(theme,/flight_id:Number\(panel\.dataset\.bpmFlightId\)/);
+  assert.match(app,/data-bpm-flight-id="\$\{Number\(flight\.id\)\|\|0\}"/);
+  assert.match(detail,/data-bpm-flight-id="\$\{Number\(data\.id\)\|\|0\}"/);
 });
 
 test('announcement publishing is idempotent across retries and remains in history',async()=>{

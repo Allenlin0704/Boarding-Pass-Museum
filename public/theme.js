@@ -69,7 +69,7 @@
         const panel=button.closest(".story-translate-links"),output=panel?.querySelector(".story-translation-output"),text=panel?.dataset.bpmStory||"";
         if(!panel||!output||!text)return;
         const target=button.dataset.bpmTranslate;button.disabled=true;output.hidden=false;output.textContent=window.bpmLocaleText("正在翻译公开故事…");
-        try{const response=await fetch("https://api.bpmuseum.org.cn/api/translate/story",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,target})});const data=await response.json();if(!response.ok)throw Error(data.error||"翻译暂不可用");output.textContent=data.translated;}
+        try{const response=await fetch("https://api.bpmuseum.org.cn/api/translate/story",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,target,flight_id:Number(panel.dataset.bpmFlightId)||undefined})});const data=await response.json();if(!response.ok)throw Error(data.error||"翻译暂不可用");output.textContent=data.translated;}
         catch(error){output.textContent=error.message||window.bpmLocaleText("翻译暂不可用，请稍后重试。");}
         finally{button.disabled=false;}
     });
