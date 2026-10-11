@@ -56,12 +56,14 @@ function entityIdentity(kind,record){
   const icao=String(record?.[isAirline?"airline_icao":"airport_icao"]||"").trim().toUpperCase();
   const byCode=isAirline?entityIndex.airlinesByCode:entityIndex.airportsByCode;
   const byAlias=isAirline?entityIndex.airlinesByAlias:entityIndex.airportsByAlias;
+  const flightPrefix=isAirline?String(record?.flight||"").trim().match(/^([A-Z0-9]{2})[0-9]/i)?.[1]?.toUpperCase():"";
+  if(isAirline&&flightPrefix&&entityIndex.airlinesByCode.has(flightPrefix)&&!/^([A-Z0-9]{2})$/.test(iata))return `airline:${entityIndex.airlinesByCode.get(flightPrefix).code}`;
   if(iata&&byCode.has(iata))return `${kind}:${iata}`;
   if(icao&&byCode.has(icao))return `${kind}:${icao}`;
   const alias=byAlias.get(normalizeEntity(raw));if(alias)return `${kind}:${alias.code}`;
   const codes=raw.toUpperCase().match(/\b[A-Z0-9]{2,6}\b/g)||[];
   for(const code of codes)if(byCode.has(code))return `${kind}:${byCode.get(code).code}`;
-  if(isAirline){const flightPrefix=String(record?.flight||"").trim().match(/^([A-Z0-9]{2})[0-9]/i)?.[1]?.toUpperCase();if(flightPrefix&&entityIndex.airlinesByCode.has(flightPrefix))return `airline:${entityIndex.airlinesByCode.get(flightPrefix).code}`;}
+  if(isAirline&&flightPrefix&&entityIndex.airlinesByCode.has(flightPrefix))return `airline:${entityIndex.airlinesByCode.get(flightPrefix).code}`;
   const simplified=normalizeEntity(raw.replace(/\([^)]*\)/g,""));
   return `raw:${kind+":"+simplified}`;
 }

@@ -32,10 +32,10 @@
     </nav>
 
     <section class="bpm-explore-panel" data-explore-panel="atlas" aria-labelledby="atlasHeading">
-      <div class="bpm-explore-section-heading"><div><h2 id="atlasHeading" data-i18n="explore.atlas">关系图</h2><p data-i18n="explore.atlasNote">节点按出发地点、展品和航司关联。图中不推测目的地或实际航线。</p></div><div class="bpm-explore-legend"><span><i class="airport-dot"></i><span data-i18n="explore.airports">出发地点</span></span><span><i class="ticket-dot"></i><span data-i18n="explore.tickets">展品</span></span><span><i class="airline-dot"></i><span data-i18n="explore.operators">航司 / 运营公司</span></span></div></div>
+      <div class="bpm-explore-section-heading"><div><h2 id="atlasHeading" data-i18n="explore.atlas">关系图</h2><p data-i18n="explore.atlasNote">节点按出发地点、航班号和航司关联。同一航班号只有一个节点，点选后查看相关展品；图中不推测目的地或实际航线。</p></div><div class="bpm-explore-legend"><span><i class="airport-dot"></i><span data-i18n="explore.airports">出发地点</span></span><span><i class="ticket-dot"></i><span data-i18n="explore.tickets">航班号</span></span><span><i class="airline-dot"></i><span data-i18n="explore.operators">航司 / 运营公司</span></span></div></div>
       <div class="bpm-atlas-layout">
         <div class="bpm-atlas-stage" id="atlasStage" aria-live="polite"><p>星图正在展开…</p></div>
-        <aside class="bpm-atlas-detail" id="atlasDetail"><h3 data-i18n="explore.chooseNode">选择一个节点</h3><p data-i18n="explore.chooseNodeHint">点选机场、航司或展品，查看相关馆藏。</p></aside>
+        <aside class="bpm-atlas-detail" id="atlasDetail"><h3 data-i18n="explore.chooseNode">选择一个节点</h3><p data-i18n="explore.chooseNodeHint">点选出发地点、航班号或航司，查看相关展品。</p></aside>
       </div>
     </section>
 
@@ -54,6 +54,6 @@
     <p class="bpm-explore-footnote" data-i18n="explore.privacy">这里只使用已公开的审核通过展品；不会推测目的地，也不会展示待审核内容。</p>
   </main>
   <script src="auth.js?v=20261011-update-check"></script>
-  <script src="explore.js?v=20261011-entity-index"></script>
+  <script src="explore.js?v=20261011-flight-identity"></script>
 </body>
 </html>

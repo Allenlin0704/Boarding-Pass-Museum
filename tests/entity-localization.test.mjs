@@ -36,7 +36,7 @@ async function renderForLanguage(language, includeMalformed = false) {
   const museum = createElement('div');
   const resultCount = createElement('span');
   const aliases = {
-    airlines: [['CA', '“中国国际航空”', '"Air China"', 'CCA']],
+    airlines: [['CA', '“中国国际航空”', '"Air China"', 'CCA'], ['AIR', '国际空运', 'International Air Freight', 'AIR']],
     airports: [['PEK', '北京首都国际机场', 'Beijing Capital International Airport', 'ZBAA']],
   };
   const flights = [
