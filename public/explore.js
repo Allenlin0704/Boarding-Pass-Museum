@@ -13,9 +13,45 @@
   const $ = selector => document.querySelector(selector);
   const text = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const normalized = value => String(value || '').normalize('NFKC').trim().toLocaleLowerCase('en').replace(/[\s\p{P}\p{S}]/gu,'');
-  const airportKey = f => String(f.airport_iata || f.airport_icao || normalized(f.airport)).toUpperCase();
-  const operatorKey = f => String(f.airline_iata || f.airline_icao || normalized(f.airline)).toUpperCase();
-  const flightKey = f => normalized(f.flight);
+  const cleanName = value => String(value || '').trim().replace(/^[\s"'“”‘’《》]+|[\s"'“”‘’《》]+$/gu,'');
+  const entities = {airportsByCode:new Map(),airlinesByCode:new Map(),airportsByAlias:new Map(),airlinesByAlias:new Map()};
+  function addEntityRows(kind, rows) {
+    const byCode=kind==='airport'?entities.airportsByCode:entities.airlinesByCode;
+    const byAlias=kind==='airport'?entities.airportsByAlias:entities.airlinesByAlias;
+    for(const [rawCode,nameCn,nameEn,rawIcao] of rows||[]) {
+      const code=String(rawCode||'').trim().toUpperCase(),icao=String(rawIcao||'').trim().toUpperCase();
+      if(!code)continue;
+      const entry={code,nameCn:cleanName(nameCn),nameEn:cleanName(nameEn)};
+      byCode.set(code,entry);if(icao)byCode.set(icao,entry);
+      for(const alias of [code,icao,nameCn,nameEn]){const key=normalized(alias);if(key&&!byAlias.has(key))byAlias.set(key,entry);}
+    }
+  }
+  function entityCode(kind, record) {
+    const airline=kind==='airline',name=String(record?.[kind]||'').trim();
+    const byCode=airline?entities.airlinesByCode:entities.airportsByCode;
+    const byAlias=airline?entities.airlinesByAlias:entities.airportsByAlias;
+    const explicit=[record?.[airline?'airline_iata':'airport_iata'],record?.[airline?'airline_icao':'airport_icao']]
+      .map(value=>String(value||'').trim().toUpperCase()).find(code=>code&&byCode.has(code));
+    if(explicit)return byCode.get(explicit).code;
+    const alias=byAlias.get(normalized(name));if(alias)return alias.code;
+    const trailing=name.match(/\(([A-Z0-9]{2,5})\)\s*$/i);
+    if(trailing&&byCode.has(trailing[1].toUpperCase()))return byCode.get(trailing[1].toUpperCase()).code;
+    if(airline){const prefix=String(record?.flight||'').trim().match(/^([A-Z0-9]{2})[0-9]/i)?.[1]?.toUpperCase();if(prefix&&byCode.has(prefix))return byCode.get(prefix).code;}
+    return '';
+  }
+  const entityKey=(kind,record)=>{
+    const code=entityCode(kind,record);
+    return code?`${kind}:${code}`:`raw:${kind}:${normalized(String(record?.[kind]||'').replace(/\([^)]*\)\s*$/,''))}`;
+  };
+  const airportKey = f => entityKey('airport',f);
+  const operatorKey = f => entityKey('airline',f);
+  function entityLabel(kind,record) {
+    const code=entityCode(kind,record),byCode=kind==='airport'?entities.airportsByCode:entities.airlinesByCode;
+    const entry=code?byCode.get(code):null;
+    if(entry){const localized=language==='en'?entry.nameEn:entry.nameCn;return `${localized||entry.nameCn||entry.nameEn||cleanName(record?.[kind])} (${code})`;}
+    return cleanName(String(record?.[kind]||'').replace(/\s*\([A-Z0-9]{2,5}\)\s*$/i,''));
+  }
+  const flightKey = f => `${operatorKey(f)}:${normalized(f.flight)}`;
   const byDate = (a,b) => String(a.date || '').localeCompare(String(b.date || '')) || Number(a.id)-Number(b.id);
   let exhibits = [];
 
@@ -34,8 +70,8 @@
     const host = $('#atlasStage');
     if (!host) return;
     const rows = [...exhibits].sort((a,b) => String(b.date||'').localeCompare(String(a.date||''))).slice(0,22);
-    const airports = [...mapGroups(rows, airportKey)].map(([key,items])=>({key,items,label:items[0].airport||key,code:items[0].airport_iata||items[0].airport_icao||key}));
-    const operators = [...mapGroups(rows, operatorKey)].map(([key,items])=>({key,items,label:items[0].airline||key,code:items[0].airline_iata||items[0].airline_icao||key}));
+    const airports = [...mapGroups(rows, airportKey)].map(([key,items])=>({key,items,label:entityLabel('airport',items[0]),code:entityCode('airport',items[0])||items[0].airport_iata||items[0].airport_icao||items[0].airport||key}));
+    const operators = [...mapGroups(rows, operatorKey)].map(([key,items])=>({key,items,label:entityLabel('airline',items[0]),code:entityCode('airline',items[0])||items[0].airline_iata||items[0].airline_icao||items[0].airline||key}));
     const width=1080,top=68,rowGap=27,height=Math.max(420,top+rows.length*rowGap+58),leftX=155,centerX=540,rightX=925;
     const airportY=new Map(airports.map((g,i)=>[g.key,top+(i+1)*(height-top-48)/(airports.length+1)]));
     const operatorY=new Map(operators.map((g,i)=>[g.key,top+(i+1)*(height-top-48)/(operators.length+1)]));
@@ -50,8 +86,8 @@
     const box=$('#atlasDetail'); if(!box)return;
     let rows=[],heading='';
     if(kind==='ticket'){rows=exhibits.filter(f=>Number(f.id)===Number(key));heading=rows[0]?.flight||words.exhibit;}
-    else if(kind==='airport'){rows=exhibits.filter(f=>airportKey(f)===key);heading=rows[0]?.airport||key;}
-    else {rows=exhibits.filter(f=>operatorKey(f)===key);heading=rows[0]?.airline||key;}
+    else if(kind==='airport'){rows=exhibits.filter(f=>airportKey(f)===key);heading=rows[0]?entityLabel('airport',rows[0]):key;}
+    else {rows=exhibits.filter(f=>operatorKey(f)===key);heading=rows[0]?entityLabel('airline',rows[0]):key;}
     box.replaceChildren();
     const eyebrow=document.createElement('span');eyebrow.className='bpm-explore-eyebrow';eyebrow.textContent=kind==='ticket'?`#${Number(key)}`:kind==='airport'?words.airportsColumn:words.operatorsColumn;
     const title=document.createElement('h3');title.textContent=heading;
@@ -64,7 +100,7 @@
   function makeAtlasResult(f) {
     const a=document.createElement('a');a.className='bpm-atlas-result';a.href=`detail.html?id=${Number(f.id)}`;
     const img=document.createElement('img');img.src=f.image||'favicon.png';img.alt='';img.loading='lazy';
-    const copy=document.createElement('span');const strong=document.createElement('strong');strong.textContent=f.flight||words.exhibit;const small=document.createElement('small');small.textContent=`${f.airline||''} · ${f.date||''}`;copy.append(strong,small);a.append(img,copy);return a;
+    const copy=document.createElement('span');const strong=document.createElement('strong');strong.textContent=f.flight||words.exhibit;const small=document.createElement('small');small.textContent=`${entityLabel('airline',f)||''} · ${f.date||''}`;copy.append(strong,small);a.append(img,copy);return a;
   }
 
   function renderTime() {
@@ -77,12 +113,12 @@
     const query=normalized(search?.value),year=select.value;
     const rows=exhibits.filter(f=>(!year||String(f.date||'').startsWith(year))&&(!query||normalized(`${f.airline} ${f.airline_iata} ${f.flight}`).includes(query))).sort((a,b)=>byDate(b,a));
     if(count)count.textContent=`${rows.length} ${words.filtered}`;
-    list.innerHTML=rows.length?rows.map(f=>`<a class="bpm-time-item" href="detail.html?id=${Number(f.id)}"><time>${text(f.date||'—')}</time><img src="${text(f.image||'favicon.png')}" alt="" loading="lazy"><span><strong>${text(f.flight||words.exhibit)}</strong><small>${text(f.airline||'')} · ${text(f.airline_iata||'')}</small></span><small>${text(f.airport||'')}</small><span>${text(words.openArrow)}</span></a>`).join(''):`<p class="bpm-related-empty">${text(words.noHistory)}</p>`;
+    list.innerHTML=rows.length?rows.map(f=>`<a class="bpm-time-item" href="detail.html?id=${Number(f.id)}"><time>${text(f.date||'—')}</time><img src="${text(f.image||'favicon.png')}" alt="" loading="lazy"><span><strong>${text(f.flight||words.exhibit)}</strong><small>${text(entityLabel('airline',f))}</small></span><small>${text(entityLabel('airport',f))}</small><span>${text(words.openArrow)}</span></a>`).join(''):`<p class="bpm-related-empty">${text(words.noHistory)}</p>`;
   }
 
   function renderRelated() {
     const search=$('#relatedSearch'),airportSelect=$('#relatedAirport'),host=$('#relatedGroups');if(!host)return;
-    const airports=[...mapGroups(exhibits,airportKey)].map(([key,items])=>({key,label:items[0].airport||key})).sort((a,b)=>a.label.localeCompare(b.label,'zh-CN'));
+    const airports=[...mapGroups(exhibits,airportKey)].map(([key,items])=>({key,label:entityLabel('airport',items[0])||key})).sort((a,b)=>a.label.localeCompare(b.label,'zh-CN'));
     const selected=airportSelect.value;
     airportSelect.innerHTML=`<option value="">${text(words.allAirports)}</option>`+airports.map(a=>`<option value="${text(a.key)}">${text(a.label)}</option>`).join('');
     if(airports.some(a=>a.key===selected))airportSelect.value=selected;
@@ -91,9 +127,9 @@
     const flightGroups=[...mapGroups(filtered,flightKey)].filter(([,items])=>items.length>1).sort((a,b)=>a[0].localeCompare(b[0]));
     const airportGroups=airport?[...mapGroups(filtered,airportKey)].filter(([,items])=>items.length>1):[];
     const sections=[];
-    for(const [key,items] of flightGroups) sections.push({title:`${words.sameFlight} · ${items[0].flight||key}`,items});
+    for(const [key,items] of flightGroups) sections.push({title:`${words.sameFlight} · ${items[0].flight||key.split(':').at(-1)} · ${entityLabel('airline',items[0])}`,items});
     for(const [key,items] of airportGroups) sections.push({title:`${words.sameAirport} · ${items[0].airport||key}`,items});
-    host.innerHTML=sections.length?sections.map(group=>`<section class="bpm-related-group"><h3>${text(group.title)} <span>${group.items.length} ${text(words.matches)}</span></h3><div class="bpm-related-group-grid">${group.items.sort((a,b)=>byDate(b,a)).map(f=>`<a class="bpm-related-card" href="detail.html?id=${Number(f.id)}"><img src="${text(f.image||'favicon.png')}" alt="" loading="lazy"><div><strong>${text(f.flight||words.exhibit)}</strong><small>${text(f.airline||'')} · ${text(f.date||'')}</small></div></a>`).join('')}</div></section>`).join(''):`<p class="bpm-related-empty">${text(words.noMatches)}</p>`;
+    host.innerHTML=sections.length?sections.map(group=>`<section class="bpm-related-group"><h3>${text(group.title)} <span>${group.items.length} ${text(words.matches)}</span></h3><div class="bpm-related-group-grid">${group.items.sort((a,b)=>byDate(b,a)).map(f=>`<a class="bpm-related-card" href="detail.html?id=${Number(f.id)}"><img src="${text(f.image||'favicon.png')}" alt="" loading="lazy"><div><strong>${text(f.flight||words.exhibit)}</strong><small>${text(entityLabel('airline',f))} · ${text(f.date||'')}</small></div></a>`).join('')}</div></section>`).join(''):`<p class="bpm-related-empty">${text(words.noMatches)}</p>`;
   }
 
   async function init() {
@@ -101,7 +137,9 @@
     try {
       const response=await fetch('https://api.bpmuseum.org.cn/api/flights',{cache:'no-store'});
       if(!response.ok)throw new Error(`HTTP ${response.status}`);
-      const data=await response.json();exhibits=Array.isArray(data)?data:[];
+      const [data,aliasData]=await Promise.all([response.json(),fetch('/data/entity-aliases.json',{cache:'force-cache'}).then(result=>result.ok?result.json():null).catch(()=>null)]);
+      if(aliasData){addEntityRows('airport',aliasData.airports);addEntityRows('airline',aliasData.airlines);}
+      exhibits=Array.isArray(data)?data:[];
       const airports=mapGroups(exhibits,airportKey).size,operators=mapGroups(exhibits,operatorKey).size;
       if(metrics)metrics.innerHTML=`<span><strong>${exhibits.length}</strong><small>${text(words.items)}</small></span><span><strong>${airports}</strong><small>${text(words.airports)}</small></span><span><strong>${operators}</strong><small>${text(words.operators)}</small></span>`;
       drawAtlas();renderTime();renderRelated();

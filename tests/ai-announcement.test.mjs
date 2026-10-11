@@ -40,6 +40,8 @@ test('boarding-pass route scope, cabin class and markers are stored; invalid cab
   assert.equal(saved.status,'screening');
   const invalid=await call('/api/submit',{...payload,cabin_class:'fake_class',rules_consent:true,social_share_consent:true},3);
   assert.equal(invalid.status,400);
+  const unspecifiedCabin=await call('/api/submit',{...payload,cabin_class:'',rules_consent:true,social_share_consent:true},3);
+  assert.equal(unspecifiedCabin.status,400,'boarding-pass submissions must choose a cabin class explicitly');
   const invalidCountry=await call('/api/submit',{...payload,departure_country:'ZZ',rules_consent:true,social_share_consent:true},3);
   assert.equal(invalidCountry.status,400);
 });

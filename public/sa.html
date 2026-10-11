@@ -180,6 +180,12 @@ placeholder="输入展品 ID"
       <label>日期<input type="date" data-edit-flight="date"></label>
       <label class="sa-flight-rail-only" data-sa-rail-field hidden><span>到达车站</span><input data-edit-flight="route" maxlength="200"></label>
       <label data-sa-air-field>航线范围<select data-edit-flight="route_scope"><option value="">未设置</option><option value="domestic">国内</option><option value="international">国际</option><option value="regional">地区</option></select></label>
+      <label data-sa-air-field>登机牌形式<select data-edit-flight="ticket_format"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select></label>
+      <label data-sa-air-field>舱等<select data-edit-flight="cabin_class"><option value="">待核实 / 未设置</option><option value="economy">经济舱</option><option value="premium_economy">超级经济舱</option><option value="business">公务舱</option><option value="first_class">头等舱（豪华公务舱）</option><option value="other">其他</option></select></label>
+      <fieldset class="sa-flight-tags sa-flight-edit-wide" data-sa-air-field><legend>行李牌 / 服务标记（按票面选择）</legend>
+        <label><input type="checkbox" data-edit-special-tag value="business">公务舱</label><label><input type="checkbox" data-edit-special-tag value="premium_economy">超级经济舱</label><label><input type="checkbox" data-edit-special-tag value="first_class">头等舱</label><label><input type="checkbox" data-edit-special-tag value="silver">银卡</label><label><input type="checkbox" data-edit-special-tag value="gold">金卡</label><label><input type="checkbox" data-edit-special-tag value="platinum">白金卡</label><label><input type="checkbox" data-edit-special-tag value="special_assistance">特殊保障</label><label><input type="checkbox" data-edit-special-tag value="transfer">转机</label><label><input type="checkbox" data-edit-special-tag value="other">其他</label>
+        <input type="hidden" data-edit-flight="special_tags">
+      </fieldset>
       <label>出发国家 / 地区 · Departure country / region<select data-edit-flight="departure_country" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></label>
       <label>到达国家 / 地区 · Arrival country / region<select data-edit-flight="arrival_country" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></label>
       <label class="sa-flight-edit-wide">图片地址<input type="url" data-edit-flight="image"></label>

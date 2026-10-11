@@ -23,7 +23,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   assert.equal(saved.airport_iata,'BJP');
   assert.ok([1,2].includes(saved.reviewer_id));
   for(let index=0;index<19;index++){
-    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',departure_country:'CN',arrival_country:'CN',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
+    response=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',departure_country:'CN',arrival_country:'CN',airline:'Example Air',flight:`EA${index}`,airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',special_tags:[],rules_consent:true,social_share_consent:true},3);
     assert.equal(response.status,200);
   }
   assert.equal(db.prepare('SELECT social_share_consent FROM flights WHERE flight=?').get('EA0').social_share_consent,1);
@@ -35,7 +35,7 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
 
 test('submission requires both rules acceptance and social-share authorization',async()=>{
   const {call,db}=fixture();
-  const payload={airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
+  const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
   let response=await call('/api/submit',{...payload,rules_consent:false},3);
   assert.equal(response.status,400);
   response=await call('/api/submit',{...payload,social_share_consent:false},3);
@@ -60,7 +60,7 @@ test('domestic boarding passes and metro tickets do not require arrival country;
   assert.equal(response.status,413);
   response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'metro_ticket',image:common.image},1);
   assert.equal(response.status,413,'SA edits cannot bypass the metro-ticket image limit');
-  response=await call('/api/submit',{...common,submission_type:'boarding_pass',route_scope:'domestic',flight:'EA10',airport:'PEK',airline:'Example Air',airline_iata:'EA',arrival_country:''},3);
+  response=await call('/api/submit',{...common,submission_type:'boarding_pass',route_scope:'domestic',cabin_class:'economy',flight:'EA10',airport:'PEK',airline:'Example Air',airline_iata:'EA',arrival_country:''},3);
   assert.equal(response.status,200);
   saved=db.prepare('SELECT route_scope,arrival_country FROM flights WHERE flight=?').get('EA10');
   assert.deepEqual({...saved},{route_scope:'domestic',arrival_country:''});

@@ -61,6 +61,7 @@ function entityIdentity(kind,record){
   const alias=byAlias.get(normalizeEntity(raw));if(alias)return `${kind}:${alias.code}`;
   const codes=raw.toUpperCase().match(/\b[A-Z0-9]{2,6}\b/g)||[];
   for(const code of codes)if(byCode.has(code))return `${kind}:${byCode.get(code).code}`;
+  if(isAirline){const flightPrefix=String(record?.flight||"").trim().match(/^([A-Z0-9]{2})[0-9]/i)?.[1]?.toUpperCase();if(flightPrefix&&entityIndex.airlinesByCode.has(flightPrefix))return `airline:${entityIndex.airlinesByCode.get(flightPrefix).code}`;}
   const simplified=normalizeEntity(raw.replace(/\([^)]*\)/g,""));
   return `raw:${kind+":"+simplified}`;
 }
@@ -114,6 +115,7 @@ async function loadFlights() {
     } finally {
       if(requestTimeout)clearTimeout(requestTimeout);
     }
+    await entityIndexReady;
 
     flights =
       Array.isArray(data)
@@ -124,9 +126,6 @@ async function loadFlights() {
 
     populateMuseumFilters();
     applyMuseumFilter();
-    entityIndexReady.then(()=>{if(!flightsLoading&&!flightLoadFailed){populateMuseumFilters();applyMuseumFilter();}});
-
-
     const user =
     JSON.parse(
       localStorage.getItem("currentUser")
@@ -444,17 +443,18 @@ function renderMuseum() {
       }
       if(!Array.isArray(specialTags))specialTags=[];
       const labels=english
-        ? {rail:"Rail ticket",metro:"Metro ticket",boarding:"Boarding pass",digital:"Electronic boarding pass",paper:"Paper boarding pass",electronicTicket:"Electronic ticket",paperTicket:"Paper ticket",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station",domestic:"Domestic route",international:"International route",regional:"Regional route",business:"Business class",premium_economy:"Premium economy",first_class:"First class",silver:"Silver",gold:"Gold",platinum:"Platinum",special_assistance:"Special assistance",transfer:"Transfer",other:"Other",legacyTwoCabin:"Two-cabin baggage"}
+        ? {rail:"Rail ticket",metro:"Metro ticket",boarding:"Boarding pass",digital:"Electronic boarding pass",paper:"Paper boarding pass",electronicTicket:"Electronic ticket",paperTicket:"Paper ticket",operator:"Unknown operator",departureStation:"Departure station",departureAirport:"Departure airport",arrivalStation:"Arrival station",domestic:"Domestic route",international:"International route",regional:"Regional route",business:"Business class",premium_economy:"Premium economy",first_class:"First class",silver:"Silver",gold:"Gold",platinum:"Platinum",special_assistance:"Special assistance",transfer:"Transfer",other:"Other",legacyTwoCabin:"Two-cabin baggage",cabinUnverified:"Cabin class unverified"}
         : traditional
-          ? {rail:"火車票",metro:"地鐵票",boarding:"登機牌",digital:"電子登機牌",paper:"紙本登機牌",electronicTicket:"電子車票",paperTicket:"紙本車票",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站",domestic:"國內航線",international:"國際航線",regional:"地區航線",business:"商務艙",premium_economy:"超級經濟艙",first_class:"頭等艙",silver:"銀卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"轉機",other:"其他",legacyTwoCabin:"兩艙行李"}
-          : {rail:"火车票",metro:"地铁票",boarding:"登机牌",digital:"电子登机牌",paper:"纸质登机牌",electronicTicket:"电子车票",paperTicket:"纸质车票",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站",domestic:"国内航线",international:"国际航线",regional:"地区航线",business:"公务舱",premium_economy:"超级经济舱",first_class:"头等舱",silver:"银卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"转机",other:"其他",legacyTwoCabin:"两舱行李"};
+          ? {rail:"火車票",metro:"地鐵票",boarding:"登機牌",digital:"電子登機牌",paper:"紙本登機牌",electronicTicket:"電子車票",paperTicket:"紙本車票",operator:"未知營運業者",departureStation:"出發車站",departureAirport:"出發機場",arrivalStation:"抵達車站",domestic:"國內航線",international:"國際航線",regional:"地區航線",business:"商務艙",premium_economy:"超級經濟艙",first_class:"頭等艙",silver:"銀卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"轉機",other:"其他",legacyTwoCabin:"兩艙行李",cabinUnverified:"艙等待核實"}
+          : {rail:"火车票",metro:"地铁票",boarding:"登机牌",digital:"电子登机牌",paper:"纸质登机牌",electronicTicket:"电子车票",paperTicket:"纸质车票",operator:"未知运营公司",departureStation:"出发车站",departureAirport:"出发机场",arrivalStation:"到达车站",domestic:"国内航线",international:"国际航线",regional:"地区航线",business:"公务舱",premium_economy:"超级经济舱",first_class:"头等舱",silver:"银卡",gold:"金卡",platinum:"白金卡",special_assistance:"特殊保障",transfer:"转机",other:"其他",legacyTwoCabin:"两舱行李",cabinUnverified:"舱等待核实"};
       const cabinLabels=english?{economy:"Economy",premium_economy:"Premium economy",business:"Business",first_class:"First class (Business suite)",other:"Other"}:traditional?{economy:"經濟艙",premium_economy:"超級經濟艙",business:"商務艙",first_class:"頭等艙（豪華商務艙）",other:"其他"}:{economy:"经济舱",premium_economy:"超级经济舱",business:"公务舱",first_class:"头等舱（豪华公务舱）",other:"其他"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
       const tagIcons={business:"armchair",premium_economy:"armchair",first_class:"armchair",silver:"circle",gold:"circle",platinum:"circle",special_assistance:"alert",transfer:"repeat",other:"file",two_cabin:"armchair"};
       const specialBadges=specialTags.filter(tag=>tagIcons[tag]).map(tag=>badge(tagIcons[tag],labels[tag]||labels.legacyTwoCabin)).join("");
       const routeScopeBadge=!isTransit&&labels[flight.route_scope]?badge("globe",labels[flight.route_scope]):"";
-      const cabinBadge=!isTransit&&cabinLabels[flight.cabin_class]?badge("armchair",cabinLabels[flight.cabin_class]):"";
+      const cabinVerified=Number(flight.cabin_class_verified)===1;
+      const cabinBadge=!isTransit?(cabinVerified&&cabinLabels[flight.cabin_class]?badge("armchair",cabinLabels[flight.cabin_class]):!cabinVerified?badge("armchair",labels.cabinUnverified):""):"";
 
       let card =
         document.createElement("div");

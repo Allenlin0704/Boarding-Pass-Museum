@@ -168,7 +168,7 @@ function draftValue(){
     story: document.getElementById("story")?.value || "",
     submission_type:submissionTypeInput?.value||"boarding_pass",
     ticket_format:document.getElementById("ticketFormat")?.value||"paper",
-    cabin_class:document.getElementById("cabinClass")?.value||"economy",
+    cabin_class:document.getElementById("cabinClass")?.value||"",
     special_tags:[...document.querySelectorAll('input[name="specialTag"]:checked')].map(input=>input.value),
     rail_operator_code:selectedRailOperator?.iata||"",
     rail_operator_text:railOperatorInput?.value||"",
@@ -856,6 +856,7 @@ try{
 const submissionType=submissionTypeInput?.value||"boarding_pass",isRail=submissionType==="rail_ticket",isMetro=submissionType==="metro_ticket",isTransit=isRail||isMetro;
 
 if(!isTransit&&!routeScopeInput?.value){showToast(localizedChoiceText("请选择国内、国际或地区航线","Choose domestic, international, or regional route.","請選擇國內、國際或地區航線。"));return;}
+if(!isTransit&&!document.getElementById("cabinClass")?.value){showToast(localizedChoiceText("请选择票面上的舱等","Choose the cabin class shown on the ticket.","請選擇票面上的艙等。"));document.getElementById("cabinClass")?.focus();return;}
 
 
 
@@ -1107,7 +1108,7 @@ let flightData = {
 
 submission_type:submissionType,
 ticket_format:transit?document.getElementById("railTicketFormat").value:document.getElementById("ticketFormat").value,
-cabin_class:transit?"":(document.getElementById("cabinClass")?.value||"economy"),
+cabin_class:transit?"":(document.getElementById("cabinClass")?.value||""),
 departure_country:document.getElementById("departureCountry").value,
 arrival_country:(isMetro||(!isTransit&&routeScopeInput?.value==="domestic"))?"":document.getElementById("arrivalCountry").value,
 special_tags:transit?[]:[...document.querySelectorAll('input[name="specialTag"]:checked')].map(input=>input.value),

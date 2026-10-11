@@ -21,6 +21,8 @@ test('staff submissions always enter SA review, including SA self-review',async(
   assert.equal(admin.status,200);assert.equal(sa.status,200);
   assert.equal(db.prepare('SELECT reviewer_id FROM flights WHERE id=?').get(adminData.flight_id).reviewer_id,1);
   assert.equal(db.prepare('SELECT reviewer_id FROM flights WHERE id=?').get(saData.flight_id).reviewer_id,1);
+  assert.equal(db.prepare('SELECT cabin_class_verified FROM flights WHERE id=?').get(adminData.flight_id).cabin_class_verified,1);
+  assert.equal(db.prepare('SELECT cabin_class_verified FROM flights WHERE id=13').get().cabin_class_verified,0,'existing records remain unverified until SA checks the ticket');
   const queue=await (await call('/api/admin/pending?admin_id=1',undefined,1)).json();
   assert.ok(queue.some(flight=>flight.id===adminData.flight_id));
   assert.ok(queue.some(flight=>flight.id===saData.flight_id));

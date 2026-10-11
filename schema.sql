@@ -29,6 +29,13 @@ ticket_format TEXT NOT NULL DEFAULT 'paper',
 departure_country TEXT NOT NULL DEFAULT '',
 arrival_country TEXT NOT NULL DEFAULT '',
 special_tags TEXT NOT NULL DEFAULT '[]',
+route_scope TEXT NOT NULL DEFAULT '',
+cabin_class TEXT NOT NULL DEFAULT 'economy',
+cabin_class_verified INTEGER NOT NULL DEFAULT 0 CHECK(cabin_class_verified IN (0,1)),
+airline_iata TEXT NOT NULL DEFAULT '',
+airline_icao TEXT NOT NULL DEFAULT '',
+airport_iata TEXT NOT NULL DEFAULT '',
+airport_icao TEXT NOT NULL DEFAULT '',
 issue_airport TEXT
 );
 

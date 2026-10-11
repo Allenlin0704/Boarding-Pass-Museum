@@ -611,6 +611,7 @@ async function loadSAIncompleteFlights(){
     const box=document.getElementById("saIncompleteFlights");
     if(!box)return;
     try{
+        await loadSAEditCatalogs();
         const response=await apiFetch(`${API}/api/sa/flights?sa_id=${encodeURIComponent(user.id)}`,{credentials:"include",cache:"no-store"});
         const rows=await response.json();
         if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"展品信息读取失败");
@@ -628,7 +629,12 @@ async function loadSAIncompleteFlights(){
                 if(rail&&!flight.arrival_country)missing.push("到达国家或地区");
             }else{
                 if(!flight.airport)missing.push("出发机场");
+                if(!saEditFindEntity("airline",flight.airline,flight.airline_iata||flight.airline_icao))missing.push("航空公司目录匹配");
+                if(!saEditFindEntity("airport",flight.airport,flight.airport_iata||flight.airport_icao))missing.push("机场目录匹配");
+                const carrierPrefix=String(flight.flight||"").trim().match(/^([A-Z0-9]{2})[0-9]/i)?.[1]?.toUpperCase();
+                if(carrierPrefix&&flight.airline_iata&&carrierPrefix!==String(flight.airline_iata).toUpperCase())missing.push("航司代码与航班号前缀不一致");
                 if(!flight.route_scope)missing.push("航线范围");
+                if(Number(flight.cabin_class_verified)!==1)missing.push("舱等待核实");
                 if(flight.route_scope!=="domestic"&&!flight.arrival_country)missing.push("到达国家或地区");
             }
             return {flight,missing};
@@ -934,8 +940,6 @@ loadSitePhotoManager();
 
 loadSAReviewQueue();
 
-loadSAIncompleteFlights();
-
 loadAdminRequests();
 
 loadUsers();
@@ -1122,6 +1126,7 @@ function setSAEditMode(type){
     const routeScope=document.querySelector('[data-edit-flight="route_scope"]')?.value;
     const arrivalCountry=document.querySelector('[data-edit-flight="arrival_country"]')?.closest("label");
     if(arrivalCountry)arrivalCountry.hidden=metro||(!transit&&routeScope==="domestic");
+    const cabin=document.querySelector('[data-edit-flight="cabin_class"]');if(cabin)cabin.required=!transit;
 }
 document.querySelector('[data-edit-flight="submission_type"]')?.addEventListener("change",event=>setSAEditMode(event.target.value));
 document.querySelector('[data-edit-flight="route_scope"]')?.addEventListener("change",()=>setSAEditMode(document.querySelector('[data-edit-flight="submission_type"]')?.value||"boarding_pass"));
@@ -1142,6 +1147,9 @@ async function openSAFlightEditorById(flightId,options={}){
     form.querySelector("#saveSAFlightEdit").disabled=false;
     saFlightEditContext={flightId:Number(flight.id),correctionId:Number(options.correctionId)||null};
     form.querySelectorAll("[data-edit-flight]").forEach(input=>input.value=flight[input.dataset.editFlight]??(input.dataset.editFlight==="submission_type"?"boarding_pass":""));
+    if(Number(flight.cabin_class_verified)!==1)form.querySelector('[data-edit-flight="cabin_class"]').value="";
+    let existingTags=[];try{existingTags=Array.isArray(flight.special_tags)?flight.special_tags:JSON.parse(flight.special_tags||"[]");}catch{existingTags=[];}
+    form.querySelectorAll("[data-edit-special-tag]").forEach(input=>input.checked=existingTags.includes(input.value));
     for(const kind of ["airline","airport"]){
         const input=form.querySelector(`[data-sa-catalog-input="${kind}"]`),codeKey=kind==="airline"?"airline_iata":"airport_iata",match=saEditFindEntity(kind,flight[kind],flight[codeKey]);
         if(match){input.value=saEditDisplayEntity(match);form.querySelector(`[data-edit-flight="${codeKey}"]`).value=match.iata||"";form.querySelector(`[data-edit-flight="${kind==="airline"?"airline_icao":"airport_icao"}"]`).value=match.icao||"";}
@@ -1158,6 +1166,8 @@ async function openSAFlightEditorById(flightId,options={}){
     dialog.showModal();
 }
 
+loadSAIncompleteFlights();
+
 document.getElementById("closeSAFlightEdit")?.addEventListener("click",()=>document.getElementById("saFlightEditDialog").close());
 document.getElementById("cancelSAFlightEdit")?.addEventListener("click",()=>document.getElementById("saFlightEditDialog").close());
 document.getElementById("saFlightEditForm")?.addEventListener("submit",async event=>{
@@ -1165,6 +1175,8 @@ document.getElementById("saFlightEditForm")?.addEventListener("submit",async eve
     if(!saFlightEditContext)return;
     const form=event.currentTarget,save=form.querySelector("#saveSAFlightEdit"),flightUpdates={};
     form.querySelectorAll("[data-edit-flight]").forEach(input=>flightUpdates[input.dataset.editFlight]=input.value.trim());
+    flightUpdates.special_tags=JSON.stringify([...form.querySelectorAll("[data-edit-special-tag]:checked")].map(input=>input.value));
+    if(["rail_ticket","metro_ticket"].includes(flightUpdates.submission_type)){flightUpdates.cabin_class="";flightUpdates.special_tags="[]";}
     if(flightUpdates.submission_type==="boarding_pass")flightUpdates.route="";
     save.disabled=true;
     try{

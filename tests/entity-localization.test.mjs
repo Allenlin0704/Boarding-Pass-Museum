@@ -24,7 +24,7 @@ function createElement(tagName = 'div') {
   };
 }
 
-async function renderForLanguage(language) {
+async function renderForLanguage(language, includeMalformed = false) {
   const selects = new Map();
   for (const id of ['museumAirline', 'museumAirport', 'museumYear', 'museumSort']) {
     selects.set(id, createElement('select'));
@@ -42,6 +42,7 @@ async function renderForLanguage(language) {
   const flights = [
     { id: 1, airline: '中国国际航空', airline_iata: '', airport: '北京首都国际机场', airport_iata: '', flight: 'CA123', date: '2026-01-01', story: 'A flight story', status: 'approved' },
     { id: 2, airline: 'Air China', airline_iata: 'CA', airport: 'Beijing Capital International Airport', airport_iata: 'PEK', flight: 'CA456', date: '2026-01-02', story: 'Another flight story', status: 'approved' },
+    ...(includeMalformed ? [{ id: 3, airline: '国际空运', airline_iata: 'AIR', airport: '北京首都国际机场', airport_iata: 'PEK', flight: 'CA789', date: '2026-01-03', story: '', status: 'approved' }] : []),
   ];
   const document = {
     getElementById(id) { return id === 'museum' ? museum : id === 'museumResultCount' ? resultCount : id === 'museumSort' ? selects.get(id) : selects.get(id); },
@@ -81,7 +82,8 @@ async function renderForLanguage(language) {
 
 test('gallery filters merge Chinese and English aliases by airline and airport code', async () => {
   for (const language of ['zh-CN', 'en', 'zh-TW']) {
-    const { selects } = await renderForLanguage(language);
+    const { selects, museum } = await renderForLanguage(language, true);
+    await new Promise(resolve => setImmediate(resolve));
     assert.equal(selects.get('museumAirline').children.length, 2, `${language}: one placeholder and one airline`);
     assert.equal(selects.get('museumAirport').children.length, 2, `${language}: one placeholder and one airport`);
     assert.equal(selects.get('museumAirline').children[1].value, 'airline:CA');
@@ -90,6 +92,9 @@ test('gallery filters merge Chinese and English aliases by airline and airport c
     assert.match(selects.get('museumAirport').children[1].textContent, /\(PEK\)$/);
     assert.match(selects.get('museumAirline').children[1].textContent, language === 'en' ? /Air China/ : /中国国际航空/);
     assert.match(selects.get('museumAirport').children[1].textContent, language === 'en' ? /Beijing Capital/ : /北京首都国际机场/);
+    const cardsHtml=museum.children.map(card=>card.innerHTML).join('');
+    assert.match(cardsHtml, language === 'en' ? /Air China \(CA\)/ : /中国国际航空 \(CA\)/, `${language}: malformed AIR label falls back to the catalog carrier prefix`);
+    assert.doesNotMatch(cardsHtml, /国际空运/);
   }
 });
 
