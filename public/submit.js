@@ -554,7 +554,7 @@ ${displayName(item)}
 
 <span>
 
-${window.BPM_LANGUAGE==="zh-CN"?item.name_en||"":window.BPM_LANGUAGE==="zh-TW"?"":item.name_cn||""}
+${window.BPM_LANGUAGE==="en"?item.name_cn||"":item.name_en||""}
 
 </span>
 
@@ -678,9 +678,9 @@ return "";
 
 
 
-let name=window.BPM_LANGUAGE==="zh-CN"
-  ? item.name_cn||item.name_en||""
-  : item.name_en||item.name_cn||"";
+let name=window.BPM_LANGUAGE==="en"
+  ? item.name_en||item.name_cn||""
+  : item.name_cn||item.name_en||"";
 
 
 

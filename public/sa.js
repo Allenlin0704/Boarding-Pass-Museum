@@ -586,6 +586,45 @@ async function loadSAFlights(){
 
 }
 
+async function loadSAIncompleteFlights(){
+    const box=document.getElementById("saIncompleteFlights");
+    if(!box)return;
+    try{
+        const response=await fetch(`${API}/api/sa/flights?sa_id=${encodeURIComponent(user.id)}`,{credentials:"include",cache:"no-store"});
+        const rows=await response.json();
+        if(!response.ok||!Array.isArray(rows))throw Error(rows.error||"展品信息读取失败");
+        const incomplete=rows.map(bpmSafeRecord).map(flight=>{
+            const missing=[];
+            const rail=flight.submission_type==="rail_ticket";
+            if(!flight.image)missing.push("展品图片");
+            if(!flight.airline)missing.push(rail?"铁路运营公司":"航空公司");
+            if(!flight.flight)missing.push(rail?"车次":"航班号");
+            if(!flight.date)missing.push(rail?"乘车日期":"飞行日期");
+            if(rail){
+                if(!flight.airport)missing.push("出发车站");
+                if(!flight.departure_country)missing.push("出发国家或地区");
+                if(!flight.route)missing.push("到达车站");
+                if(!flight.arrival_country)missing.push("到达国家或地区");
+            }else{
+                if(!flight.airport)missing.push("出发机场");
+                if(!flight.route_scope)missing.push("航线范围");
+            }
+            return {flight,missing};
+        }).filter(item=>item.missing.length);
+        if(!incomplete.length){box.textContent="目前没有发现缺少必要信息的展品。";return;}
+        box.innerHTML=incomplete.map(({flight,missing})=>`<article class="sa-incomplete-flight"><div><strong>#${Number(flight.id)} · ${escapeSACommunityHTML(flight.airline||"未填写承运方")} ${escapeSACommunityHTML(flight.flight||"")}</strong><p>状态：${escapeSACommunityHTML(flight.status||"未知")} · 投稿日期：${escapeSACommunityHTML(flight.created_at||"未知")}</p><p>缺少：${missing.map(escapeSACommunityHTML).join("、")}</p></div><button type="button" data-sa-incomplete-id="${Number(flight.id)}">查看记录</button></article>`).join("");
+        box.onclick=event=>{
+            const button=event.target.closest("[data-sa-incomplete-id]");
+            if(!button)return;
+            const input=document.getElementById("flightSearchId");
+            if(input)input.value=button.dataset.saIncompleteId;
+            document.getElementById("searchSAFlight")?.click();
+        };
+    }catch(error){
+        box.textContent=`检查展品失败：${error.message||"请稍后重试"}`;
+    }
+}
+
 
 
 async function deleteSAFlight(id){
@@ -901,6 +940,8 @@ loadReviewerSchedule();
 loadFlightCorrections();
 
 loadSitePhotoManager();
+
+loadSAIncompleteFlights();
 
 loadAdminRequests();
 

@@ -88,6 +88,8 @@ test('gallery filters merge Chinese and English aliases by airline and airport c
     assert.equal(selects.get('museumAirport').children[1].value, 'airport:PEK');
     assert.match(selects.get('museumAirline').children[1].textContent, /\(CA\)$/);
     assert.match(selects.get('museumAirport').children[1].textContent, /\(PEK\)$/);
+    assert.match(selects.get('museumAirline').children[1].textContent, language === 'en' ? /Air China/ : /中国国际航空/);
+    assert.match(selects.get('museumAirport').children[1].textContent, language === 'en' ? /Beijing Capital/ : /北京首都国际机场/);
   }
 });
 

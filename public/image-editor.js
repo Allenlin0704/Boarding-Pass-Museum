@@ -1,5 +1,6 @@
 (() => {
   const path = location.pathname;
+  const isImageEditorPage = /(?:^|\/)image-editor(?:\.html)?\/?$/i.test(path);
   const openButton = document.getElementById("openImageEditor");
   const notify = message => {
     let node = document.getElementById("imageEditorMessage");
@@ -63,7 +64,7 @@
     }
   });
 
-  if (path.endsWith("/image-editor.html")) {
+  if (isImageEditorPage) {
     const sourceStatus=document.getElementById("imageEditorSourceStatus"),sourcePicker=document.getElementById("ticketImage");
     const showPicker=()=>{if(sourceStatus)sourceStatus.hidden=false;};
     window.addEventListener("bpm-image-source-ready",()=>{if(sourceStatus)sourceStatus.hidden=true;});

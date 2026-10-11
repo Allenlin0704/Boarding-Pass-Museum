@@ -1,5 +1,6 @@
 const imageInput = document.getElementById("ticketImage");
 const canvas = document.getElementById("watermarkCanvas");
+const isImageEditorPage = /(?:^|\/)image-editor(?:\.html)?\/?$/i.test(location.pathname);
 
 if (imageInput && canvas) {
 
@@ -321,7 +322,7 @@ if (imageInput && canvas) {
         try{const legacy=sessionStorage.getItem(legacyKey);if(legacy){sessionStorage.removeItem(legacyKey);return legacy;}}catch{}
         return null;
     }
-    if(location.pathname.endsWith("/image-editor.html")){takeEditorImage("source","bpmImageEditorSource").then(source=>{if(source)window.bpmLoadEditorSource(source);});}
+    if(isImageEditorPage){takeEditorImage("source","bpmImageEditorSource").then(source=>{if(source)window.bpmLoadEditorSource(source);});}
     window.addEventListener("pageshow",()=>{restoreWatermarkSettings();takeEditorImage("result","bpmImageEditorResult").then(result=>{if(result)window.bpmLoadEditorSource(result);});});
 
 

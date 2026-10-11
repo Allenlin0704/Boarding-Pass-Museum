@@ -64,7 +64,7 @@ function entityLabel(kind,record){
     if(/^[A-Z0-9]{2,5}$/i.test(raw))return window.BPM_LANGUAGE==="en"?`Unlisted ${kind==="airline"?"airline":"airport"} (${raw.toUpperCase()})`:window.BPM_LANGUAGE==="zh-TW"?`未收錄${kind==="airline"?"航空公司":"機場"}（${raw.toUpperCase()}）`:`未收录${kind==="airline"?"航司":"机场"}（${raw.toUpperCase()}）`;
     return raw;
   }
-  const localized=window.BPM_LANGUAGE==="zh-CN"?entry.nameCn:entry.nameEn;
+  const localized=window.BPM_LANGUAGE==="en"?entry.nameEn:entry.nameCn;
   return `${localized||entry.nameCn||entry.nameEn||record?.[kind]||code} (${entry.code})`;
 }
 function entitySearchNames(kind,record){
