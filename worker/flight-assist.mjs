@@ -56,9 +56,9 @@ export async function flightAssistRoute(request,env,url,user,trustedCountry){
   const prompt='读取这张已由用户裁剪、旋转、遮挡并压缩的登机牌。只识别填写表单所需的航司名称及 IATA/ICAO 代码、航班号、航班日期（统一 YYYY-MM-DD）、出发机场名称及 IATA/ICAO 代码、打印机场名称及代码、航线范围（domestic/international/regional）。看不清或不能确定时返回空字符串，严禁猜测。不要输出、转录或解释乘客姓名、票号、订单号、PNR、会员号、二维码、条形码或其他个人信息。只返回 JSON 对象，字段为 airline_name, airline_iata, airline_icao, flight_number, flight_date, departure_airport_name, departure_airport_iata, departure_airport_icao, issue_airport_name, issue_airport_iata, issue_airport_icao, route_scope。';
   let response;
   try{
-    response=await fetch(provider.endpoint,{method:'POST',headers:{Authorization:`Bearer ${aiProviderKey(provider,env)}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(18000),body:JSON.stringify({model:aiProviderModel(provider,env),temperature:0,max_tokens:450,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${base64}`}}]}]})});
-  }catch{return reply({error:'AI 识别暂时不可用，请稍后重试'},503);}
-  if(!response.ok)return reply({error:response.status===429?'AI 服务繁忙，请稍后再试':'AI 识别暂时不可用，请手动填写'},503);
+    response=await fetch(provider.endpoint,{method:'POST',headers:{Authorization:`Bearer ${aiProviderKey(provider,env)}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(25000),body:JSON.stringify({model:aiProviderModel(provider,env),thinking:{type:'disabled'},temperature:0,max_tokens:450,response_format:{type:'json_object'},messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:`data:image/jpeg;base64,${base64}`}}]}]})});
+  }catch(error){console.error('Doubao recognition request failed',{name:String(error?.name||'Error')});return reply({error:'AI 识别暂时不可用，请稍后重试'},503);}
+  if(!response.ok){let providerCode='';try{const payload=await response.clone().json();providerCode=String(payload?.error?.code||payload?.code||'').slice(0,80);}catch{}console.error('Doubao recognition rejected',{status:response.status,code:providerCode});return reply({error:response.status===429?'AI 服务繁忙，请稍后再试':'AI 识别暂时不可用，请手动填写'},503);}
   let payload;
   try{payload=await response.json();}catch{return reply({error:'AI 返回结果无法读取，请手动填写'},502);}
   const content=payload?.choices?.[0]?.message?.content;

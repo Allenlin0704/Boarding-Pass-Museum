@@ -26,6 +26,7 @@ test('mainland recognition uses Doubao and returns sanitized fields from edited 
     assert.deepEqual(data.fields,{airline_name:'Air China',airline_iata:'CA',airline_icao:'',flight_number:'CA 123',flight_date:'2026-08-17',departure_airport_name:'Beijing Capital International Airport',departure_airport_iata:'PEK',departure_airport_icao:'',issue_airport_name:'',issue_airport_iata:'PEK',issue_airport_icao:'',route_scope:'international'});
     assert.equal(JSON.stringify(data).includes('should not return'),false);
     assert.equal(sent.model,'doubao-vision-test');
+    assert.deepEqual(sent.thinking,{type:'disabled'});
     assert.equal(sent.messages[0].content[1].image_url.url.startsWith('data:image/jpeg;base64,'),true);
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM auth_limits').get().count,2);
   }finally{globalThis.fetch=originalFetch;}
@@ -82,6 +83,7 @@ test('public story translation uses Doubao in every region',async()=>{
   globalThis.fetch=async(url,init)=>{
     assert.equal(url,'https://ark.cn-beijing.volces.com/api/v3/chat/completions');
     assert.equal(JSON.parse(init.body).model,'doubao-text-test');
+    assert.deepEqual(JSON.parse(init.body).thinking,{type:'disabled'});
     return Response.json({choices:[{message:{content:'Translated story'}}]});
   };
   try{
