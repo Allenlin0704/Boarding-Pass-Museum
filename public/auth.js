@@ -80,6 +80,23 @@ function updateNavbar(){
     }
 
 
+    const adminWorkspacePage=location.hostname==="admin.bpmuseum.org.cn"&&["/sa.html","/moderation.html"].includes(location.pathname);
+    if(adminWorkspacePage){
+        const isSAConsole=location.pathname==="/sa.html";
+        nav.innerHTML=`${isSAConsole?"":"<a href=\"sa.html\">返回 SA 工作台</a>"}<a href="admin-settings.html">登录设置</a><a href="#" id="logout">退出管理中心</a>`;
+        setupMobileNavigation();
+        document.getElementById("logout")?.addEventListener("click",async event=>{
+            event.preventDefault();
+            if(!confirm("要退出管理员工作区吗？"))return;
+            try{await fetch("https://api.bpmuseum.org.cn/api/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});}catch{}
+            localStorage.removeItem("currentUser");
+            sessionStorage.removeItem("bpm_admin_entry_authenticated");
+            location.replace("admin-login.html");
+        });
+        return;
+    }
+
+
 
     // 未登录状态
 
