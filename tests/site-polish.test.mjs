@@ -20,7 +20,7 @@ test('the shared visual system loads after page styles on every styled public pa
 
 test('the service worker precaches the shared design stylesheet in a fresh shell cache', () => {
   const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(worker, /bpmuseum-shell-v29/);
+  assert.match(worker, /bpmuseum-shell-v30/);
   assert.match(worker, /'\/site-polish\.css'/);
   assert.match(worker, /'\/admin-login\.html'/);
 });
@@ -28,7 +28,7 @@ test('the service worker precaches the shared design stylesheet in a fresh shell
 test('about page credits the used projects and providers and links to the public source repository', () => {
   const about = readFileSync(new URL('../public/about.html', import.meta.url), 'utf8');
   const theme = readFileSync(new URL('../public/theme.js', import.meta.url), 'utf8');
-  for (const name of ['Lucide Icons', 'Feather', 'SimpleWebAuthn', '火山引擎豆包', 'Cloudflare', 'Resend']) {
+  for (const name of ['Lucide Icons', 'Feather', 'SimpleWebAuthn', 'Cloudflare Workers AI', 'Cloudflare', 'Resend']) {
     assert.ok(about.includes(name), `about page should credit ${name}`);
   }
   assert.match(about, /https:\/\/github\.com\/lucide-icons\/lucide/);

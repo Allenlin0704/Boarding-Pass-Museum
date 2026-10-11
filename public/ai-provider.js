@@ -12,7 +12,7 @@
     .then((data) => {
       if (!data?.provider) return;
       const english = document.documentElement.lang === 'en' || window.BPM_LANGUAGE === 'en';
-      providerName = english ? 'Doubao' : '豆包';
+      providerName = english ? 'Cloudflare Workers AI' : 'Cloudflare AI';
       updateSlots();
     })
     .catch(() => {});

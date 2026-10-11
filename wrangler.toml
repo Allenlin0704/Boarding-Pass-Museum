@@ -3,6 +3,9 @@ main = "worker/index.js"
 compatibility_date = "2026-08-17"
 keep_vars = true
 
+[ai]
+binding = "AI"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "boardingpassmuseum-db"
@@ -16,4 +19,3 @@ crons = ["0 * * * *"]
 
 [vars]
 TURNSTILE_HOSTNAMES = "bpmuseum.org.cn,www.bpmuseum.org.cn,admin.bpmuseum.org.cn"
-DOUBAO_MODEL = "doubao-seed-2-1-pro-260915"
