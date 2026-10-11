@@ -77,7 +77,8 @@
     const host = $('#atlasStage');
     if (!host) return;
     const rows = [...exhibits].sort((a,b) => String(b.date||'').localeCompare(String(a.date||''))).slice(0,22);
-    const flights = [...mapGroups(rows, atlasFlightKey)].map(([key,items])=>({key,items,label:items[0].flight||words.exhibit}));
+    const allFlightGroups=mapGroups(exhibits,atlasFlightKey);
+    const flights = [...mapGroups(rows, atlasFlightKey)].map(([key,items])=>({key,items,label:items[0].flight||words.exhibit,count:allFlightGroups.get(key)?.length||items.length}));
     const airports = [...mapGroups(rows, airportKey)].map(([key,items])=>({key,items,label:entityLabel('airport',items[0]),code:entityCode('airport',items[0])||items[0].airport_iata||items[0].airport_icao||items[0].airport||key}));
     const operators = [...mapGroups(rows, operatorKey)].map(([key,items])=>({key,items,label:entityLabel('airline',items[0]),code:entityCode('airline',items[0])||items[0].airline_iata||items[0].airline_icao||items[0].airline||key}));
     const width=1080,top=68,rowGap=27,height=Math.max(420,top+flights.length*rowGap+58),leftX=155,centerX=540,rightX=925;
@@ -91,7 +92,7 @@
     }).join('');
     const airportNodes=airports.map(g=>`<g class="bpm-atlas-node airport" data-node-kind="airport" data-node-key="${text(g.key)}" tabindex="0" role="button" aria-label="${text(g.label)} · ${g.items.length} ${text(words.items)}"><circle cx="${leftX}" cy="${airportY.get(g.key)}" r="${Math.min(18,8+g.items.length)}"/><text class="bpm-atlas-label" x="${leftX-18}" y="${airportY.get(g.key)-17}" text-anchor="end">${text(g.code)}</text></g>`).join('');
     const operatorNodes=operators.map(g=>`<g class="bpm-atlas-node airline" data-node-kind="operator" data-node-key="${text(g.key)}" tabindex="0" role="button" aria-label="${text(g.label)} · ${g.items.length} ${text(words.items)}"><circle cx="${rightX}" cy="${operatorY.get(g.key)}" r="${Math.min(18,8+g.items.length)}"/><text class="bpm-atlas-label" x="${rightX+18}" y="${operatorY.get(g.key)+4}">${text(g.code)}</text></g>`).join('');
-    const ticketNodes=flights.map(g=>{const y=flightY.get(g.key),label=g.label,count=g.items.length;return `<g class="bpm-atlas-node ticket" data-node-kind="flight" data-node-key="${text(g.key)}" tabindex="0" role="button" aria-label="${text(label)} · ${count} ${text(words.items)}"><rect x="${centerX-5}" y="${y-5}" width="10" height="10"/><text class="bpm-atlas-small" x="${centerX+14}" y="${y+4}">${text(label)}</text></g>`;}).join('');
+    const ticketNodes=flights.map(g=>{const y=flightY.get(g.key),label=g.label,count=g.count;return `<g class="bpm-atlas-node ticket" data-node-kind="flight" data-node-key="${text(g.key)}" tabindex="0" role="button" aria-label="${text(label)} · ${count} ${text(words.items)}"><rect x="${centerX-5}" y="${y-5}" width="10" height="10"/><text class="bpm-atlas-small" x="${centerX+14}" y="${y+4}">${text(label)}</text></g>`;}).join('');
     host.innerHTML=`<svg viewBox="0 0 ${width} ${height}" role="group" aria-label="${text(words.airportsColumn)} – ${text(words.ticketsColumn)} – ${text(words.operatorsColumn)}"> <text class="bpm-atlas-small" x="${leftX}" y="32" text-anchor="middle">${text(words.airportsColumn)}</text><text class="bpm-atlas-small" x="${centerX}" y="32" text-anchor="middle">${text(words.ticketsColumn)}</text><text class="bpm-atlas-small" x="${rightX}" y="32" text-anchor="middle">${text(words.operatorsColumn)}</text>${edges}${airportNodes}${ticketNodes}${operatorNodes}<text class="bpm-atlas-small" x="${width-18}" y="${height-15}" text-anchor="end">${text(language==='en'?'Most recent 22 exhibits':language==='zh-TW'?'最近 22 件展品':'最近 22 件展品')}</text></svg>`;
   }
 
