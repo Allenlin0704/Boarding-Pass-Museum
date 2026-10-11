@@ -80,9 +80,9 @@ function updateNavbar(){
     }
 
 
-    const adminWorkspacePage=location.hostname==="admin.bpmuseum.org.cn"&&["/sa.html","/moderation.html"].includes(location.pathname);
+    const adminWorkspacePage=location.hostname==="admin.bpmuseum.org.cn"&&["/sa.html","/sa","/moderation.html","/moderation"].includes(location.pathname);
     if(adminWorkspacePage){
-        const isSAConsole=location.pathname==="/sa.html";
+        const isSAConsole=["/sa.html","/sa"].includes(location.pathname);
         nav.innerHTML=`${isSAConsole?"":"<a href=\"sa.html\">返回 SA 工作台</a>"}<a href="admin-settings.html">登录设置</a><a href="#" id="logout">退出管理中心</a>`;
         setupMobileNavigation();
         document.getElementById("logout")?.addEventListener("click",async event=>{
