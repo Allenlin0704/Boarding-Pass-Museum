@@ -1,6 +1,7 @@
 name = "boardingpassmuseum-api"
 main = "worker/index.js"
 compatibility_date = "2026-08-17"
+keep_vars = true
 
 [[d1_databases]]
 binding = "DB"
