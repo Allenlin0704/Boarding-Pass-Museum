@@ -853,20 +853,28 @@ loadPublicLinks();
 
 function activateSAConsolePanel(panelId){
   const panels=[...document.querySelectorAll(".bpm-sa-page .sa-panel, .bpm-sa-page > #appeals")];
-  const selected=panels.some(panel=>panel.id===panelId)?panelId:"saSecurityPanel";
+  const selected=panels.some(panel=>panel.id===panelId)?panelId:"saReviewQueuePanel";
   panels.forEach(panel=>{panel.hidden=panel.id!==selected;});
   document.querySelectorAll(".bpm-sa-section-nav a[href^='#']").forEach(link=>{
     const active=link.hash.slice(1)===selected;
     if(active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
   });
+  const mobileSelect=document.getElementById("saMobileSectionSelect");
+  if(mobileSelect)mobileSelect.value=selected;
 }
 document.querySelector(".bpm-sa-section-nav")?.addEventListener("click",event=>{
   const link=event.target.closest("a[href^='#']");if(!link)return;
   const panelId=link.hash.slice(1);if(!document.getElementById(panelId))return;
   event.preventDefault();history.replaceState(null,"",`#${panelId}`);activateSAConsolePanel(panelId);
 });
+document.getElementById("saMobileSectionSelect")?.addEventListener("change",event=>{
+  const panelId=event.currentTarget.value;
+  if(!document.getElementById(panelId))return;
+  history.replaceState(null,"",`#${panelId}`);activateSAConsolePanel(panelId);
+  window.scrollTo({top:0,behavior:"smooth"});
+});
 window.addEventListener("hashchange",()=>activateSAConsolePanel(location.hash.slice(1)));
-activateSAConsolePanel(location.hash.slice(1)||"saSecurityPanel");
+activateSAConsolePanel(location.hash.slice(1)||"saReviewQueuePanel");
 
 // ==========================
 // 账户注销申请（SA 审核）

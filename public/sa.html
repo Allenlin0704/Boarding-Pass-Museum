@@ -7,7 +7,7 @@
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
   <script src="theme.js?v=20261011-browser-nav"></script>
-<link rel="stylesheet" href="features.css?v=20261011-sa-review">
+<link rel="stylesheet" href="features.css?v=20261011-sa-mobile-ui">
 <meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
 </head>
 
@@ -18,6 +18,28 @@
 
 <nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
 <a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+<label class="bpm-sa-mobile-nav-label" for="saMobileSectionSelect">打开管理页面</label>
+<select id="saMobileSectionSelect" class="bpm-sa-mobile-nav-select" aria-label="选择要管理的内容">
+  <option value="" disabled>选择要管理的内容</option>
+  <optgroup label="审核工作">
+    <option value="saReviewQueuePanel">SA 审核 · 待处理投稿</option>
+    <option value="appeals">投稿申诉</option>
+    <option value="flightCorrectionsPanel">展品纠错</option>
+  </optgroup>
+  <optgroup label="网站内容">
+    <option value="heroPhotosPanel">主页照片</option>
+    <option value="saExhibits">展品管理</option>
+    <option value="saCommunity">社区管理</option>
+    <option value="saAnnouncements">公告通知</option>
+  </optgroup>
+  <optgroup label="人员与排班">
+    <option value="adminApplications">管理员申请</option>
+    <option value="saStaff">管理员管理</option>
+    <option value="reviewerSchedulePanel">审核排班</option>
+    <option value="saDeletions">注销申请</option>
+  </optgroup>
+  <optgroup label="账户安全"><option value="saSecurityPanel">SA 安全验证</option></optgroup>
+</select>
 </nav>
 
 <section class="sa-panel" id="saReviewQueuePanel">

@@ -125,3 +125,42 @@ html.bpm-app-mode,html.bpm-app-mode body{min-height:100%;overscroll-behavior-y:n
   .bpm-console-mobile-nav a:active,.bpm-console-mobile-nav button:active{background:var(--bpm-input)}
   .bpm-console-mobile-nav [hidden]{display:none!important}
 }
+
+/* Make the admin tools legible on a phone: one named section picker, clear
+   account actions, and enough room around the floating staff chat. */
+.bpm-sa-mobile-nav-label,.bpm-sa-mobile-nav-select{display:none}
+.bpm-admin-settings-body>.menubar nav{display:flex;align-items:center;gap:8px}
+.bpm-admin-settings-body>.menubar nav a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:7px 12px;border:1px solid var(--bpm-border);border-radius:10px;color:var(--bpm-text);text-decoration:none;font-size:13px;font-weight:650;white-space:nowrap}
+.bpm-admin-settings-body>.menubar nav a:hover{background:var(--bpm-input)}
+.bpm-admin-settings-body .account-page{max-width:720px;margin:clamp(18px,4vw,42px) auto;padding:0 18px 36px}
+.bpm-admin-settings-body .account-card{padding:clamp(18px,3vw,28px);margin:0 0 16px;border:1px solid var(--bpm-border);border-radius:16px;background:var(--bpm-card);color:var(--bpm-text);box-shadow:0 8px 24px #001b3610}
+.bpm-admin-settings-body .account-card h1{margin:4px 0 12px;font-size:clamp(27px,4vw,34px);line-height:1.15}
+.bpm-admin-settings-body .account-card h2{margin:0 0 10px;font-size:20px;line-height:1.3}
+.bpm-admin-settings-body .account-card p{line-height:1.65;color:var(--bpm-muted)}
+.bpm-admin-settings-body .account-card label{margin:16px 0 7px;font-size:14px;line-height:1.5}
+.bpm-admin-settings-body .account-card input{min-height:46px;padding:10px 12px;border:1px solid var(--bpm-border);border-radius:10px;background:var(--bpm-input);color:var(--bpm-text)}
+.bpm-admin-settings-body .account-card button{min-height:44px;border-radius:10px;font:inherit;font-weight:650}
+.bpm-admin-settings-body .bpm-console-kicker{margin:0;color:var(--bpm-muted);font-size:12px;font-weight:700;letter-spacing:.08em}
+.bpm-sa-page{padding-bottom:100px}
+@media(max-width:700px){
+  body.bpm-admin-settings-body>.menubar{display:flex!important;min-height:58px!important;gap:8px!important}
+  body.bpm-admin-settings-body>.menubar .brand{font-size:13px!important;flex:1;min-width:0}
+  body.bpm-admin-settings-body>.menubar nav{display:flex!important;position:static!important;flex:0 0 auto;width:auto!important;max-height:none!important;overflow:visible!important;gap:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+  body.bpm-admin-settings-body>.menubar nav a{min-height:40px!important;padding:6px 9px!important;border-color:var(--bpm-border)!important;border-radius:9px;font-size:12px!important}
+  body.bpm-admin-settings-body .account-page{margin:16px auto;padding:0 14px calc(28px + env(safe-area-inset-bottom))}
+  body.bpm-admin-settings-body .account-card{padding:18px;margin-bottom:12px;border-radius:14px}
+  body.bpm-admin-settings-body .account-card h1{font-size:28px}
+  body.bpm-admin-settings-body .account-card h2{font-size:19px}
+  .bpm-sa-page{padding:10px 14px calc(118px + env(safe-area-inset-bottom))}
+  .bpm-sa-section-nav{position:sticky;top:58px;display:grid;grid-template-columns:1fr;gap:6px;margin:0 -14px 14px;padding:10px 14px;border:0;border-bottom:1px solid var(--bpm-border);border-radius:0;background:var(--bpm-bg);white-space:normal}
+  .bpm-sa-section-nav>a{display:none!important}
+  .bpm-sa-mobile-nav-label{display:block;margin:0;color:var(--bpm-muted);font-size:12px;font-weight:700;letter-spacing:.04em}
+  .bpm-sa-mobile-nav-select{display:block;width:100%;min-height:48px;padding:0 40px 0 13px;border:1px solid var(--bpm-border);border-radius:11px;background:var(--bpm-card);color:var(--bpm-text);font-family:inherit;font-size:15px;font-weight:600;line-height:1.3}
+  .bpm-sa-page>.bpm-page-hero{padding:12px 0 8px}
+  .bpm-sa-page>.bpm-page-hero h1{font-size:30px}
+  .bpm-sa-page>.bpm-page-hero p{font-size:14px;line-height:1.6}
+  .bpm-sa-page .sa-panel{margin-top:12px;padding:16px;border-radius:14px}
+  .bpm-sa-page .sa-panel h2{font-size:20px}
+  .bpm-staff-chat-launcher{right:12px;bottom:calc(16px + env(safe-area-inset-bottom))}
+  .bpm-staff-chat-dialog{bottom:calc(72px + env(safe-area-inset-bottom))}
+}
