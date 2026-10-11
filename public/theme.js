@@ -627,14 +627,10 @@
     }
 
     function addStandaloneAppNav(){
-        const appMode=window.matchMedia?.('(display-mode: standalone)').matches||window.navigator.standalone===true;
-        if(!appMode||document.getElementById('bpmAppTabbar')||/\/(admin|sa|console|moderation)\.html$/i.test(location.pathname))return;
-        document.documentElement.classList.add('bpm-app-mode');
-        const labels={"zh-CN":["展厅","社区","投稿","收藏","我的"],en:["Gallery","Community","Submit","Saved","Profile"],"zh-TW":["展廳","社群","投稿","收藏","我的"]}[language];
-        const links=[['index.html','home'],['community.html','message'],['submit.html','plus'],['favorites.html','heart'],['profile.html','user']];
-        const nav=document.createElement('nav');nav.id='bpmAppTabbar';nav.className='bpm-app-tabbar';nav.setAttribute('aria-label',language==='en'?'Main navigation':language==='zh-TW'?'主要導覽':'主导航');
-        nav.innerHTML=links.map(([href,icon],index)=>`<a href="${href}" ${location.pathname.endsWith(href)?'aria-current="page"':''}><span aria-hidden="true">${window.bpmIcon(icon)}</span><small>${labels[index]}</small></a>`).join('');
-        document.body.appendChild(nav);
+        // Keep installed PWA navigation identical to the browser experience.
+        // A dedicated app tab bar will be introduced with the native app shell.
+        document.documentElement.classList.remove('bpm-app-mode');
+        document.getElementById('bpmAppTabbar')?.remove();
     }
 
     async function updateOfficialWechatLink() {
