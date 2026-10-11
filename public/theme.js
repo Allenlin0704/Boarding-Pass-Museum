@@ -3,17 +3,18 @@
     // Keep management pages on their dedicated host. The API separately binds
     // staff sessions to that host, so this navigation guard is not the security boundary.
     const adminHost = "admin.bpmuseum.org.cn";
-    const adminPaths = new Set(["/admin-login.html", "/admin-oauth-complete.html", "/console.html", "/admin.html", "/sa.html", "/moderation.html"]);
+    const adminHtmlPaths = ["/admin-login.html", "/admin-oauth-complete.html", "/console.html", "/admin.html", "/sa.html", "/moderation.html"];
+    const adminPaths = new Set([...adminHtmlPaths,...adminHtmlPaths.map(path=>path.replace(/\.html$/,""))]);
     const currentPath = location.pathname.toLowerCase();
     const onAdminHost = location.hostname.toLowerCase() === adminHost;
-    const adminApplicationFrame = currentPath === "/admin.html"
+    const adminApplicationFrame = ["/admin.html","/admin"].includes(currentPath)
       && new URLSearchParams(location.search).get("embed") === "1"
       && location.hash === "#admin-apply";
     if (onAdminHost && (currentPath === "/" || currentPath === "/index.html")) {
         location.replace("/admin-login.html");
         return;
     }
-    const protectedAdminPage = onAdminHost && ["/console.html", "/admin.html", "/sa.html", "/moderation.html"].includes(currentPath);
+    const protectedAdminPage = onAdminHost && ["/console.html","/console","/admin.html","/admin","/sa.html","/sa","/moderation.html","/moderation"].includes(currentPath);
     if (protectedAdminPage && sessionStorage.getItem("bpm_admin_entry_authenticated") !== "1") {
         location.replace(`/admin-login.html?next=${encodeURIComponent(currentPath.slice(1) + location.search + location.hash)}`);
         return;
@@ -22,7 +23,7 @@
         location.replace(`https://bpmuseum.org.cn${location.pathname}${location.search}${location.hash}`);
         return;
     }
-    if (!onAdminHost && adminPaths.has(currentPath) && currentPath !== "/console.html" && !adminApplicationFrame) {
+    if (!onAdminHost && adminPaths.has(currentPath) && !["/console.html","/console"].includes(currentPath) && !adminApplicationFrame) {
         location.replace(`https://${adminHost}${location.pathname}${location.search}${location.hash}`);
         return;
     }

@@ -19,3 +19,14 @@ test('admin host has an independently installable, non-caching PWA shell',()=>{
   assert.doesNotMatch(worker,/caches\.(open|match|put)/);
   assert.match(file('admin-pwa.js'),/register\('\/admin-service-worker\.js'/);
 });
+
+test('extensionless Pages routes stay on the dedicated admin host and email is fallback-only',()=>{
+  const page=file('admin-login.html');
+  const identities=file('admin-identities.js');
+  const theme=file('theme.js');
+  assert.match(theme,/adminHtmlPaths\.map\(path=>path\.replace\(\/\\\.html\$\//);
+  assert.match(theme,/"\/console","\/admin\.html","\/admin","\/sa\.html","\/sa","\/moderation\.html","\/moderation"/);
+  assert.match(page,/id="adminIdentityFallback"[^>]*hidden/);
+  assert.match(identities,/fallback\.hidden=false/);
+  assert.match(file('login.js'),/identity\.disabled\?\{email:fallbackEmail,password\}/);
+});

@@ -1,5 +1,6 @@
 (() => {
   const select=document.getElementById('adminIdentity');
+  const fallback=document.getElementById('adminIdentityFallback');
   const status=document.getElementById('adminLoginHelp');
   if(!select)return;
   const option=(label,value='')=>{const item=document.createElement('option');item.value=value;item.textContent=label;return item;};
@@ -13,5 +14,5 @@
       }
       if(!select.options.length||select.options.length===1){select.replaceChildren(option('当前没有可用的管理员账户'));select.disabled=true;if(status)status.textContent='管理员列表为空，请联系站长检查账户权限。';}
     })
-    .catch(error=>{select.replaceChildren(option('管理员列表加载失败，请刷新重试'));select.disabled=true;if(status)status.textContent=error.message||'管理员列表加载失败，请刷新重试。';});
+    .catch(error=>{select.replaceChildren(option('名单不可用，请使用邮箱继续'));select.disabled=true;if(fallback)fallback.hidden=false;if(status)status.textContent=error.message||'管理员列表加载失败；可使用管理员邮箱登录。';});
 })();

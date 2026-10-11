@@ -280,3 +280,7 @@ button:disabled {
 .bpm-admin-install-help p{line-height:1.65}
 .bpm-admin-install-help button{min-height:42px;padding:9px 18px;border:0;border-radius:12px;background:#003c6b;color:#fff;font:inherit;font-weight:650;cursor:pointer}
 .bpm-admin-install-help::backdrop{background:#001b3680;backdrop-filter:blur(3px)}
+.bpm-admin-identity-fallback{margin:10px 0 14px;padding:14px;border:1px solid color-mix(in srgb,#b14d38 38%,var(--bpm-border,#cbd5df));border-radius:14px;background:color-mix(in srgb,var(--bpm-card,#fff) 92%,#f2b6a4)}
+.bpm-admin-identity-fallback label{display:block;margin:0 0 7px;font-weight:650}
+.bpm-admin-identity-fallback input{width:100%;box-sizing:border-box}
+.bpm-admin-identity-fallback p{margin:9px 0 0;font-size:13px;line-height:1.55}

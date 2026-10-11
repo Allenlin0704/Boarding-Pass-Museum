@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="features.css?v=20261010-global-design">
   <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
   <script src="security.js?v=5"></script>
-  <script src="theme.js?v=20261010-admin-domain"></script>
+  <script src="theme.js?v=20261011-admin-clean-path"></script>
 </head>
 <body>
   <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · 管理入口</div><nav><a href="https://bpmuseum.org.cn/">返回展厅</a></nav></header>
@@ -33,6 +33,11 @@
         <option value="">正在读取管理员账户…</option>
       </select>
       <p class="bpm-muted">选择账户昵称与身份；新管理员获批后会自动显示在这里。</p>
+      <div id="adminIdentityFallback" class="bpm-admin-identity-fallback" hidden>
+        <label for="adminFallbackEmail">管理员邮箱</label>
+        <input id="adminFallbackEmail" type="email" autocomplete="username" maxlength="254" placeholder="输入管理员账户邮箱">
+        <p class="bpm-muted">管理员名单暂时无法加载。请使用管理员邮箱继续；服务器仍会验证账户权限。</p>
+      </div>
       <label for="loginPassword">密码</label>
       <div class="password-wrap"><input id="loginPassword" type="password" autocomplete="current-password" required><button type="button" class="password-toggle" data-password="loginPassword" aria-label="显示密码"><span data-bpm-icon="eye"></span></button></div>
       <a href="https://bpmuseum.org.cn/reset-password.html">忘记密码？</a>
@@ -61,10 +66,10 @@
   <span class="auth-photo-credit">摄影 allenlin</span>
   <script src="notice.js?v=20260930-popup-fix"></script>
   <script src="auth-hero.js?v=20261011-admin-photo2"></script>
-  <script src="admin-identities.js?v=20261011-dropdown1"></script>
-  <script src="login.js?v=20261011-dropdown1"></script>
+  <script src="admin-identities.js?v=20261011-dropdown2"></script>
+  <script src="login.js?v=20261011-dropdown2"></script>
   <script src="login-passkey.js?v=20261010-admin-domain"></script>
-  <script src="admin-pin-login.js?v=20261011-dropdown1"></script>
+  <script src="admin-pin-login.js?v=20261011-dropdown2"></script>
   <script src="oauth.js?v=20261010-admin-domain"></script>
   <script src="password-toggle.js?v=20260927"></script>
   <script src="admin-pwa.js?v=20261011-v1"></script>

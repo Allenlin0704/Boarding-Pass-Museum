@@ -4,13 +4,15 @@
   button.addEventListener('click',async()=>{
     const identity=document.getElementById('adminIdentity');
     const email=document.getElementById('loginEmail')?.value.trim()||'';
+    const fallbackEmail=document.getElementById('adminFallbackEmail')?.value.trim()||'';
     const password=document.getElementById('loginPassword')?.value||'';
-    if(identity&&!identity.value){showToast('请先选择登录身份');return;}
+    if(identity&&!identity.disabled&&!identity.value){showToast('请先选择登录身份');return;}
+    if(identity&&identity.disabled&&!fallbackEmail){showToast('请输入管理员邮箱');return;}
     if(!identity&&!email){showToast('请输入邮箱');return;}
     if(!password){showToast('请输入密码');return;}
     button.disabled=true;
     try{
-      const body=identity?{account_id:Number(identity.value),password}:{email,password};
+      const body=identity?(identity.disabled?{email:fallbackEmail,password}:{account_id:Number(identity.value),password}):{email,password};
       const res=await fetch('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const data=await res.json();
       if(!res.ok||!data.id)throw Error(data.error||'账号或密码错误');
