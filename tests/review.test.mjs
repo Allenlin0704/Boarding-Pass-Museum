@@ -115,3 +115,20 @@ test('repeated SA decisions count a distinct submission once and nonpublic detai
  assert.equal((await call('/api/flight/11',undefined,3)).status,200);
  assert.equal((await call('/api/admin/screening?admin_id=1')).status,200);
 });
+test('public exhibit APIs omit internal review and rules-consent fields; appeal reasons stay with owner and SA',async()=>{
+ const {worker,env,db,call}=fixture();
+ db.prepare("UPDATE flights SET social_share_consent=1,rules_consent=1,reject_reason='private review note' WHERE id=13").run();
+ db.prepare("INSERT INTO appeals(user_id,flight_id,reason,status) VALUES(3,13,'private appeal reason','approved')").run();
+ const gallery=await (await worker.fetch(new Request('https://test.invalid/api/flights'),env)).json();
+ const card=gallery.find(row=>row.id===13);
+ assert.equal(card.social_share_consent,1,'the UI needs this explicit opt-in to show its share-card action');
+ for(const field of ['reviewer_id','reject_reason','rules_consent','rejected_at','appeal_reason','appeal_status'])assert.equal(field in card,false,`${field} must not be exposed by the public gallery`);
+ const publicDetail=await (await worker.fetch(new Request('https://test.invalid/api/flight/13'),env)).json();
+ for(const field of ['reviewer_id','reject_reason','rules_consent','rejected_at','appeal_reason','appeal_status'])assert.equal(field in publicDetail,false,`${field} must not be exposed to an anonymous visitor`);
+ const ownerDetail=await (await call('/api/flight/13',undefined,3)).json();
+ assert.equal(ownerDetail.appeal_reason,'private appeal reason');
+ assert.equal(ownerDetail.appeal_status,'approved');
+ assert.equal(ownerDetail.reject_reason,'private review note');
+ const saDetail=await (await call('/api/flight/13',undefined,1)).json();
+ assert.equal(saDetail.appeal_reason,'private appeal reason');
+});

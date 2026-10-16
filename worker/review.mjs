@@ -23,7 +23,26 @@ export async function reviewRoute(request,env,url,user) {
   if(request.method==='GET'&&/^\/api\/flight\/\d+$/.test(path)) {
     const flight=await env.DB.prepare("SELECT flights.*,CASE WHEN users.deleted_at IS NOT NULL THEN '账号已注销' ELSE users.username END AS username FROM flights LEFT JOIN users ON users.id=flights.user_id WHERE flights.id=?").bind(Number(path.split('/').pop())).first();
     if(!flight || (flight.status!=='approved' && !isSA(user) && Number(user?.id)!==Number(flight.user_id) && !(isAdmin(user)&&Number(flight.reviewer_id)===Number(user.id)))) return reply({error:'展品不存在'},404);
-    return reply(flight);
+    // Never return internal reviewer, rules-consent, or retention columns from a public response.
+    // Appeal reasons are private to the submitter and SA, even when the exhibit is public.
+    const result={
+      id:flight.id,user_id:flight.user_id,airline:flight.airline,flight:flight.flight,route:flight.route,
+      date:flight.date,aircraft:flight.aircraft,airport:flight.airport,issue_airport:flight.issue_airport,
+      image:flight.image,story:flight.story,status:flight.status,submission_type:flight.submission_type,
+      ticket_format:flight.ticket_format,departure_country:flight.departure_country,arrival_country:flight.arrival_country,
+      special_tags:flight.special_tags,route_scope:flight.route_scope,cabin_class:flight.cabin_class,
+      cabin_class_verified:flight.cabin_class_verified,airline_iata:flight.airline_iata,airline_icao:flight.airline_icao,
+      airport_iata:flight.airport_iata,airport_icao:flight.airport_icao,social_share_consent:flight.social_share_consent,
+      username:flight.username
+    };
+    const owner=Number(user?.id)===Number(flight.user_id),sa=isSA(user);
+    const assignedAdmin=isAdmin(user)&&Number(flight.reviewer_id)===Number(user.id);
+    if(owner||sa||assignedAdmin)result.reject_reason=flight.reject_reason;
+    if(owner||sa) {
+      const appeal=await env.DB.prepare('SELECT reason,status FROM appeals WHERE flight_id=? ORDER BY id DESC LIMIT 1').bind(flight.id).first();
+      if(appeal){result.appeal_reason=appeal.reason;result.appeal_status=appeal.status;}
+    }
+    return reply(result);
   }
   if(request.method==='GET'&&path==='/api/sa/flight-corrections') {
     if(!isSA(user)) return reply({error:'No permission'},403);
