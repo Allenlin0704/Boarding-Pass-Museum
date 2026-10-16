@@ -12,10 +12,10 @@
   <link rel="apple-touch-icon" href="favicon.png">
   <link rel="manifest" href="admin-manifest.webmanifest">
   <link rel="stylesheet" href="style.css?v=20261010-global-design">
-  <link rel="stylesheet" href="features.css?v=20261010-global-design">
+  <link rel="stylesheet" href="features.css?v=20261016-store-links">
   <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
   <script src="security.js?v=5"></script>
-  <script src="theme.js?v=20261016-admin-recruitment"></script>
+  <script src="theme.js?v=20261016-store-links"></script>
 </head>
 <body>
   <header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum · 管理入口</div><nav><a href="https://bpmuseum.org.cn/">返回展厅</a></nav></header>
@@ -28,6 +28,11 @@
     <section class="submit-form">
       <h1>管理员专属登录</h1>
       <p>管理员和 SA 账号请从此页面登录。首次使用账户密码，之后可设置 PIN 或使用 Passkey。</p>
+      <section class="bpm-store-promo bpm-admin-store-promo" id="windowsAdminStorePromo" hidden aria-labelledby="windowsAdminStoreTitle">
+        <div><span class="bpm-store-kicker">WINDOWS ADMIN APP</span><h2 id="windowsAdminStoreTitle" data-i18n="store.adminTitle">管理端 Windows 应用已上架</h2><p data-i18n="store.adminDescription">可从 Microsoft Store 安装独立管理端应用。</p></div>
+        <a class="bpm-store-button" href="ms-windows-store://pdp/?ProductId=9P8JMZJ5J9TR" data-i18n="store.getAdmin">获取管理端应用</a>
+        <a class="bpm-store-fallback" href="https://apps.microsoft.com/detail/9P8JMZJ5J9TR" target="_blank" rel="noopener noreferrer" data-i18n="store.openWeb">浏览器打开商店页面</a>
+      </section>
       <label for="adminIdentity">登录身份</label>
       <select id="adminIdentity" autocomplete="username" required>
         <option value="">正在读取管理员账户…</option>
@@ -74,5 +79,6 @@
   <script src="oauth.js?v=20261010-admin-domain"></script>
   <script src="password-toggle.js?v=20260927"></script>
   <script src="admin-pwa.js?v=20261011-v1"></script>
+  <script src="windows-store-links.js?v=20261016"></script>
 </body>
 </html>

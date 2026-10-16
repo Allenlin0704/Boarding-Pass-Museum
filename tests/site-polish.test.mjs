@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
 test('the shared visual system loads after page styles on every styled public page', () => {
   const pages = readdirSync(new URL('../public/', import.meta.url))
@@ -20,7 +21,7 @@ test('the shared visual system loads after page styles on every styled public pa
 
 test('the service worker precaches the shared design stylesheet in a fresh shell cache', () => {
   const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(worker, /bpmuseum-shell-v38/);
+  assert.match(worker, /bpmuseum-shell-v39/);
   assert.match(worker, /'\/site-polish\.css'/);
   assert.match(worker, /'\/admin-login\.html'/);
 });
@@ -104,4 +105,24 @@ test('user dropdown application link stays on public admin-application frame and
   assert.match(admin,/button\.hidden=data\.open!==true/);
   assert.match(html,/id="adminApplyStatus"/);
   assert.match(readFileSync(new URL('../public/features.css',import.meta.url),'utf8'),/admin-apply-button\[hidden\]/);
+});
+
+test('Windows browser shows separate Microsoft Store entries for public and admin clients',()=>{
+  const home=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  const admin=readFileSync(new URL('../public/admin-login.html',import.meta.url),'utf8');
+  const script=readFileSync(new URL('../public/windows-store-links.js',import.meta.url),'utf8');
+  const worker=readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
+  assert.match(home,/ms-windows-store:\/\/pdp\/\?ProductId=9NJCJPTFGMG7/);
+  assert.match(home,/apps\.microsoft\.com\/detail\/9NJCJPTFGMG7/);
+  assert.match(admin,/ms-windows-store:\/\/pdp\/\?ProductId=9P8JMZJ5J9TR/);
+  assert.match(admin,/apps\.microsoft\.com\/detail\/9P8JMZJ5J9TR/);
+  assert.match(script,/\/windows\/i\.test\(platform\)/);
+  assert.match(worker,/windows-store-links\.js/);
+  const runFor=platform=>{
+    const promo={hidden:true},adminPromo={hidden:true};
+    runInNewContext(script,{navigator:{platform,userAgentData:{platform}},document:{getElementById:id=>id==='windowsStorePromo'?promo:id==='windowsAdminStorePromo'?adminPromo:null}});
+    return [promo.hidden,adminPromo.hidden];
+  };
+  assert.deepEqual(runFor('Windows'),[false,false]);
+  assert.deepEqual(runFor('MacIntel'),[true,true]);
 });
