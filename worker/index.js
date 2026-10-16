@@ -9,7 +9,7 @@ import { staffRoute } from "./staff.mjs";
 import { flightAssistRoute } from "./flight-assist.mjs";
 import { translationRoute } from "./translation.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
-import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, reply, isSA, verifyTurnstile } from "./security.mjs";
+import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, requestId, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
 // BoardingPassMuseum API V5.0
 // User + Submission + Admin + SA System
@@ -399,12 +399,6 @@ headers
 );
 
 }
-
-
-console.log(
-request.method,
-url.pathname
-);
 
 
 // =====================================
@@ -2583,8 +2577,9 @@ export default {
     } catch (error) {
       if(error instanceof RangeError) return responseHeaders(original,reply({error:"请求过大"},413));
       if(error instanceof SyntaxError) return responseHeaders(original,reply({error:"请求格式错误"},400));
-      console.error("API request failed", error.name);
-      return responseHeaders(original,reply({success:false,error:"服务暂时不可用，请稍后再试"},500));
+      const id=requestId(original),route=new URL(original.url).pathname.replace(/\/\d+(?=\/|$)/g,'/:id');
+      console.error("API request failed",{id,route,name:String(error?.name||'Error')});
+      return responseHeaders(original,reply({success:false,error:"服务暂时不可用，请稍后再试",request_id:id},500));
     }
   },
   async scheduled(controller,env) {

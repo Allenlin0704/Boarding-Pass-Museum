@@ -26,4 +26,8 @@ test('hidden cards show only restore; other cards show one withdraw; successful 
   assert.match(calls.at(-1).url,/my-flights/);
   await vm.runInContext('withdrawFlight(13)',context);
   assert.match(calls.at(-2).url,/my\/withdraw$/);
+  assert.match(cards[2].innerHTML,/允许社交媒体分享/);
+  await vm.runInContext('changeSocialShareConsent(13,true)',context);
+  assert.equal(calls.at(-2).url,'https://api.bpmuseum.org.cn/api/my/social-share');
+  assert.deepEqual(JSON.parse(calls.at(-2).options.body),{flight_id:13,enabled:true,user_id:3});
 });

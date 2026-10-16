@@ -44,9 +44,6 @@ const storyTranslateControls=storyForTranslate.trim()?`<div class="story-transla
 const cabinNames=window.BPM_LANGUAGE==="en"?{economy:"Economy",premium_economy:"Premium economy",business:"Business",first_class:"First class (Business suite)",other:"Other",unverified:"Unverified"}:window.BPM_LANGUAGE==="zh-TW"?{economy:"經濟艙",premium_economy:"超級經濟艙",business:"商務艙",first_class:"頭等艙（豪華商務艙）",other:"其他",unverified:"待核實"}:{economy:"经济舱",premium_economy:"超级经济舱",business:"公务舱",first_class:"头等舱（豪华公务舱）",other:"其他",unverified:"待核实"};
 
 
-console.log("DETAIL DATA:",data);
-
-
 if(!res.ok){
 
 detail.innerHTML="找不到该展品";

@@ -849,7 +849,6 @@ if(!currentUser || !currentUser.id){
 }
 
 if(!document.getElementById("rulesConsent")?.checked){showToast(localizedChoiceText("请先阅读并同意投稿条例。","Read and accept the submission rules first.","請先閱讀並同意投稿規則。"));document.getElementById("rulesConsent")?.focus();return;}
-if(!document.getElementById("socialShareConsent")?.checked){showToast(localizedChoiceText("请先勾选展品社交媒体分享授权。","Authorize official social-media sharing to submit.","請先勾選展品社群媒體分享授權。"));document.getElementById("socialShareConsent")?.focus();return;}
 
 try{
 

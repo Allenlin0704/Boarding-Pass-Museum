@@ -75,7 +75,8 @@ export async function reviewRoute(request,env,url,user) {
   }
   if(path==='/api/submit') {
     const body=await request.clone().json();
-    if(body.rules_consent!==true||body.social_share_consent!==true)return reply({error:'请先阅读并同意投稿条例及展品社交媒体分享授权'},400);
+    if(body.rules_consent!==true)return reply({error:'请先阅读并同意投稿条例'},400);
+    if(body.social_share_consent!==undefined&&typeof body.social_share_consent!=='boolean')return reply({error:'社交媒体分享授权格式无效'},400);
     const submissionType=body.submission_type||'boarding_pass';
     const transit=submissionType==='rail_ticket'||submissionType==='metro_ticket';
     const metro=submissionType==='metro_ticket';
@@ -95,9 +96,20 @@ export async function reviewRoute(request,env,url,user) {
     const admins=isAdmin(user)
       ? {id:1}
       : await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND s.allocation_percent>0 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator')) ORDER BY (SELECT COUNT(*) FROM flights WHERE reviewer_id=u.id AND created_at>=s.updated_at)*1.0/s.allocation_percent,s.sort_order,u.id LIMIT 1`).first();
-    const inserted=await env.DB.prepare(`INSERT INTO flights(user_id,airline,flight,route,date,aircraft,airport,issue_airport,image,story,status,reviewer_id,submission_type,ticket_format,cabin_class,cabin_class_verified,departure_country,arrival_country,special_tags,social_share_consent,rules_consent,airline_iata,airline_icao,airport_iata,airport_icao,route_scope) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-      .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',cabinClass,transit?0:1,String(body.departure_country||''),localScope?'':String(body.arrival_country||''),JSON.stringify(body.special_tags||[]),1,1,airlineIata,airlineIcao,airportIata,airportIcao,routeScope).run();
+    const shareConsent=body.social_share_consent===true?1:0;
+    const inserted=await env.DB.prepare(`INSERT INTO flights(user_id,airline,flight,route,date,aircraft,airport,issue_airport,image,story,status,reviewer_id,submission_type,ticket_format,cabin_class,cabin_class_verified,departure_country,arrival_country,special_tags,social_share_consent,social_share_consent_updated_at,rules_consent,airline_iata,airline_icao,airport_iata,airport_icao,route_scope) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END,?,?,?,?,?,?)`)
+      .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',cabinClass,transit?0:1,String(body.departure_country||''),localScope?'':String(body.arrival_country||''),JSON.stringify(body.special_tags||[]),shareConsent,shareConsent,1,airlineIata,airlineIcao,airportIata,airportIcao,routeScope).run();
     return reply({success:true,flight_id:inserted.meta.last_row_id});
+  }
+
+  if(path==='/api/my/social-share') {
+    const body=await request.json(),flightId=Number(body.flight_id),enabled=body.enabled;
+    if(!Number.isSafeInteger(flightId)||flightId<=0||typeof enabled!=='boolean')return reply({error:'授权设置格式无效'},400);
+    const flight=await env.DB.prepare('SELECT status FROM flights WHERE id=? AND user_id=?').bind(flightId,user.id).first();
+    if(!flight)return reply({error:'展品不存在或不属于你'},404);
+    if(enabled&&flight.status!=='approved')return reply({error:'展品通过审核并公开展出后才能开启分享授权'},409);
+    await env.DB.prepare('UPDATE flights SET social_share_consent=?,social_share_consent_updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?').bind(enabled?1:0,flightId,user.id).run();
+    return reply({success:true,enabled});
   }
 
   const reviewPaths=['/api/admin/approve','/api/admin/reject','/api/sa/approve','/api/sa/reject'];

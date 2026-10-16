@@ -17,5 +17,17 @@ bucket_name = "boardingpassmuseum-images"
 [triggers]
 crons = ["0 * * * *"]
 
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1.0
+invocation_logs = false
+persist = true
+
+[observability.traces]
+enabled = false
+
 [vars]
 TURNSTILE_HOSTNAMES = "bpmuseum.org.cn,www.bpmuseum.org.cn,admin.bpmuseum.org.cn"

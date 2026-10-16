@@ -11,6 +11,15 @@ test('restore: owner and hidden status required; requeue and clear rejection', a
   assert.equal(flight.status,'screening'); assert.equal(flight.reject_reason,null); assert.equal(flight.reviewer_id,1);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11})).status,409);
 });
+test('exhibit owners can opt out of sharing or enable it only after approval',async()=>{
+  const {call,db}=fixture();
+  assert.equal((await call('/api/my/social-share',{flight_id:13,enabled:false},2)).status,404,'a different account cannot change the owner consent');
+  assert.equal((await call('/api/my/social-share',{flight_id:12,enabled:true},3)).status,409,'unapproved exhibits cannot be made shareable');
+  assert.equal((await call('/api/my/social-share',{flight_id:13,enabled:false},3)).status,200);
+  let state=db.prepare('SELECT social_share_consent FROM flights WHERE id=13').get();assert.equal(state.social_share_consent,0);
+  assert.equal((await call('/api/my/social-share',{flight_id:13,enabled:true},3)).status,200);
+  state=db.prepare('SELECT social_share_consent,social_share_consent_updated_at FROM flights WHERE id=13').get();assert.equal(state.social_share_consent,1);assert.ok(state.social_share_consent_updated_at);
+});
 test('staff submissions always enter SA review, including SA self-review',async()=>{
   const {call,db}=fixture();
   db.prepare('DELETE FROM reviewer_schedule').run();
@@ -119,7 +128,9 @@ test('public exhibit APIs omit internal review and rules-consent fields; appeal 
  const {worker,env,db,call}=fixture();
  db.prepare("UPDATE flights SET social_share_consent=1,rules_consent=1,reject_reason='private review note' WHERE id=13").run();
  db.prepare("INSERT INTO appeals(user_id,flight_id,reason,status) VALUES(3,13,'private appeal reason','approved')").run();
- const gallery=await (await worker.fetch(new Request('https://test.invalid/api/flights'),env)).json();
+ const galleryResponse=await worker.fetch(new Request('https://test.invalid/api/flights'),env);
+ assert.equal(galleryResponse.headers.get('Cache-Control'),'public, max-age=30, stale-while-revalidate=120');
+ const gallery=await galleryResponse.json();
  const card=gallery.find(row=>row.id===13);
  assert.equal(card.social_share_consent,1,'the UI needs this explicit opt-in to show its share-card action');
  for(const field of ['reviewer_id','reject_reason','rules_consent','rejected_at','appeal_reason','appeal_status'])assert.equal(field in card,false,`${field} must not be exposed by the public gallery`);

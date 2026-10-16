@@ -174,6 +174,13 @@ function renderSubmissions(flights) {
         `
         : "";
 
+    const shareAllowed=Number(flight.social_share_consent)===1;
+    const shareConsentControl=(flight.status==="approved"||shareAllowed)?`
+      <button type="button" class="social-share-toggle" onclick="changeSocialShareConsent(${Number(flight.id)},${shareAllowed?"false":"true"})">
+        ${shareAllowed?"撤回社交媒体分享授权":"允许社交媒体分享"}
+      </button>
+    `:"";
+
 
     const card =
       document.createElement("article");
@@ -286,6 +293,7 @@ function renderSubmissions(flights) {
           `}
 
           ${appeal}
+          ${shareConsentControl}
 
         </div>
 
@@ -567,6 +575,25 @@ async function changeFlightStatus(id, action) {
     await loadMySubmissions();
   } catch (error) {
     showToast(error.message || "网络错误，请稍后再试");
+  }
+}
+
+async function changeSocialShareConsent(id, enabled) {
+  const prompt=enabled
+    ? "允许本站使用这件已公开展品的信息制作分享内容？票面照片不会放入分享卡。"
+    : "撤回这件展品的社交媒体分享授权？撤回后分享入口将关闭。";
+  if(!confirm(prompt))return;
+  try {
+    const res=await fetch(`${API}/api/my/social-share`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({flight_id:Number(id),enabled,user_id:currentUser.id})
+    });
+    const data=await res.json();
+    if(!res.ok||!data.success)throw new Error(data.error||"授权设置失败");
+    showToast(enabled?"已开启社交媒体分享授权":"已撤回社交媒体分享授权");
+    await loadMySubmissions();
+  } catch(error) {
+    showToast(error.message||"网络错误，请稍后重试");
   }
 }
 

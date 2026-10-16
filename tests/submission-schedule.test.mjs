@@ -33,18 +33,19 @@ test('SA schedule controls eligibility; scheduled SA and admins can receive subm
   assert.ok(delta.get(1)>=5&&delta.get(1)<=8,`30% reviewer got ${delta.get(1)} of 20 assignments`);
 });
 
-test('submission requires both rules acceptance and social-share authorization',async()=>{
+test('rules acceptance is required while social-share authorization is optional',async()=>{
   const {call,db}=fixture();
   const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA42',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/test.webp',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
   let response=await call('/api/submit',{...payload,rules_consent:false},3);
   assert.equal(response.status,400);
   response=await call('/api/submit',{...payload,social_share_consent:false},3);
-  assert.equal(response.status,400);
-  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM flights WHERE flight=?').get('EA42').n,0);
+  assert.equal(response.status,200);
+  const unshared=db.prepare('SELECT rules_consent,social_share_consent,social_share_consent_updated_at FROM flights WHERE flight=?').get('EA42');
+  assert.deepEqual({...unshared},{rules_consent:1,social_share_consent:0,social_share_consent_updated_at:null});
   response=await call('/api/submit',payload,3);
   assert.equal(response.status,200);
-  const saved=db.prepare('SELECT rules_consent,social_share_consent FROM flights WHERE flight=?').get('EA42');
-  assert.deepEqual({...saved},{rules_consent:1,social_share_consent:1});
+  const saved=db.prepare('SELECT rules_consent,social_share_consent,social_share_consent_updated_at FROM flights WHERE id=?').get((await response.json()).flight_id);
+  assert.equal(saved.rules_consent,1);assert.equal(saved.social_share_consent,1);assert.ok(saved.social_share_consent_updated_at);
 });
 
 test('valid uploaded JPEG fallback can be submitted as an exhibit',async()=>{

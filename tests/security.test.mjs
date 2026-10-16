@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {fixture} from './helpers.mjs';
 import {passwordHash} from '../worker/security.mjs';
 test('authentication: unauthenticated and forged identities are refused',async()=>{
@@ -43,6 +44,14 @@ test('API responses carry transport and anti-embedding headers',async()=>{
   assert.equal(response.headers.get('Strict-Transport-Security'),'max-age=31536000');
   assert.equal(response.headers.get('X-Frame-Options'),'DENY');
   assert.equal(response.headers.get('Content-Security-Policy'),"frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
+  assert.match(response.headers.get('X-BPM-Request-Id'),/^[0-9a-f-]{36}$/i);
+  assert.equal(response.headers.get('Access-Control-Expose-Headers'),'X-BPM-Request-Id');
+});
+test('Workers observability persists custom errors without request invocation logs or traces',()=>{
+  const config=readFileSync(new URL('../wrangler.toml',import.meta.url),'utf8');
+  assert.match(config,/\[observability\]\s+enabled\s*=\s*true/);
+  assert.match(config,/\[observability\.logs\][\s\S]*?enabled\s*=\s*true[\s\S]*?invocation_logs\s*=\s*false[\s\S]*?persist\s*=\s*true/);
+  assert.match(config,/\[observability\.traces\]\s+enabled\s*=\s*false/);
 });
 test('administrators can use the public site as ordinary users while management endpoints remain isolated',async()=>{
   const {worker,env,db}=fixture();

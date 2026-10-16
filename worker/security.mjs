@@ -156,7 +156,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     const id=Number(user.id);
     const [profile,flights,favorites,appeals,posts,comments,likes,reports,actions,moderationAppeals,achievements,adjustments,notifications,deletionRequest]=await Promise.all([
       env.DB.prepare('SELECT id,username,email,role,created_at,avatar,bio,social_media,equipment,favorite_airlines,favorite_airports FROM users WHERE id=?').bind(id).first(),
-      env.DB.prepare('SELECT id,airline,flight,route,date,aircraft,airport,image,story,status,reject_reason,created_at FROM flights WHERE user_id=? ORDER BY id').bind(id).all(),
+      env.DB.prepare('SELECT id,airline,flight,route,date,aircraft,airport,image,story,status,reject_reason,created_at,social_share_consent,social_share_consent_updated_at FROM flights WHERE user_id=? ORDER BY id').bind(id).all(),
       env.DB.prepare('SELECT flight_id,created_at FROM favorites WHERE user_id=? ORDER BY id').bind(id).all(),
       env.DB.prepare('SELECT flight_id,reason,status,created_at FROM appeals WHERE user_id=? ORDER BY id').bind(id).all(),
       env.DB.prepare('SELECT id,title,content,image,status,needs_review,deleted_at,created_at FROM community_posts WHERE user_id=? ORDER BY id').bind(id).all(),
@@ -286,12 +286,19 @@ export function responseHeaders(request,response) {
     headers.set('Access-Control-Allow-Origin',origin);headers.set('Access-Control-Allow-Credentials','true');
   }
   headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type');headers.set('Access-Control-Allow-Methods','GET,POST,DELETE,OPTIONS');
-  headers.set('Cache-Control','no-store');headers.set('X-Content-Type-Options','nosniff');
+  headers.set('Access-Control-Expose-Headers','X-BPM-Request-Id');
+  const publicGallery=new URL(request.url).pathname==='/api/flights'&&request.method==='GET'&&response.ok;
+  headers.set('Cache-Control',publicGallery?'public, max-age=30, stale-while-revalidate=120':'no-store');headers.set('X-Content-Type-Options','nosniff');
   headers.set('Referrer-Policy','no-referrer');headers.set('X-Frame-Options','DENY');
   headers.set('Strict-Transport-Security','max-age=31536000');
   headers.set('Content-Security-Policy',"frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
+  headers.set('X-BPM-Request-Id',requestId(request));
   headers.set('Permissions-Policy','geolocation=(), camera=(), microphone=()');
   return new Response(response.body,{status:response.status,headers});
+}
+export function requestId(request) {
+  const ray=request.headers.get('CF-Ray')||'';
+  return /^[a-f0-9]{16,32}(?:-[a-z]{3})?$/i.test(ray)?ray:crypto.randomUUID();
 }
 export async function boundedRequest(request) {
   if(['GET','HEAD','OPTIONS'].includes(request.method)||!request.body) return request;
@@ -356,6 +363,6 @@ export async function uploadImage(request,env) {
   if(Math.max(dimensions.width,dimensions.height)>IMAGE_UPLOAD_MAX_EDGE)return reply({error:'图片最长边不得超过 1280 像素，请重新处理后上传'},400);
   const isWebp=webpDimensions(bytes)!==null,extension=isWebp?'webp':'jpg',contentType=isWebp?'image/webp':'image/jpeg';
   const key=`tickets/${crypto.randomUUID()}.${extension}`;
-  await env.IMAGES.put(key,bytes,{httpMetadata:{contentType,contentDisposition:'inline'}});
+  await env.IMAGES.put(key,bytes,{httpMetadata:{contentType,contentDisposition:'inline',cacheControl:'public, max-age=31536000, immutable'}});
   return reply({success:true,url:`https://images.bpmuseum.org.cn/${key}`});
 }

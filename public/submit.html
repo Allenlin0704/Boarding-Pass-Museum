@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="features.css?v=20261011-iso-picker-countdown">
 <link rel="stylesheet" href="submit-page.css?v=20260930-mobile-polish">
 <link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
-  <script src="theme.js?v=20261011-light-contrast-metro"></script>
+  <script src="theme.js?v=20261016-share-consent"></script>
 
 
 
@@ -160,7 +160,8 @@
 <section class="submit-final-card">
 <div class="submit-card-heading"><span class="submit-section-index">03</span><div><h2>检查并提交</h2><p>确认票据信息准确，图片已处理，再提交审核。</p></div></div>
 <p class="submission-rules-notice"><label class="required-submission-consent"><input id="rulesConsent" type="checkbox" required> <span>我已阅读并同意本站<a href="rules.html" target="_blank" rel="noopener"><strong>《投稿及审核条例》</strong></a>。</span></label></p>
-<label class="social-share-consent"><input id="socialShareConsent" type="checkbox" required> <span>我授权 BoardingPassMuseum 将这件展品用于官方社交媒体展示；发布前会遮挡个人信息并注明投稿者。此授权为投稿必需项。</span></label>
+<label class="social-share-consent"><input id="socialShareConsent" type="checkbox"> <span data-i18n="submit.socialShareConsent">允许本站将这件展品的公开信息用于官方社交媒体展示（可选，默认关闭）。</span></label>
+<p class="submission-rules-notice" data-i18n="submit.socialSharePrivacy">不授权也可以投稿。分享卡不含票面照片；你可在展品通过审核后随时开启或撤回此授权。</p>
 <button id="submitBtn" type="button">提交审核</button>
 <div class="submit-draft-actions"><button id="saveDraftBtn" type="button">保存草稿</button><button id="clearDraftBtn" type="button">清除草稿</button><p id="draftStatus" role="status" aria-live="polite"></p></div>
 </section>
@@ -195,7 +196,7 @@ BoardingPassMuseum © 2026
 
 <script src="notice.js?v=20260930-popup-fix"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="submit.js?v=20261011-webp-1280"></script>
+<script src="submit.js?v=20261016-optional-share"></script>
 
 <footer class="bpm-footer">
 
