@@ -288,6 +288,8 @@ export function responseHeaders(request,response) {
   headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type');headers.set('Access-Control-Allow-Methods','GET,POST,DELETE,OPTIONS');
   headers.set('Cache-Control','no-store');headers.set('X-Content-Type-Options','nosniff');
   headers.set('Referrer-Policy','no-referrer');headers.set('X-Frame-Options','DENY');
+  headers.set('Strict-Transport-Security','max-age=31536000');
+  headers.set('Content-Security-Policy',"frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
   headers.set('Permissions-Policy','geolocation=(), camera=(), microphone=()');
   return new Response(response.body,{status:response.status,headers});
 }

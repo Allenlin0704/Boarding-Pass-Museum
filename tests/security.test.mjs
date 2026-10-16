@@ -31,6 +31,19 @@ test('login issues HttpOnly cookie; logout revokes it',async()=>{
   await worker.fetch(new Request('https://test.invalid/api/logout',{method:'POST',headers:{Cookie:cookie,'Content-Type':'application/json'},body:'{}'}),env);
   assert.equal((await worker.fetch(new Request('https://test.invalid/api/session',{headers:{Cookie:cookie}}),env)).status,401);
 });
+test('login is rate limited by source IP across account names',async()=>{
+  const {worker,env}=fixture();
+  const attempt=(index)=>worker.fetch(new Request('https://api.bpmuseum.org.cn/api/login',{method:'POST',headers:{'Content-Type':'application/json','CF-Connecting-IP':'198.51.100.27'},body:JSON.stringify({email:`missing-${index}@example.test`,password:'bad-password'})}),env);
+  for(let i=0;i<30;i++) assert.equal((await attempt(i)).status,401);
+  assert.equal((await attempt(30)).status,429);
+});
+test('API responses carry transport and anti-embedding headers',async()=>{
+  const {worker,env}=fixture();
+  const response=await worker.fetch(new Request('https://api.bpmuseum.org.cn/api/session'),env);
+  assert.equal(response.headers.get('Strict-Transport-Security'),'max-age=31536000');
+  assert.equal(response.headers.get('X-Frame-Options'),'DENY');
+  assert.equal(response.headers.get('Content-Security-Policy'),"frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
+});
 test('administrators can use the public site as ordinary users while management endpoints remain isolated',async()=>{
   const {worker,env,db}=fixture();
   db.prepare('UPDATE users SET password=? WHERE id=2').run(await passwordHash('admin-test-password'));
