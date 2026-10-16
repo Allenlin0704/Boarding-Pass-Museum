@@ -73,7 +73,7 @@
     const compressionStatus=document.getElementById("imageCompressionStatus");
     document.getElementById("previewImageCompression")?.addEventListener("click",async event=>{
       const button=event.currentTarget;button.disabled=true;
-      try{const blob=await window.bpmExportEditorBlob?.({maxEdge:1280,maxBytes:1024*1024,type:"image/webp",quality:.9});if(!blob)throw Error("请先选择图片");compressionStatus.textContent=`WebP 预览：${(blob.size/1024/1024).toFixed(2)} MB，最长边不超过 1280px。`;}
+      try{const blob=await window.bpmExportEditorBlob?.({maxEdge:1280,maxBytes:1024*1024,type:"image/webp",quality:.9});if(!blob)throw Error("请先选择图片");compressionStatus.textContent=`${blob.type==="image/jpeg"?"JPEG":"WebP"} 预览：${(blob.size/1024/1024).toFixed(2)} MB，最长边不超过 1280px。`;}
       catch(error){compressionStatus.textContent=error.message;}
       finally{button.disabled=false;}
     });

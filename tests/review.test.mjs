@@ -33,6 +33,8 @@ test('SA can see all pending and approve/reject own submission and override resu
   for (const [action,expected] of [['approve','approved'],['reject','rejected'],['approve','approved']]) {
     assert.equal((await call(`/api/admin/${action}`,{admin_id:1,flight_id:10,reason:'【隐私守护规范】测试理由'})).status,200);
     assert.equal(db.prepare('SELECT status FROM flights WHERE id=10').get().status,expected);
+    if(expected==='rejected')assert.ok(db.prepare('SELECT rejected_at FROM flights WHERE id=10').get().rejected_at);
+    if(expected==='approved')assert.equal(db.prepare('SELECT rejected_at FROM flights WHERE id=10').get().rejected_at,null);
   }
   assert.equal((await call('/api/admin/reject',{admin_id:1,flight_id:13,reason:'【隐私守护规范】覆盖理由'})).status,200);
 });
@@ -68,6 +70,7 @@ test('SA can repair missing fields and canonical airline/airport codes without c
 });
 test('accepting a correction can update exhibit fields and keeps its status',async()=>{
   const {call,db}=fixture();
+  db.prepare("UPDATE flights SET image='https://images.bpmuseum.org.cn/tickets/example.webp' WHERE id=13").run();
   db.prepare("INSERT INTO flight_corrections(id,flight_id,user_id,message) VALUES(1,13,3,'航线应为北京到东京')").run();
   const response=await call('/api/sa/flight-corrections/resolve',{sa_id:1,correction_id:1,status:'accepted',decision:'已核对并修正航线',flight_updates:{route:'HND',route_scope:'international',departure_country:'CN',arrival_country:'JP',airline:'中国东方航空 (MU)',airline_iata:'MU',airport:'上海虹桥国际机场 (SHA)',airport_iata:'SHA'}});
   assert.equal(response.status,200);
@@ -88,6 +91,19 @@ test('admin applications: submission, SA listing, approval and rejection', async
   await call('/api/account/admin-request',{user_id:3,reason:'【隐私守护规范】测试理由',social:'test'});
   assert.equal((await call('/api/sa/admin-request/reject',{sa_id:1,request_id:2})).status,200);
   assert.equal(db.prepare('SELECT status FROM admin_requests WHERE id=2').get().status,'rejected');
+});
+test('SA controls administrator recruitment and closed applications are rejected server-side',async()=>{
+  const {call,db}=fixture();
+  assert.deepEqual(await (await call('/api/admin-recruitment')).json(),{open:true});
+  assert.equal((await call('/api/sa/admin-recruitment?sa_id=2',undefined,2)).status,403);
+  assert.equal((await call('/api/sa/admin-recruitment',{sa_id:2,open:false},2)).status,403);
+  assert.equal((await call('/api/sa/admin-recruitment',{sa_id:1,open:false},1)).status,200);
+  assert.equal((await (await call('/api/admin-recruitment')).json()).open,false);
+  const closed=await call('/api/account/admin-request',{user_id:3,reason:'Help the museum',social:'test'},3);
+  assert.equal(closed.status,403);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM admin_requests').get().n,0);
+  assert.equal((await call('/api/sa/admin-recruitment',{sa_id:1,open:true},1)).status,200);
+  assert.equal((await call('/api/account/admin-request',{user_id:3,reason:'Help the museum',social:'test'},3)).status,200);
 });
 test('repeated SA decisions count a distinct submission once and nonpublic details stay private',async()=>{
  const {call,db}=fixture();

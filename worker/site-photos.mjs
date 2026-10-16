@@ -65,7 +65,7 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
     const credit = String(form.get('credit') || '').trim();
     const weekday = requestedWeekday({ weekday: form.get('weekday') });
     const flags = ['show_home', 'show_login', 'show_register'].map(key => boolField(form, key));
-    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > IMAGE_UPLOAD_MAX_BYTES) return reply({ error: '照片处理后须为 1280px 以内、1 MB 以下的 WebP' }, 400);
+    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > IMAGE_UPLOAD_MAX_BYTES) return reply({ error: '照片处理后须为 1280px 以内、1 MB 以下的 WebP 或 JPEG' }, 400);
     if (!credit || credit.length > 100 || !weekday || !flags.some(Boolean)) return reply({ error: '请填写署名、展示星期和展示位置' }, 400);
     if (!boolField(form, 'license_confirmed')) return reply({ error: '请先确认照片版权与展示授权' }, 400);
     if (await weekdayConflict(env, weekday, flags)) return reply({ error: '该星期的所选展示位置已有启用照片，请先调整原照片' }, 409);
@@ -149,7 +149,7 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
     const file = form.get('image');
     const credit = String(form.get('credit') || '').trim();
     const placements = Object.fromEntries(Object.entries(placementFields).map(([key, field]) => [field, boolField(form, field)]));
-    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > IMAGE_UPLOAD_MAX_BYTES) return reply({ error: '照片处理后须为 1280px 以内、1 MB 以下的 WebP' }, 400);
+    if (!file || typeof file.arrayBuffer !== 'function' || file.size < 1 || file.size > IMAGE_UPLOAD_MAX_BYTES) return reply({ error: '照片处理后须为 1280px 以内、1 MB 以下的 WebP 或 JPEG' }, 400);
     if (!credit || credit.length > 100) return reply({ error: '请填写照片署名（不超过 100 字）' }, 400);
     if (!Object.values(placements).some(Boolean)) return reply({ error: '至少选择一个展示位置' }, 400);
     if (!boolField(form, 'license_confirmed')) return reply({ error: '请先阅读并同意照片使用授权' }, 400);

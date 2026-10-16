@@ -60,62 +60,43 @@ if (imageInput && canvas) {
 
 
 
-    imageInput.addEventListener(
-        "change",
-        async function () {
-
-            const file = this.files[0];
-
-            if (!file) return;
-
-            try { await window.bpmValidateImageFile(file); }
-            catch (error) { window.alert(error.message || "仅支持 JPEG/JPG/PNG 图片"); this.value = ""; return; }
-
-
-            const reader = new FileReader();
-
-
-            reader.onload = function(e){
-
-
-                img.onload = function(){
-
-
-                    // 保持原图比例
-
-                    canvas.width = img.width;
-
-                    canvas.height = img.height;
-
-
-                    scale = 1;
-                    rotation = 0;
-                    watermarkBaked=false;
-                    cropRect=null;
-
-                    offsetX = 0;
-
-                    offsetY = 0;
-
-
-                    draw();
-                    window.dispatchEvent(new Event("bpm-image-source-ready"));
-
-
-                };
-
-
-                img.src = e.target.result;
-
-
-            };
-
-
-            reader.readAsDataURL(file);
-
-
-        }
-    );
+    let sourceLoadId=0;
+    function setEditorImage(source){
+        img=source;
+        canvas.width=source.naturalWidth||source.width;
+        canvas.height=source.naturalHeight||source.height;
+        scale=1;rotation=0;watermarkBaked=false;cropRect=null;offsetX=0;offsetY=0;
+        draw();
+        window.dispatchEvent(new Event("bpm-image-source-ready"));
+    }
+    imageInput.addEventListener("change",async function(){
+        const file=this.files[0];
+        if(!file)return;
+        const loadId=++sourceLoadId;
+        try{await window.bpmValidateImageFile(file);}
+        catch(error){window.alert(error.message||"请选择 JPEG/JPG、PNG 或 HEIC/HEIF 图片");this.value="";return;}
+        const sourceUrl=URL.createObjectURL(file),source=new Image();
+        source.onerror=()=>{URL.revokeObjectURL(sourceUrl);if(loadId===sourceLoadId)window.alert("当前浏览器无法读取这张图片，请先在照片中导出为 JPEG 后重试");};
+        source.onload=async()=>{
+            if(loadId!==sourceLoadId){URL.revokeObjectURL(sourceUrl);return;}
+            const width=source.naturalWidth||source.width,height=source.naturalHeight||source.height,maxEdge=2400;
+            if(Math.max(width,height)<=maxEdge){setEditorImage(source);URL.revokeObjectURL(sourceUrl);return;}
+            const ratio=maxEdge/Math.max(width,height),preview=document.createElement("canvas");
+            preview.width=Math.max(1,Math.round(width*ratio));preview.height=Math.max(1,Math.round(height*ratio));
+            try{
+                const context=preview.getContext("2d");if(!context)throw Error("当前浏览器无法处理图片");
+                context.drawImage(source,0,0,preview.width,preview.height);
+                const resized=await new Promise((resolve,reject)=>preview.toBlob(blob=>blob?resolve(blob):reject(Error("图片解码或缩小失败")),"image/jpeg",.94));
+                if(loadId!==sourceLoadId)return;
+                const resizedUrl=URL.createObjectURL(resized),bounded=new Image();
+                bounded.onerror=()=>{URL.revokeObjectURL(resizedUrl);window.alert("图片缩小失败，请重新选择图片");};
+                bounded.onload=()=>{setEditorImage(bounded);URL.revokeObjectURL(resizedUrl);};
+                bounded.src=resizedUrl;
+            }catch(error){if(loadId===sourceLoadId)window.alert(error.message||"图片缩小失败，请重新选择图片");}
+            finally{preview.width=preview.height=1;URL.revokeObjectURL(sourceUrl);}
+        };
+        source.src=sourceUrl;
+    });
 
 
 

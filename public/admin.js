@@ -71,9 +71,27 @@ if(adminApply){
 adminApply.style.display="block";
 }
 
+await loadAdminApplicationAvailability();
+
 // 不再继续加载管理员后台
 return;
 
+}
+
+async function loadAdminApplicationAvailability(){
+    const button=document.getElementById("applyAdmin");
+    const status=document.getElementById("adminApplyStatus");
+    if(!button||!status)return;
+    try{
+        const response=await apiFetch(`${API}/api/admin-recruitment`,{cache:"no-store"});
+        const data=await response.json();
+        if(!response.ok)throw Error(data.error||"读取申请状态失败");
+        button.hidden=data.open!==true;
+        status.textContent=data.open===true?"目前开放接收管理员申请。":"管理员申请暂时关闭，请稍后再查看。";
+    }catch(error){
+        button.hidden=false;
+        status.textContent="暂时无法读取申请状态，提交时会再次确认。";
+    }
 }
 
 const adminApply =
@@ -951,6 +969,8 @@ function bindAdminApply(){
             return;
         }
 
+        btn.disabled=true;
+
         try{
 
             const res =
@@ -994,6 +1014,9 @@ function bindAdminApply(){
             showToast(
                 "管理员申请已提交"
             );
+            const status=document.getElementById("adminApplyStatus");
+            if(status)status.textContent="申请已提交，SA 审核后会通知你。";
+            btn.hidden=true;
 
         }catch(e){
 
@@ -1003,6 +1026,8 @@ function bindAdminApply(){
             );
 
         }
+
+        finally{btn.disabled=false;}
 
     };
 

@@ -323,14 +323,37 @@ export function webpDimensions(bytes) {
   return width>0&&height>0?{width,height}:null;
 }
 
+export function jpegDimensions(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  const frameMarkers = new Set([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf]);
+  let i=2;
+  while(i+8<bytes.length) {
+    if(bytes[i++]!==0xff) continue;
+    while(i<bytes.length&&bytes[i]===0xff)i++;
+    const marker=bytes[i++];
+    if(marker===0xd8||marker===0xd9||marker===0x01||(marker>=0xd0&&marker<=0xd7))continue;
+    if(i+1>=bytes.length) return null;
+    const length=(bytes[i]<<8)|bytes[i+1];
+    if(length<2||i+length>bytes.length)return null;
+    if(frameMarkers.has(marker)&&length>=7) {
+      const height=(bytes[i+3]<<8)|bytes[i+4],width=(bytes[i+5]<<8)|bytes[i+6];
+      return width>0&&height>0?{width,height}:null;
+    }
+    i+=length;
+  }
+  return null;
+}
+export function imageDimensions(bytes) { return webpDimensions(bytes) || jpegDimensions(bytes); }
+
 export async function uploadImage(request,env) {
   const form=await request.formData(),file=form.get('image');
-  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>IMAGE_UPLOAD_MAX_BYTES) return reply({error:'图片处理后须为 1280px 以内、1 MB 以下的 WebP'},400);
+  if(!file || typeof file.arrayBuffer!=='function'||file.size<1||file.size>IMAGE_UPLOAD_MAX_BYTES) return reply({error:'图片处理后须为 1280px 以内、1 MB 以下的 WebP 或 JPEG'},400);
   const bytes=new Uint8Array(await file.arrayBuffer());
-  const dimensions=webpDimensions(bytes);
-  if(!dimensions)return reply({error:'服务器只接受有效的 WebP 图片，请重新处理后上传'},415);
+  const dimensions=imageDimensions(bytes);
+  if(!dimensions)return reply({error:'图片格式无法读取，请使用 WebP 或 JPEG 图片'},415);
   if(Math.max(dimensions.width,dimensions.height)>IMAGE_UPLOAD_MAX_EDGE)return reply({error:'图片最长边不得超过 1280 像素，请重新处理后上传'},400);
-  const key=`tickets/${crypto.randomUUID()}.webp`;
-  await env.IMAGES.put(key,bytes,{httpMetadata:{contentType:'image/webp',contentDisposition:'inline'}});
+  const isWebp=webpDimensions(bytes)!==null,extension=isWebp?'webp':'jpg',contentType=isWebp?'image/webp':'image/jpeg';
+  const key=`tickets/${crypto.randomUUID()}.${extension}`;
+  await env.IMAGES.put(key,bytes,{httpMetadata:{contentType,contentDisposition:'inline'}});
   return reply({success:true,url:`https://images.bpmuseum.org.cn/${key}`});
 }

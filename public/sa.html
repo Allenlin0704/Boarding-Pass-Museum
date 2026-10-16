@@ -26,7 +26,7 @@
 <section class="bpm-page-hero"><span>站主工作台</span><h1>SA 控制台</h1><p id="welcome">正在加载账户状态…</p><a class="bpm-sa-shortcut" href="moderation.html">打开社区举报、处罚与申诉管理 →</a></section>
 
 <nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
-<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#adminRecruitmentPanel">管理员招募</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
 <label class="bpm-sa-mobile-nav-label" for="saMobileSectionSelect">打开管理页面</label>
 <select id="saMobileSectionSelect" class="bpm-sa-mobile-nav-select" aria-label="选择要管理的内容">
   <option value="" disabled>选择要管理的内容</option>
@@ -43,6 +43,7 @@
   </optgroup>
   <optgroup label="人员与排班">
     <option value="adminApplications">管理员申请</option>
+    <option value="adminRecruitmentPanel">管理员招募</option>
     <option value="saStaff">管理员管理</option>
     <option value="reviewerSchedulePanel">审核排班</option>
     <option value="saDeletions">注销申请</option>
@@ -134,6 +135,14 @@
 
 </section>
 
+<section class="sa-panel" id="adminRecruitmentPanel">
+<h2><span data-bpm-icon="users"></span> 管理员招募</h2>
+<p>关闭后，新用户暂时不能提交申请；已经提交的申请仍可继续审核。</p>
+<label class="sa-recruitment-toggle"><input type="checkbox" id="adminRecruitmentOpen"> 接收管理员申请</label>
+<button type="button" id="saveAdminRecruitment">保存招募设置</button>
+<p id="adminRecruitmentStatus" role="status" aria-live="polite">正在读取招募状态…</p>
+</section>
+
 <section class="sa-panel" id="saExhibits">
 
 <h2>
@@ -188,7 +197,13 @@ placeholder="输入展品 ID"
       </fieldset>
       <label>出发国家 / 地区 · Departure country / region<select data-edit-flight="departure_country" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></label>
       <label>到达国家 / 地区 · Arrival country / region<select data-edit-flight="arrival_country" data-iso-country><option value="">请选择 ISO 国家 / 地区</option></select></label>
-      <label class="sa-flight-edit-wide">图片地址<input type="url" data-edit-flight="image"></label>
+      <label class="sa-flight-edit-wide">图片地址<input type="url" data-edit-flight="image" autocomplete="url" placeholder="https://images.bpmuseum.org.cn/tickets/…"></label>
+      <div class="sa-flight-edit-wide sa-edit-image-preview" id="saFlightImagePreview" hidden>
+        <a href="#" target="_blank" rel="noopener noreferrer" aria-label="在新窗口查看展品原图">
+          <img alt="当前展品照片预览" loading="lazy">
+          <span>当前展品照片 · 点击查看原图</span>
+        </a>
+      </div>
       <label class="sa-flight-edit-wide">展品故事<textarea rows="4" maxlength="5000" data-edit-flight="story"></textarea></label>
       <label class="sa-flight-edit-wide" data-correction-decision-field hidden>采纳说明<textarea rows="3" maxlength="2000" data-correction-decision></textarea></label>
     </div>
@@ -301,7 +316,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="image-compression.js?v=20261011-webp-1280"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="sa.js?v=20261011-entity-cabin-editor"></script>
+<script src="sa.js?v=20261016-image-preview"></script>
 
 
 

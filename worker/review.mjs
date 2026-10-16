@@ -3,13 +3,23 @@ import { ISO_COUNTRY_CODES } from './iso-country-codes.mjs';
 const normalizedCode=value=>String(value??'').trim().toUpperCase();
 const validCatalogCode=value=>typeof value==='string'&&value.length<=6&&(/^[A-Z0-9-]*$/.test(value.trim().toUpperCase()));
 const validCountry=value=>typeof value==='string'&&ISO_COUNTRY_CODES.has(value);
-const checkMetroImage=async(env,image)=>{
-  if(typeof image!=='string'||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.webp$/.test(image))return {ok:false,unavailable:false};
-  try{const object=await env.IMAGES?.head?.(new URL(image).pathname.replace(/^\//,''));return {ok:!!object&&Number.isFinite(Number(object.size))&&Number(object.size)<=1024*1024&&object.httpMetadata?.contentType==='image/webp',unavailable:false};}
+const validTicketImage=value=>typeof value==='string'&&/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.(?:webp|jpg)$/.test(value);
+const checkTicketImage=async(env,image)=>{
+  if(!validTicketImage(image))return {ok:false,unavailable:false};
+  try{const object=await env.IMAGES?.head?.(new URL(image).pathname.replace(/^\//,''));const expected=image.endsWith('.webp')?'image/webp':'image/jpeg';return {ok:!!object&&Number.isFinite(Number(object.size))&&Number(object.size)<=1024*1024&&object.httpMetadata?.contentType===expected,unavailable:false};}
   catch{return {ok:false,unavailable:true};}
 };
 export async function reviewRoute(request,env,url,user) {
   const path=url.pathname;
+  if(request.method==='GET'&&path==='/api/admin-recruitment') {
+    const setting=await env.DB.prepare("SELECT value FROM site_settings WHERE key='admin_recruitment_open'").first();
+    return reply({open:setting?.value!=='0'});
+  }
+  if(request.method==='GET'&&path==='/api/sa/admin-recruitment') {
+    if(!isSA(user))return reply({error:'No permission'},403);
+    const setting=await env.DB.prepare("SELECT value,updated_at FROM site_settings WHERE key='admin_recruitment_open'").first();
+    return reply({open:setting?.value!=='0',updated_at:setting?.updated_at||null});
+  }
   if(request.method==='GET'&&/^\/api\/flight\/\d+$/.test(path)) {
     const flight=await env.DB.prepare("SELECT flights.*,CASE WHEN users.deleted_at IS NOT NULL THEN '账号已注销' ELSE users.username END AS username FROM flights LEFT JOIN users ON users.id=flights.user_id WHERE flights.id=?").bind(Number(path.split('/').pop())).first();
     if(!flight || (flight.status!=='approved' && !isSA(user) && Number(user?.id)!==Number(flight.user_id) && !(isAdmin(user)&&Number(flight.reviewer_id)===Number(user.id)))) return reply({error:'展品不存在'},404);
@@ -26,6 +36,14 @@ export async function reviewRoute(request,env,url,user) {
     return reply(rows.results||[]);
   }
   if(request.method!=='POST') return null;
+  if(path==='/api/sa/admin-recruitment') {
+    if(!isSA(user))return reply({error:'No permission'},403);
+    const body=await request.json();
+    if(typeof body.open!=='boolean')return reply({error:'请指定是否开放管理员申请'},400);
+    await env.DB.prepare(`INSERT INTO site_settings(key,value,updated_at) VALUES('admin_recruitment_open',?,CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP`).bind(body.open?'1':'0').run();
+    return reply({success:true,open:body.open});
+  }
   if(path==='/api/sa/reviewer-schedule') {
     if(!isSA(user))return reply({error:'No permission'},403);
     const body=await request.json(),allocations=body.reviewer_allocations;
@@ -49,12 +67,10 @@ export async function reviewRoute(request,env,url,user) {
     const cabinClass=transit?'':String(body.cabin_class||'');
     const allowedTags=['business','premium_economy','first_class','silver','gold','platinum','special_assistance','transfer','other','two_cabin'];
     const localScope=metro||(!transit&&routeScope==='domestic');
-    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket','metro_ticket'].includes(submissionType)||!['paper','digital'].includes(body.ticket_format||'paper')||(!transit&&!['domestic','international','regional'].includes(routeScope))||(!transit&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.webp$/.test(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||(!localScope&&!validCountry(body.arrival_country))||(transit&&!body.route))return reply({error:'投稿格式无效，请使用已上传的 WebP 图片并填写有效的 ISO 国家 / 地区'},400);
-    if(metro){
-      const checked=await checkMetroImage(env,body.image);
-      if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
-      if(!checked.ok)return reply({error:'图片必须为不超过 1 MB 的 WebP 格式'},413);
-    }
+    if([airlineIata,airlineIcao,airportIata,airportIcao].includes(null)||!['boarding_pass','rail_ticket','metro_ticket'].includes(submissionType)||!['paper','digital'].includes(body.ticket_format||'paper')||(!transit&&!['domestic','international','regional'].includes(routeScope))||(!transit&&!['economy','premium_economy','business','first_class','other'].includes(cabinClass))||body.airline.length>200||body.flight.length>30||body.airport.length>200||String(body.story||'').length>5000||!validTicketImage(body.image)||!/^\d{4}-\d{2}-\d{2}$/.test(body.date)||!Number.isFinite(Date.parse(body.date))||!Array.isArray(body.special_tags||[])||!(body.special_tags||[]).every(tag=>allowedTags.includes(tag))||!validCountry(body.departure_country)||(!localScope&&!validCountry(body.arrival_country))||(transit&&!body.route))return reply({error:'投稿格式无效，请使用已上传的 WebP 或 JPEG 图片并填写有效的 ISO 国家 / 地区'},400);
+    const checked=await checkTicketImage(env,body.image);
+    if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
+    if(!checked.ok)return reply({error:'请先上传有效的 1280px、1 MB 以内 WebP 或 JPEG 图片'},413);
     // Staff submissions always go to the SA queue. The SA's own submission is
     // assigned to account 1 as well, so it remains an explicit self-review.
     const admins=isAdmin(user)
@@ -77,8 +93,8 @@ export async function reviewRoute(request,env,url,user) {
     const reason=String(body.reason||'').trim();
     if(status==='rejected'&&(!/^【(投稿基本要求|隐私守护规范|审核流程)】.+/s.test(reason)||reason.length>2000)) return reply({error:'拒绝展品必须填写条例条款及原因'},400);
     // Conditional write and audit insert share one transaction; duplicate or stale actions do not count.
-    const updates=[env.DB.prepare(`UPDATE flights SET status=?,reject_reason=?,reviewer_id=? WHERE id=? AND status=? AND (?=1 OR reviewer_id IS ?)`)
-      .bind(status,status==='rejected'?reason:null,user.id,id,flight.status,Number(isSA(user)),user.id),
+    const updates=[env.DB.prepare(`UPDATE flights SET status=?,reject_reason=?,reviewer_id=?,rejected_at=? WHERE id=? AND status=? AND (?=1 OR reviewer_id IS ?)`)
+      .bind(status,status==='rejected'?reason:null,user.id,status==='rejected'&&isSA(user)?new Date().toISOString().replace('T',' ').replace(/\.\d{3}Z$/,''):null,id,flight.status,Number(isSA(user)),user.id),
       env.DB.prepare(`INSERT INTO flight_reviews(flight_id,user_id,reviewer_id,previous_status,status,reason)
       SELECT ?,?,?,?,?,? WHERE changes()>0 AND ?!=?`).bind(id,flight.user_id,user.id,flight.status,status,reason,flight.status,status)];
     if(status==='approved') updates.push(env.DB.prepare(`INSERT OR IGNORE INTO flight_approvals(flight_id,user_id,approved_at,submitted_at,airline,airport,flight_date)
@@ -141,10 +157,10 @@ export async function reviewRoute(request,env,url,user) {
       const value=field=>updates[field]===undefined?(existing[field]??''):updates[field];
       if(!['rail_ticket','metro_ticket'].includes(value('submission_type'))&&!['economy','premium_economy','business','first_class','other'].includes(value('cabin_class')))return reply({error:'请核对并选择舱等'},400);
       if(!['rail_ticket','metro_ticket'].includes(value('submission_type'))&&!['economy','premium_economy','business','first_class','other'].includes(value('cabin_class')))return reply({error:'请核对并选择舱等'},400);
-      if(value('submission_type')==='metro_ticket'){
-        const checked=await checkMetroImage(env,value('image'));
+      {
+        const checked=await checkTicketImage(env,value('image'));
         if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
-        if(!checked.ok)return reply({error:'图片必须为不超过 1 MB 的 WebP 格式'},413);
+        if(!checked.ok)return reply({error:'请先上传有效的 1280px、1 MB 以内 WebP 或 JPEG 图片'},413);
       }
       statements.push(env.DB.prepare("UPDATE flights SET submission_type=?,ticket_format=?,cabin_class=?,cabin_class_verified=CASE WHEN ?=1 THEN 1 ELSE cabin_class_verified END,special_tags=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,image=?,story=? WHERE id=? AND EXISTS(SELECT 1 FROM flight_corrections WHERE id=? AND status='accepted')")
         .bind(value('submission_type'),value('ticket_format'),value('cabin_class'),updates.cabin_class!==undefined&&!['rail_ticket','metro_ticket'].includes(value('submission_type'))?1:0,value('special_tags'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('image'),value('story'),correction.flight_id,id));
@@ -154,6 +170,8 @@ export async function reviewRoute(request,env,url,user) {
     return results[0].meta.changes?reply({success:true}):reply({error:'处理状态已变化，请刷新'},409);
   }
   if(path==='/api/account/admin-request') {
+    const recruitment=await env.DB.prepare("SELECT value FROM site_settings WHERE key='admin_recruitment_open'").first();
+    if(recruitment?.value==='0')return reply({error:'目前暂停接收管理员申请，请稍后再试'},403);
     const body=await request.json(); const reason=String(body.reason||'').trim(),social=String(body.social||'').trim();
     if(!reason||!social||reason.length>2000||social.length>300) return reply({error:'请填写申请理由和社交账号（理由不超过2000字）'},400);
     if(user.role!=='user') return reply({error:'你已是管理员'},409);
@@ -195,10 +213,10 @@ export async function reviewRoute(request,env,url,user) {
     const value=field=>body[field]===undefined?(flight[field]??''):body[field];
     if(!['rail_ticket','metro_ticket'].includes(value('submission_type'))&&!['economy','premium_economy','business','first_class','other'].includes(value('cabin_class')))return reply({error:'请核对并选择舱等'},400);
     if(!['rail_ticket','metro_ticket'].includes(value('submission_type'))&&!['economy','premium_economy','business','first_class','other'].includes(value('cabin_class')))return reply({error:'请核对并选择舱等'},400);
-    if(value('submission_type')==='metro_ticket'){
-      const checked=await checkMetroImage(env,value('image'));
+    {
+      const checked=await checkTicketImage(env,value('image'));
       if(checked.unavailable)return reply({error:'图片服务暂不可用，请稍后重试'},503);
-        if(!checked.ok)return reply({error:'图片必须为不超过 1 MB 的 WebP 格式'},413);
+      if(!checked.ok)return reply({error:'请先上传有效的 1280px、1 MB 以内 WebP 或 JPEG 图片'},413);
     }
     const result=await env.DB.prepare(`UPDATE flights SET submission_type=?,ticket_format=?,cabin_class=?,cabin_class_verified=CASE WHEN ?=1 THEN 1 ELSE cabin_class_verified END,special_tags=?,airline=?,airline_iata=?,airline_icao=?,flight=?,airport=?,airport_iata=?,airport_icao=?,date=?,route=?,route_scope=?,departure_country=?,arrival_country=?,story=?,image=? WHERE id=? AND status=? AND (?=1 OR reviewer_id=?)`)
       .bind(value('submission_type'),value('ticket_format'),value('cabin_class'),body.cabin_class!==undefined&&!['rail_ticket','metro_ticket'].includes(value('submission_type'))?1:0,value('special_tags'),value('airline'),normalizedCode(value('airline_iata')),normalizedCode(value('airline_icao')),value('flight'),value('airport'),normalizedCode(value('airport_iata')),normalizedCode(value('airport_icao')),value('date'),value('route'),value('route_scope'),value('departure_country'),value('arrival_country'),value('story'),value('image'),Number(body.flight_id),flight.status,Number(isSA(user)),user.id).run();
@@ -219,7 +237,8 @@ export async function reviewRoute(request,env,url,user) {
     if(body.flight_id!==undefined&&Number(body.flight_id)!==Number(appeal.flight_id)) return reply({error:'展品不匹配'},400);
     const approve=path.endsWith('/approve');
     const statements=[env.DB.prepare("UPDATE appeals SET status=? WHERE id=? AND status='pending'").bind(approve?'approved':'rejected',appeal.id)];
-    if(approve) statements.push(env.DB.prepare("UPDATE flights SET status='screening',reject_reason=NULL,reviewer_id=NULL WHERE id=? AND status='rejected'").bind(appeal.flight_id));
+    if(approve) statements.push(env.DB.prepare("UPDATE flights SET status='screening',reject_reason=NULL,reviewer_id=NULL,rejected_at=NULL WHERE id=? AND status='rejected'").bind(appeal.flight_id));
+    else statements.push(env.DB.prepare("UPDATE flights SET rejected_at=CURRENT_TIMESTAMP WHERE id=? AND status='rejected' AND reviewer_id=1").bind(appeal.flight_id));
     await env.DB.batch(statements);return reply({success:true});
   }
   return null;

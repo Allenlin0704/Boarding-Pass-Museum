@@ -20,7 +20,7 @@ test('the shared visual system loads after page styles on every styled public pa
 
 test('the service worker precaches the shared design stylesheet in a fresh shell cache', () => {
   const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(worker, /bpmuseum-shell-v36/);
+  assert.match(worker, /bpmuseum-shell-v38/);
   assert.match(worker, /'\/site-polish\.css'/);
   assert.match(worker, /'\/admin-login\.html'/);
 });
@@ -59,6 +59,8 @@ test('SA exhibit search comes before the repair queue and both correction flows 
   assert.match(script, /flight_updates:flightUpdates/);
   assert.match(html, /data-sa-catalog-input="airline"/);
   assert.match(html, /data-sa-catalog-input="airport"/);
+  assert.match(html, /id="saFlightImagePreview"/);
+  assert.match(html, /data-edit-flight="image"/);
   assert.match(script, /airlines-global\.json/);
   assert.match(script, /airports-global\.json/);
   assert.match(html, /到达车站/);
@@ -67,6 +69,8 @@ test('SA exhibit search comes before the repair queue and both correction flows 
   assert.ok(html.indexOf('id="saStepupCountdown"')<html.indexOf('<nav>'), 'timer must survive auth.js rebuilding the menu contents');
   assert.match(html,/saStepupDialog/);
   assert.match(script,/bpmShowSAStepup/);
+  assert.match(script,/images\.bpmuseum\.org\.cn/);
+  assert.match(script,/updateSAFlightImagePreview\(\)/);
 });
 
 test('submission and SA edit forms use searchable ISO alpha-2 country pickers',()=>{
@@ -87,4 +91,17 @@ test('client login keeps the public account experience separate from the managem
   assert.match(html, /https:\/\/admin\.bpmuseum\.org\.cn\/admin-login\.html/);
   assert.match(script, /credentials:'include'/);
   assert.match(script, /bpmHandleClientAdminLogin/);
+});
+
+test('user dropdown application link stays on public admin-application frame and respects recruitment setting',()=>{
+  const auth=readFileSync(new URL('../public/auth.js',import.meta.url),'utf8');
+  const theme=readFileSync(new URL('../public/theme.js',import.meta.url),'utf8');
+  const admin=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+  const html=readFileSync(new URL('../public/admin.html',import.meta.url),'utf8');
+  assert.match(auth,/admin\.html\?embed=1#admin-apply/);
+  assert.match(theme,/adminApplicationFrame/);
+  assert.match(admin,/api\/admin-recruitment/);
+  assert.match(admin,/button\.hidden=data\.open!==true/);
+  assert.match(html,/id="adminApplyStatus"/);
+  assert.match(readFileSync(new URL('../public/features.css',import.meta.url),'utf8'),/admin-apply-button\[hidden\]/);
 });

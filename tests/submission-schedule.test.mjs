@@ -47,11 +47,19 @@ test('submission requires both rules acceptance and social-share authorization',
   assert.deepEqual({...saved},{rules_consent:1,social_share_consent:1});
 });
 
-test('new exhibit submissions cannot reference original JPEG/PNG files as uploaded images',async()=>{
+test('valid uploaded JPEG fallback can be submitted as an exhibit',async()=>{
   const {call,db}=fixture();
+  const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA44',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/converted.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
+  const response=await call('/api/submit',payload,3);
+  assert.equal(response.status,200);
+  assert.equal(db.prepare('SELECT image FROM flights WHERE flight=?').get('EA44').image,payload.image);
+});
+
+test('new exhibit submissions cannot reference image URLs that were never uploaded',async()=>{
+  const {call,db,env}=fixture();env.IMAGES.head=async()=>null;
   const payload={submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'Example Air',flight:'EA43',airport:'PEK',date:'2026-09-27',image:'https://images.bpmuseum.org.cn/tickets/original.jpg',departure_country:'CN',arrival_country:'CN',special_tags:[],rules_consent:true,social_share_consent:true};
   const response=await call('/api/submit',payload,3);
-  assert.equal(response.status,400);
+  assert.equal(response.status,413);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM flights WHERE flight=?').get('EA43').n,0);
 });
 
@@ -68,6 +76,7 @@ test('domestic boarding passes and metro tickets do not require arrival country;
   assert.equal(response.status,413);
   response=await call('/api/admin/edit',{admin_id:1,flight_id:13,submission_type:'metro_ticket',image:common.image},1);
   assert.equal(response.status,413,'SA edits cannot bypass the global image limit');
+  env.IMAGES.head=async()=>({size:1024,httpMetadata:{contentType:'image/webp'}});
   response=await call('/api/submit',{...common,submission_type:'boarding_pass',route_scope:'domestic',cabin_class:'economy',flight:'EA10',airport:'PEK',airline:'Example Air',airline_iata:'EA',arrival_country:''},3);
   assert.equal(response.status,200);
   saved=db.prepare('SELECT route_scope,arrival_country FROM flights WHERE flight=?').get('EA10');

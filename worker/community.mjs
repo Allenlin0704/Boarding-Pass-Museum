@@ -52,7 +52,7 @@ export async function communityRoute(request,env,url,user) {
     const title=String(body.title||'').trim(),content=String(body.content||'').trim(),image=String(body.image||'');
     if(!title||!content||title.length>100||content.length>5000) return reply({error:'标题1–100字，正文1–5000字'},400);
     if(body.rules_version!=='2026-09-06') return reply({error:'请先阅读并同意社区条例'},400);
-    if(image&&!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.webp$/.test(image)) return reply({error:'图片地址无效，请使用 WebP 图片'},400);
+    if(image&&!/^https:\/\/images\.bpmuseum\.org\.cn\/tickets\/[a-zA-Z0-9.-]+\.(?:webp|jpg)$/.test(image)) return reply({error:'图片地址无效，请使用 WebP 或 JPEG 图片'},400);
     const duplicates=await env.DB.prepare("SELECT COUNT(*) AS n FROM community_posts WHERE user_id=? AND title=? AND content=? AND created_at>datetime('now','-10 minutes')").bind(user.id,title,content).first();
     const recent=await env.DB.prepare("SELECT COUNT(*) AS n FROM community_posts WHERE user_id=? AND created_at>datetime('now','-1 minute')").bind(user.id).first();
     if(duplicates.n>=2||recent.n>=3) return reply({error:'请勿重复刷帖，稍后再试'},429);

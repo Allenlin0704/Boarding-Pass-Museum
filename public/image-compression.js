@@ -3,14 +3,14 @@
   const MAX_BYTES = MiB;
   const MAX_EDGE = 1280;
   const WEBP = 'image/webp';
+  const JPEG = 'image/jpeg';
 
-  function canvasBlob(canvas, quality) {
+  function canvasBlob(canvas, quality, requestedType = WEBP) {
     return new Promise((resolve, reject) => {
       canvas.toBlob(blob => {
         if (!blob) return reject(new Error('图片压缩失败'));
-        if (blob.type !== WEBP) return reject(new Error('当前浏览器不能导出 WebP，请升级浏览器后重试'));
         resolve(blob);
-      }, WEBP, quality);
+      }, requestedType, quality);
     });
   }
 
@@ -35,7 +35,9 @@
       }
       context.drawImage(source, 0, 0, output.width, output.height);
       for (const quality of qualities) {
-        const blob = await canvasBlob(output, quality);
+        let blob = await canvasBlob(output, quality);
+        if (blob.type !== WEBP) blob = await canvasBlob(output, quality, JPEG);
+        if (![WEBP, JPEG].includes(blob.type)) throw new Error('浏览器无法导出 WebP 或 JPEG，请更新浏览器后重试');
         if (blob.size <= maxBytes) return blob;
       }
       if (Math.max(output.width, output.height) <= 320) break;
@@ -51,11 +53,14 @@
     const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
     const png = bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a;
     const jpegName = /\.jpe?g$/.test(name), pngName = /\.png$/.test(name);
+    const heicName = /\.hei[cf]$/.test(name), heicType = ['image/heic','image/heif','image/heic-sequence','image/heif-sequence'].includes(type);
+    const heicBrand = bytes.length >= 8 && bytes[4]===0x66 && bytes[5]===0x74 && bytes[6]===0x79 && bytes[7]===0x70;
     const jpegType = type === 'image/jpeg' || type === 'image/jpg' || type === 'image/pjpeg';
     const pngType = type === 'image/png';
     if (jpeg && (jpegName || jpegType) && (!type || jpegType) && (!name || jpegName)) return;
     if (png && (pngName || pngType) && (!type || pngType) && (!name || pngName)) return;
-    throw new Error('仅支持 JPEG、JPG 或 PNG 图片');
+    if ((heicName || heicType) && (heicBrand || heicName || heicType)) return;
+    throw new Error('请选择 JPEG/JPG、PNG 或 HEIC/HEIF 图片');
   }
 
   async function compressImageFile(file, options = {}) {
@@ -66,7 +71,13 @@
       bitmap = await createImageBitmap(file);
       return await compressCanvas(bitmap, options);
     } catch (error) {
-      if (error?.name === 'NotSupportedError' || typeof createImageBitmap !== 'function') {
+      if ((error?.name === 'NotSupportedError' || error?.name === 'EncodingError' || typeof createImageBitmap !== 'function') && typeof window.heic2any === 'function' && /\.hei[cf]$/i.test(file.name||'')) {
+        const decoded = await window.heic2any({ blob:file, toType:'image/jpeg', quality:0.92 });
+        const jpeg = Array.isArray(decoded) ? decoded[0] : decoded;
+        const converted = await createImageBitmap(jpeg);
+        try { return await compressCanvas(converted, options); } finally { converted.close?.(); }
+      }
+      if (error?.name === 'NotSupportedError' || error?.name === 'EncodingError' || typeof createImageBitmap !== 'function') {
         const objectUrl = URL.createObjectURL(file);
         try {
           const image = new Image();
@@ -82,5 +93,5 @@
   window.bpmCompressCanvas = compressCanvas;
   window.bpmCompressImageFile = compressImageFile;
   window.bpmValidateImageFile = validateSource;
-  window.bpmImagePolicy = Object.freeze({ maxEdge: MAX_EDGE, maxBytes: MAX_BYTES, outputType: WEBP, inputTypes: ['image/jpeg', 'image/jpg', 'image/png'] });
+  window.bpmImagePolicy = Object.freeze({ maxEdge: MAX_EDGE, maxBytes: MAX_BYTES, outputType: WEBP, fallbackType: JPEG, inputTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/heic', 'image/heif'] });
 })();

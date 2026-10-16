@@ -771,8 +771,8 @@ async function recognizeTicket(){
   if(recognizeTicketBtn)recognizeTicketBtn.disabled=true;setRecognitionStatus(localizedChoiceText("正在识别已处理的票面…","Reading the edited ticket…","正在辨識已處理的票面…"));
   try{
     const blob=await window.bpmCompressCanvas(canvas,{maxBytes:1024*1024,maxEdge:1280,quality:.82});
-    if(!blob||blob.size>1024*1024||blob.type!=="image/webp")throw Error(localizedChoiceText("处理后的图片需为 1 MB 以内的 WebP。","The edited image must be WebP and no larger than 1 MB.","處理後的圖片須為 1 MB 以內的 WebP。"));
-    const form=new FormData();form.append("image",blob,"edited-ticket.webp");form.append("consent","1");
+    if(!blob||blob.size>1024*1024||!["image/webp","image/jpeg"].includes(blob.type))throw Error(localizedChoiceText("处理后的图片需为 1 MB 以内的 WebP 或 JPEG。","The edited image must be WebP or JPEG and no larger than 1 MB.","處理後的圖片須為 1 MB 以內的 WebP 或 JPEG。"));
+    const form=new FormData();form.append("image",blob,`edited-ticket.${blob.type==="image/jpeg"?"jpg":"webp"}`);form.append("consent","1");
     const response=await fetch("https://api.bpmuseum.org.cn/api/flight-assist/recognize",{method:"POST",body:form}),data=await response.json();
     if(!response.ok)throw Error(data.error||localizedChoiceText("识别失败，请稍后重试。","Recognition failed. Try again later.","辨識失敗，請稍後重試。"));
     const fields=data.fields||{};
@@ -1028,7 +1028,7 @@ return;
 
 const imageMaxBytes=1024*1024;
 const blob = await window.bpmCompressCanvas(canvas, { maxBytes: imageMaxBytes, maxEdge: 1280, quality: 0.9 });
-if(!blob || blob.size > imageMaxBytes || blob.type!=="image/webp") throw new Error(localizedChoiceText("图片需压缩为 1280px、1 MB 以内的 WebP，请裁剪后重试。","The image must be WebP, at most 1280 px and 1 MB. Crop it and try again.","圖片須壓縮為 1280px、1 MB 以內的 WebP，請裁切後重試。"));
+if(!blob || blob.size > imageMaxBytes || !["image/webp","image/jpeg"].includes(blob.type)) throw new Error(localizedChoiceText("图片需压缩为 1280px、1 MB 以内的 WebP 或 JPEG，请裁剪后重试。","The image must be WebP or JPEG, at most 1280 px and 1 MB. Crop it and try again.","圖片須壓縮為 1280px、1 MB 以內的 WebP 或 JPEG，請裁切後重試。"));
 
 
 
@@ -1041,7 +1041,7 @@ formData.append(
 
 blob,
 
-"ticket.webp"
+`ticket.${blob.type==="image/jpeg"?"jpg":"webp"}`
 
 );
 formData.append("submission_type",submissionType);

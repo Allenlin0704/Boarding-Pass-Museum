@@ -188,6 +188,7 @@ function updateNavbar(){
 
 
                 <a href="profile.html?id=${encodeURIComponent(currentUser.id)}" data-nav-profile>查看个人主页</a>
+                ${currentUser.role==="user"?'<a href="admin.html?embed=1#admin-apply" data-nav-admin-application>申请成为管理员</a>':""}
                 <a href="notifications.html">通知与申诉</a>
                 <a href="account.html">
                 账户设置

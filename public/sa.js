@@ -789,6 +789,26 @@ async function loadAdminRequests(){
 
 }
 
+async function loadAdminRecruitment(){
+    const toggle=document.getElementById("adminRecruitmentOpen"),status=document.getElementById("adminRecruitmentStatus");
+    if(!toggle||!status)return;
+    try{
+        const response=await apiFetch(`${API}/api/sa/admin-recruitment?sa_id=${encodeURIComponent(user.id)}`,{cache:"no-store"});
+        const data=await response.json();if(!response.ok)throw Error(data.error||"读取招募状态失败");
+        toggle.checked=data.open===true;status.textContent=data.open?"目前开放接收申请。":"目前暂停接收新申请。";
+    }catch(error){status.textContent=`加载失败：${error.message}`;}
+}
+document.getElementById("saveAdminRecruitment")?.addEventListener("click",async event=>{
+    const button=event.currentTarget,toggle=document.getElementById("adminRecruitmentOpen"),status=document.getElementById("adminRecruitmentStatus");
+    button.disabled=true;
+    try{
+        const response=await apiFetch(`${API}/api/sa/admin-recruitment`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sa_id:user.id,open:toggle.checked})});
+        const data=await response.json();if(!response.ok)throw Error(data.error||"保存失败");
+        status.textContent=data.open?"目前开放接收申请。":"目前暂停接收新申请。";showToast("招募设置已保存");
+    }catch(error){status.textContent=error.message||"保存失败";showToast(status.textContent);}
+    finally{button.disabled=false;}
+});
+
 
 
 
@@ -941,6 +961,8 @@ loadSitePhotoManager();
 loadSAReviewQueue();
 
 loadAdminRequests();
+
+loadAdminRecruitment();
 
 loadUsers();
 
@@ -1140,6 +1162,15 @@ async function loadSAFlightById(flightId){
     if(!record)throw Error("未找到该展品");
     return bpmSafeRecord(record);
 }
+function updateSAFlightImagePreview(){
+    const wrap=document.getElementById("saFlightImagePreview"),input=document.querySelector('[data-edit-flight="image"]');
+    const image=wrap?.querySelector("img"),link=wrap?.querySelector("a");
+    if(!wrap||!image||!link)return;
+    let url="";
+    try{const candidate=new URL(String(input?.value||"").trim());if(candidate.protocol==="https:"&&candidate.hostname==="images.bpmuseum.org.cn")url=candidate.href;}catch{}
+    if(!url){image.removeAttribute("src");link.removeAttribute("href");wrap.hidden=true;return;}
+    image.referrerPolicy="no-referrer";image.src=url;link.href=url;wrap.hidden=false;
+}
 async function openSAFlightEditorById(flightId,options={}){
     const flight=await loadSAFlightById(flightId);
     await loadSAEditCatalogs();
@@ -1158,6 +1189,7 @@ async function openSAFlightEditorById(flightId,options={}){
     setSAEditMode(flight.submission_type||"boarding_pass");
     if((flight.submission_type||"boarding_pass")==="boarding_pass")form.querySelector('[data-edit-flight="route"]').value="";
     for(const key of ["departure_country","arrival_country"]){const select=form.querySelector(`[data-edit-flight="${key}"]`);select.value=saEditCountryCode(flight[key]);window.bpmRefreshIsoCountryPicker?.(select);}
+    updateSAFlightImagePreview();
     const decisionField=form.querySelector("[data-correction-decision-field]");
     decisionField.hidden=!saFlightEditContext.correctionId;
     document.getElementById("saFlightEditTitle").textContent=`编辑展品 #${Number(flight.id)}`;
@@ -1165,6 +1197,8 @@ async function openSAFlightEditorById(flightId,options={}){
     if(saFlightEditContext.correctionId)form.querySelector("[data-correction-decision]").value="已核对并更新展品信息";
     dialog.showModal();
 }
+
+document.querySelector('[data-edit-flight="image"]')?.addEventListener("input",updateSAFlightImagePreview);
 
 loadSAIncompleteFlights();
 

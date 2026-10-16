@@ -2573,6 +2573,60 @@ export default {
     await env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare('DELETE FROM auth_limits WHERE bucket<?').bind(Math.floor(Date.now()/1000)-86400).run();
+    // Purge only exhibitions rejected by account 1 (the SA), after 14 days.
+    // Pending appeals pause retention; approved appeals clear rejected_at.
+    const rejected=await env.DB.prepare(`SELECT id,image FROM flights f
+      WHERE f.status='rejected' AND f.reviewer_id=1 AND f.rejected_at IS NOT NULL
+        AND f.rejected_at<=datetime('now','-14 days')
+        AND NOT EXISTS(SELECT 1 FROM appeals a WHERE a.flight_id=f.id AND a.status='pending')
+      ORDER BY f.rejected_at,f.id LIMIT 50`).all();
+    for(const flight of rejected.results||[]) {
+      const id=Number(flight.id);
+      let objectKey=null;
+      try {
+        const imageUrl=new URL(String(flight.image||''));
+        const match=imageUrl.hostname==='images.bpmuseum.org.cn'&&imageUrl.pathname.match(/^\/tickets\/([a-zA-Z0-9.-]+\.(?:webp|jpg))$/);
+        if(match)objectKey=`tickets/${match[1]}`;
+      } catch {}
+      const eligible=`EXISTS(SELECT 1 FROM flights WHERE id=? AND status='rejected' AND reviewer_id=1
+        AND rejected_at IS NOT NULL AND rejected_at<=datetime('now','-14 days')
+        AND NOT EXISTS(SELECT 1 FROM appeals WHERE flight_id=? AND status='pending'))`;
+      const statements=[];
+      if(objectKey)statements.push(env.DB.prepare(`INSERT OR IGNORE INTO r2_cleanup_queue(object_key)
+        SELECT ? WHERE ${eligible}`).bind(objectKey,id,id));
+      statements.push(
+        env.DB.prepare(`DELETE FROM favorites WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
+        env.DB.prepare(`DELETE FROM appeals WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
+        env.DB.prepare(`DELETE FROM flight_corrections WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
+        env.DB.prepare(`DELETE FROM flight_reviews WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
+        env.DB.prepare(`DELETE FROM flight_approvals WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
+        env.DB.prepare(`DELETE FROM flight_submissions WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
+        env.DB.prepare(`DELETE FROM flights WHERE id=? AND status='rejected' AND reviewer_id=1
+          AND rejected_at IS NOT NULL AND rejected_at<=datetime('now','-14 days')
+          AND NOT EXISTS(SELECT 1 FROM appeals WHERE flight_id=? AND status='pending')`).bind(id,id)
+      );
+      await env.DB.batch(statements);
+    }
+    const queuedImages=await env.DB.prepare('SELECT object_key FROM r2_cleanup_queue ORDER BY queued_at LIMIT 50').all();
+    for(const queued of queuedImages.results||[]) {
+      try {
+        if(!env.IMAGES?.delete)break;
+        const publicUrl=`https://images.bpmuseum.org.cn/${queued.object_key}`;
+        const shared=await env.DB.prepare(`SELECT (
+          EXISTS(SELECT 1 FROM flights WHERE image=?) OR
+          EXISTS(SELECT 1 FROM community_posts WHERE image=?) OR
+          EXISTS(SELECT 1 FROM users WHERE avatar=?) OR
+          EXISTS(SELECT 1 FROM site_cover_photos WHERE image_url=?) OR
+          EXISTS(SELECT 1 FROM site_photo_requests WHERE image_url=?)
+        ) AS referenced`).bind(publicUrl,publicUrl,publicUrl,publicUrl,publicUrl).first();
+        if(Number(shared?.referenced)===1) {
+          await env.DB.prepare('DELETE FROM r2_cleanup_queue WHERE object_key=?').bind(queued.object_key).run();
+          continue;
+        }
+        await env.IMAGES.delete(queued.object_key);
+        await env.DB.prepare('DELETE FROM r2_cleanup_queue WHERE object_key=?').bind(queued.object_key).run();
+      } catch(error) { console.error('Expired SA-rejected image cleanup failed',error?.name||'Error'); }
+    }
     const due=await env.DB.prepare("SELECT id,user_id FROM account_deletion_requests WHERE status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now')").all();
     for(const request of due.results) {
       const id=Number(request.user_id);
