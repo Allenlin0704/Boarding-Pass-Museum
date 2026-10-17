@@ -843,6 +843,7 @@ const restoreStatus=document.getElementById("editorRestoreStatus");
 if(restoreStatus){restoreStatus.hidden=false;restoreStatus.textContent="正在恢复刚编辑的图片…";}
 const restored=await window.bpmEditorRestorePromise;
 if(restoreStatus){restoreStatus.textContent=restored?"图片已恢复，可以继续投稿。":"";restoreStatus.hidden=!restored;}
+if(restored&&draftStatus?.textContent.includes("图片需重新选择"))setDraftStatus("已恢复未提交草稿与图片，可以继续投稿。");
 }
 
 if(window.bpmImageEditorReady&&!window.bpmImageEditorReady()){
