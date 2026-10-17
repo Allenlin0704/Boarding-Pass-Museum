@@ -13,7 +13,7 @@ export async function reviewRoute(request,env,url,user) {
   const path=url.pathname;
   if(request.method==='GET'&&path==='/api/admin-recruitment') {
     const setting=await env.DB.prepare("SELECT value FROM site_settings WHERE key='admin_recruitment_open'").first();
-    return reply({open:setting?.value!=='0'});
+    return reply({open:setting?.value!=='0',eligible:user?.role==='user'});
   }
   if(request.method==='GET'&&path==='/api/sa/admin-recruitment') {
     if(!isSA(user))return reply({error:'No permission'},403);

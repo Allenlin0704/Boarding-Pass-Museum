@@ -838,6 +838,13 @@ restoreDraft();
 
 async function submitFlight(){
 
+if(window.bpmEditorRestorePromise){
+const restoreStatus=document.getElementById("editorRestoreStatus");
+if(restoreStatus){restoreStatus.hidden=false;restoreStatus.textContent="正在恢复刚编辑的图片…";}
+const restored=await window.bpmEditorRestorePromise;
+if(restoreStatus){restoreStatus.textContent=restored?"图片已恢复，可以继续投稿。":"";restoreStatus.hidden=!restored;}
+}
+
 if(window.bpmImageEditorReady&&!window.bpmImageEditorReady()){
 showToast("请先应用或取消当前裁剪框，再提交图片");
 return;

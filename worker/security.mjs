@@ -7,7 +7,7 @@ export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Arr
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
 export const isAdmin = user => user?.role==='administrator' || isSA(user);
 export const reply = (body,status=200) => Response.json(body,{status});
-const turnstileAction=(path)=>{
+export const turnstileAction=(path)=>{
   if(path==='/api/login')return 'login';
   if(path==='/api/account/admin-pin/login'||path==='/api/account/admin-pin/setup')return 'login';
   if(/^\/api\/oauth\/(apple|microsoft|github)\/start$/.test(path))return 'login';
@@ -15,18 +15,17 @@ const turnstileAction=(path)=>{
   if(path==='/api/register')return 'signup';
   if(path==='/api/account/reset/send-code')return 'reset_code';
   if(path==='/api/account/reset-password')return 'reset';
-  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts'||path==='/api/flight-assist/recognize')return 'submission';
-  if(path.startsWith('/api/my/'))return 'exhibit_status';
-  if(path.startsWith('/api/sa'))return 'sa_console';
-  if(path.startsWith('/api/admin/'))return 'admin_review';
-  return 'profile_edit';
+  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts'||path==='/api/flight-assist/recognize'||path==='/api/account/admin-request'||path==='/api/appeal'||path==='/api/community/moderation-appeal'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path))return 'submission';
+  if(['/api/admin/approve','/api/admin/reject','/api/sa/approve','/api/sa/reject','/api/sa/admin-request/approve','/api/sa/admin-request/reject','/api/sa/appeal/approve','/api/sa/appeal/reject','/api/sa/community/posts/status','/api/sa/community/moderate','/api/sa/community/appeals/resolve','/api/admin/community/hide'].includes(path))return path.startsWith('/api/sa/')?'sa_console':'admin_review';
+  return null;
 };
 export async function verifyTurnstile(request,env,url) {
   if(url.pathname==='/wechat'||url.pathname==='/api/oauth/apple/callback'||url.pathname==='/api/staff-chat'||url.pathname==='/api/translate/story')return null;
   if(['GET','HEAD','OPTIONS'].includes(request.method)||url.pathname==='/api/logout')return null;
+  const action=turnstileAction(url.pathname);
+  if(!action)return null;
   // This binding only exists in the isolated in-memory test fixture.
   if(env.TURNSTILE_TEST_BYPASS===true)return null;
-  const action=turnstileAction(url.pathname);
   const type=request.headers.get('Content-Type')||'';
   let token;
   try {

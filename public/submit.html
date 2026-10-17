@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=20261006-ai"></script>
+<script src="security.js?v=20261017-turnstile-selective"></script>
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
 
@@ -128,7 +128,7 @@
     <label class="submit-upload-label" for="ticketImage">选择票据图片</label>
     <input id="ticketImage" type="file" accept="image/jpeg,image/png,image/heic,image/heif,.jpg,.jpeg,.png,.heic,.heif">
     <p id="ticketImageSizeHint">支持 JPEG/JPG/PNG/HEIC/HEIF 原图；会在本机缩小并转成 WebP，浏览器不支持 WebP 时使用同样受限的 JPEG。</p>
-    <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开图片编辑器</button><canvas id="watermarkCanvas"></canvas></div>
+    <div class="preview-area"><button type="button" id="openImageEditor" class="open-image-editor">打开图片编辑器</button><canvas id="watermarkCanvas"></canvas><p id="editorRestoreStatus" role="status" aria-live="polite" hidden></p></div>
     <div class="ai-recognition-controls">
       <label class="ai-privacy-consent"><input id="aiPrivacyConsent" type="checkbox"> <span>我已在本机处理并遮挡个人信息，并同意将处理后的图片发送给 <span data-bpm-ai-slot>本地区 AI 服务</span> 识别。</span></label>
       <p>只会在你点击识别时发送当前编辑画布；图片不会保存到本站。请先遮住姓名、票号、订单号、二维码和条形码。</p>
@@ -182,11 +182,11 @@ BoardingPassMuseum © 2026
 
 
 
-<script src="auth.js?v=20261016-admin-recruitment"></script>
+<script src="auth.js?v=20261017-recruitment-eligibility"></script>
 
 <script src="image-handoff.js?v=20261001-mobile-editor"></script>
 <script src="image-compression.js?v=20261016-mobile-format-fallback"></script>
-<script src="watermark.js?v=20261016-mobile-canvas-cap"></script>
+<script src="watermark.js?v=20261017-editor-restore"></script>
 <script src="image-editor.js?v=20261016-mobile-format-fallback"></script>
 <script src="ai-provider.js?v=20261011-cloudflare-ai"></script>
 
@@ -196,7 +196,7 @@ BoardingPassMuseum © 2026
 
 <script src="notice.js?v=20260930-popup-fix"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="submit.js?v=20261016-optional-share"></script>
+<script src="submit.js?v=20261017-editor-restore"></script>
 
 <footer class="bpm-footer">
 

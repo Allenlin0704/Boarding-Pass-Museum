@@ -1,5 +1,14 @@
-const apiFetch=async(input,init={})=>{const response=await fetch(input,{...init,credentials:"include"});if(response.status===428)window.bpmShowSAStepup?.();return response;};
+const apiFetch=async(input,init={})=>{let response=await fetch(input,{...init,credentials:"include"});if(response.status===428){const resumed=await window.bpmShowSAStepup?.();if(resumed===true)response=await fetch(input,{...init,credentials:"include"});}return response;};
 const API = "https://api.bpmuseum.org.cn";
+
+function showToast(message){
+    let toast=document.getElementById("bpmToast");
+    if(!toast){toast=document.createElement("div");toast.id="bpmToast";document.body.appendChild(toast);}
+    toast.textContent=String(message||"");
+    toast.className="bpm-toast-show";
+    clearTimeout(window.bpmSAToastTimer);
+    window.bpmSAToastTimer=setTimeout(()=>{toast.className="";},2500);
+}
 
 const user = JSON.parse(
     localStorage.getItem("currentUser")

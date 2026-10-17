@@ -103,7 +103,7 @@ test('admin applications: submission, SA listing, approval and rejection', async
 });
 test('SA controls administrator recruitment and closed applications are rejected server-side',async()=>{
   const {call,db}=fixture();
-  assert.deepEqual(await (await call('/api/admin-recruitment')).json(),{open:true});
+  assert.deepEqual(await (await call('/api/admin-recruitment')).json(),{open:true,eligible:true});
   assert.equal((await call('/api/sa/admin-recruitment?sa_id=2',undefined,2)).status,403);
   assert.equal((await call('/api/sa/admin-recruitment',{sa_id:2,open:false},2)).status,403);
   assert.equal((await call('/api/sa/admin-recruitment',{sa_id:1,open:false},1)).status,200);

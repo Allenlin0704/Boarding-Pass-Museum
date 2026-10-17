@@ -2,7 +2,16 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fixture} from './helpers.mjs';
-import {passwordHash} from '../worker/security.mjs';
+import {passwordHash,turnstileAction} from '../worker/security.mjs';
+test('Turnstile protects abuse and review endpoints while routine authenticated actions stay immediate',()=>{
+  for(const path of ['/api/login','/api/register','/api/submit','/api/upload-image','/api/flight-assist/recognize','/api/admin/approve','/api/sa/community/moderate','/api/account/admin-request'])assert.ok(turnstileAction(path),`${path} should require Turnstile`);
+  for(const path of ['/api/my/withdraw','/api/my/restore','/api/sa/admin-recruitment','/api/sa/admin-social','/api/account/profile','/api/community/like'])assert.equal(turnstileAction(path),null,`${path} should not show a Turnstile challenge`);
+});
+test('admin recruitment advertises eligibility only to ordinary user accounts',async()=>{
+  const {call}=fixture();
+  assert.deepEqual(await (await call('/api/admin-recruitment',null,3)).json(),{open:true,eligible:true});
+  assert.deepEqual(await (await call('/api/admin-recruitment',null,2)).json(),{open:true,eligible:false});
+});
 test('authentication: unauthenticated and forged identities are refused',async()=>{
   const {call,worker,env,db}=fixture();
   for(const path of ['/api/admin/pending?admin_id=1','/api/sa/users?sa_id=1','/api/my-flights?user_id=3']) assert.equal((await worker.fetch(new Request('https://test.invalid'+path),env)).status,401);

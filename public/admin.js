@@ -86,10 +86,10 @@ async function loadAdminApplicationAvailability(){
         const response=await apiFetch(`${API}/api/admin-recruitment`,{cache:"no-store"});
         const data=await response.json();
         if(!response.ok)throw Error(data.error||"读取申请状态失败");
-        button.hidden=data.open!==true;
-        status.textContent=data.open===true?"目前开放接收管理员申请。":"管理员申请暂时关闭，请稍后再查看。";
+        button.hidden=data.open!==true||data.eligible!==true;
+        status.textContent=data.eligible!==true?"管理员账号不能提交管理员申请。":data.open===true?"目前开放接收管理员申请。":"管理员申请暂时关闭，请稍后再查看。";
     }catch(error){
-        button.hidden=false;
+        button.hidden=true;
         status.textContent="暂时无法读取申请状态，提交时会再次确认。";
     }
 }

@@ -271,7 +271,7 @@ if (imageInput && canvas) {
     updateCropControls();
     window.bpmImageEditorReady=()=>!cropMode&&!masking&&!cropRect;
     window.bpmGetEditorSource=()=>img.src||"";
-    window.bpmLoadEditorSource=source=>{const next=new Image(),objectUrl=source instanceof Blob?URL.createObjectURL(source):"";next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();window.dispatchEvent(new Event("bpm-image-source-ready"));if(objectUrl)URL.revokeObjectURL(objectUrl);};next.onerror=()=>{document.getElementById("imageEditorSourceStatus")?.removeAttribute("hidden");if(objectUrl)URL.revokeObjectURL(objectUrl);};next.src=objectUrl||source;};
+    window.bpmLoadEditorSource=source=>new Promise((resolve,reject)=>{const next=new Image(),objectUrl=source instanceof Blob?URL.createObjectURL(source):"";next.onload=()=>{img=next;canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;scale=1;rotation=0;offsetX=0;offsetY=0;masks.length=0;cropRect=null;watermarkBaked=false;if(scaleInput)scaleInput.value="1";draw();window.dispatchEvent(new Event("bpm-image-source-ready"));if(objectUrl)URL.revokeObjectURL(objectUrl);resolve(true);};next.onerror=()=>{document.getElementById("imageEditorSourceStatus")?.removeAttribute("hidden");if(objectUrl)URL.revokeObjectURL(objectUrl);reject(Error("图片恢复失败，请重新选择图片"));};next.src=objectUrl||source;});
     window.bpmExportEditorBlob=async(options={})=>{
         if(!window.bpmImageEditorReady())throw Error("请先应用或取消裁剪框");
         drawImageAndMasks();
@@ -306,8 +306,9 @@ if (imageInput && canvas) {
         try{const legacy=sessionStorage.getItem(legacyKey);if(legacy){sessionStorage.removeItem(legacyKey);return legacy;}}catch{}
         return null;
     }
-    if(isImageEditorPage){takeEditorImage("source","bpmImageEditorSource").then(source=>{if(source)window.bpmLoadEditorSource(source);});}
-    window.addEventListener("pageshow",()=>{restoreWatermarkSettings();takeEditorImage("result","bpmImageEditorResult").then(result=>{if(result)window.bpmLoadEditorSource(result);});});
+    if(isImageEditorPage){takeEditorImage("source","bpmImageEditorSource").then(source=>{if(source)window.bpmLoadEditorSource(source);}).catch(()=>{});}
+    window.bpmEditorRestorePromise=Promise.resolve(false);
+    window.addEventListener("pageshow",()=>{restoreWatermarkSettings();window.bpmEditorRestorePromise=takeEditorImage("result","bpmImageEditorResult").then(result=>result?window.bpmLoadEditorSource(result):false).catch(error=>{const status=document.getElementById("imageEditorSourceStatus");if(status){status.hidden=false;status.textContent="图片未能恢复，请重新选择图片。";}return false;});});
 
 
 
