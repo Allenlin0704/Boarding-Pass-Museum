@@ -225,7 +225,7 @@ function updateNavbar(){
 
         const applicationLink=nav.querySelector("[data-nav-admin-application]");
         if(applicationLink){
-            fetch("https://api.bpmuseum.org.cn/api/admin-recruitment",{cache:"no-store"})
+            fetch("https://api.bpmuseum.org.cn/api/admin-recruitment",{cache:"no-store",credentials:"include"})
                 .then(response=>response.ok?response.json():null)
                 .then(data=>{applicationLink.hidden=data?.open!==true||data?.eligible!==true;})
                 .catch(()=>{applicationLink.hidden=true;});
