@@ -1675,6 +1675,7 @@ users.username
 FROM flights
 LEFT JOIN users
 ON flights.user_id = users.id
+WHERE flights.status <> 'hidden'
 ORDER BY flights.id DESC
 `
 )
@@ -2547,6 +2548,13 @@ export default {
             flightId=Number(body.flight_id);event='展品已恢复，已重新进入审核队列';
           } else if(url.pathname==='/api/my/withdraw'){
             flightId=Number(body.flight_id);event='展品已下架';
+          } else if(url.pathname==='/api/my/bulk'&&['withdraw','restore'].includes(body.action)) {
+            const result=await reviewed.clone().json().catch(()=>({}));
+            event=body.action==='restore'?'展品已恢复，已重新进入审核队列':'展品已下架';
+            for(const id of result.processed_flight_ids||[]) {
+              const send=sendSubmissionStatusEmail(env,Number(id),event).catch(error=>console.error('Submission status email failed',error.name));
+              if(ctx?.waitUntil)ctx.waitUntil(send);else await send;
+            }
           } else if(/\/api\/(admin|sa)\/(approve|reject)$/.test(url.pathname)){
             flightId=Number(body.flight_id);event=url.pathname.endsWith('/approve')?'投稿已通过审核':'投稿未通过审核';
           } else if(url.pathname==='/api/sa/appeal/approve'||url.pathname==='/api/sa/appeal/reject'){

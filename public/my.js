@@ -11,6 +11,7 @@ const submissions =
 
 const welcome =
   document.getElementById("welcome");
+let currentFlights = [];
 
 if (!currentUser) {
   showToast("请登录后查看");
@@ -33,7 +34,8 @@ async function loadMySubmissions() {
   try {
 
     const res = await fetch(
-      `${API}/api/my-flights?user_id=${currentUser.id}`
+      `${API}/api/my-flights?user_id=${currentUser.id}`,
+      { credentials: "include", cache: "no-store" }
     );
 
     const flights = await res.json();
@@ -117,10 +119,18 @@ function renderSubmissions(flights) {
 
   }
 
-  submissions.innerHTML = "";
+  currentFlights = flights.map(flight => bpmSafeRecord(flight));
+  submissions.innerHTML = `
+    <div class="my-bulk-toolbar" role="region" aria-label="批量管理展品">
+      <label><input type="checkbox" id="mySelectAll"> 全选</label>
+      <span id="mySelectionCount" aria-live="polite">已选择 0 件</span>
+      <button type="button" class="my-bulk-action" data-action="withdraw" disabled>批量下架</button>
+      <button type="button" class="my-bulk-action" data-action="restore" disabled>批量恢复</button>
+      <button type="button" class="my-bulk-action danger" data-action="delete_hidden" disabled>删除已下架展品</button>
+    </div>
+  `;
 
-  flights.forEach(flight => {
-    flight = bpmSafeRecord(flight);
+  currentFlights.forEach(flight => {
 
     const status = getStatus(flight);
 
@@ -224,6 +234,11 @@ function renderSubmissions(flights) {
 
       <div class="submission-content">
 
+        <label class="submission-select">
+          <input type="checkbox" data-flight-select value="${Number(flight.id)}" aria-label="选择展品 ${Number(flight.id)}">
+          选择
+        </label>
+
 
         <p class="submission-id">
           🆔 展品 ID: #${flight.id}
@@ -286,6 +301,9 @@ function renderSubmissions(flights) {
             <button type="button" class="restore-btn" onclick="restoreFlight(${flight.id})">
               ${window.bpmIcon("rotateLeft")} 恢复展品
             </button>
+            <button type="button" class="delete-hidden-btn" onclick="deleteHiddenFlight(${flight.id})">
+              ${window.bpmIcon("trash")} 永久删除
+            </button>
           ` : `
             <button type="button" class="withdraw-btn" onclick="withdrawFlight(${flight.id})">
               ${window.bpmIcon("trash")} 下架展品
@@ -307,8 +325,71 @@ function renderSubmissions(flights) {
     submissions.appendChild(card);
 
   });
+  updateBulkToolbar();
 
 }
+
+function selectedFlightIds() {
+  return Array.from(submissions.querySelectorAll?.("[data-flight-select]:checked") || [])
+    .map(input => Number(input.value)).filter(id => Number.isSafeInteger(id) && id > 0);
+}
+
+function updateBulkToolbar() {
+  const selected = selectedFlightIds();
+  const count = submissions.querySelector?.("#mySelectionCount");
+  if (count) count.textContent = `已选择 ${selected.length} 件（每次最多 50 件）`;
+  const statuses = new Map(currentFlights.map(flight => [Number(flight.id),flight.status]));
+  for (const button of submissions.querySelectorAll?.(".my-bulk-action") || []) {
+    const action = button.dataset.action;
+    button.disabled = !selected.some(id => action === "withdraw" ? statuses.get(id) !== "hidden" : statuses.get(id) === "hidden");
+  }
+  const selectAll = submissions.querySelector?.("#mySelectAll");
+  if (selectAll) {
+    const total = submissions.querySelectorAll?.("[data-flight-select]").length || 0;
+    selectAll.checked = total > 0 && selected.length === total;
+    selectAll.indeterminate = selected.length > 0 && selected.length < total;
+  }
+}
+
+async function performBulkAction(action, flightIds) {
+  const labels = {withdraw:"下架", restore:"恢复并重新送审", delete_hidden:"永久删除已下架"};
+  if (!labels[action] || !Array.isArray(flightIds) || !flightIds.length) return;
+  if (!confirm(`确定对选中的展品执行“${labels[action]}”吗？${action === "delete_hidden" ? "删除后无法恢复。" : ""}`)) return;
+  try {
+    const res = await fetch(`${API}/api/my/bulk`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      credentials:"include",
+      body:JSON.stringify({action,flight_ids:flightIds,user_id:currentUser.id})
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "批量操作失败");
+    const changed = action === "delete_hidden" ? data.deleted : data.updated;
+    showToast(`已处理 ${changed || 0} 件${data.skipped ? `，跳过 ${data.skipped} 件状态不符合的展品` : ""}`);
+    await loadMySubmissions();
+  } catch (error) {
+    showToast(error.message || "网络错误，请稍后再试");
+  }
+}
+
+document.addEventListener("change", e => {
+  if (e.target?.id === "mySelectAll") {
+    const inputs = Array.from(submissions.querySelectorAll?.("[data-flight-select]") || []);
+    for (const [index,input] of inputs.entries()) input.checked = e.target.checked && index < 50;
+    if (e.target.checked && inputs.length > 50) showToast("每次最多批量处理 50 件，已先选中前 50 件");
+    updateBulkToolbar();
+  } else if (e.target?.matches?.("[data-flight-select]")) {
+    if (e.target.checked && selectedFlightIds().length > 50) {
+      e.target.checked = false;
+      showToast("每次最多批量处理 50 件");
+    }
+    updateBulkToolbar();
+  }
+});
+
+document.addEventListener("click", e => {
+  const button = e.target.closest?.(".my-bulk-action");
+  if (button) performBulkAction(button.dataset.action, selectedFlightIds());
+});
 
 
 // =================================
@@ -499,6 +580,7 @@ document.addEventListener(
           `${API}/api/appeal`,
           {
             method: "POST",
+            credentials: "include",
 
             headers: {
               "Content-Type":
@@ -566,6 +648,7 @@ async function changeFlightStatus(id, action) {
   try {
     const res = await fetch(`${API}/api/my/${action}`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ flight_id: id, user_id: currentUser.id })
     });
@@ -585,7 +668,7 @@ async function changeSocialShareConsent(id, enabled) {
   if(!confirm(prompt))return;
   try {
     const res=await fetch(`${API}/api/my/social-share`,{
-      method:"POST",headers:{"Content-Type":"application/json"},
+      method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({flight_id:Number(id),enabled,user_id:currentUser.id})
     });
     const data=await res.json();
@@ -603,4 +686,8 @@ async function withdrawFlight(id) {
 
 async function restoreFlight(id) {
   return changeFlightStatus(id, "restore");
+}
+
+async function deleteHiddenFlight(id) {
+  return performBulkAction("delete_hidden", [Number(id)]);
 }

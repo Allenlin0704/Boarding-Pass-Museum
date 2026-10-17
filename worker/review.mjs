@@ -139,6 +139,46 @@ export async function reviewRoute(request,env,url,user) {
     const result=await env.DB.prepare("UPDATE flights SET status='hidden' WHERE id=? AND user_id=? AND status!='hidden'").bind(Number(body.flight_id),user.id).run();
     return result.meta.changes?reply({success:true}):reply({error:'展品不存在、不属于你或已下架'},409);
   }
+  if(path==='/api/my/bulk'&&request.method==='POST') {
+    const body=await request.json(),action=body.action,ids=body.flight_ids;
+    if(!['withdraw','restore','delete_hidden'].includes(action)||!Array.isArray(ids)||ids.length<1||ids.length>50||ids.some(id=>!Number.isSafeInteger(Number(id))||Number(id)<=0))return reply({error:'批量操作格式无效（每次最多选择 50 件展品）'},400);
+    const flightIds=[...new Set(ids.map(Number))];
+    let updated=0,deleted=0;const processed=[];
+    if(action==='withdraw') {
+      const marks=flightIds.map(()=>'?').join(',');
+      const result=await env.DB.prepare(`UPDATE flights SET status='hidden' WHERE user_id=? AND status!='hidden' AND id IN (${marks}) RETURNING id`).bind(user.id,...flightIds).all();
+      processed.push(...(result.results||[]).map(row=>Number(row.id)));updated=processed.length;
+    } else if(action==='restore') {
+      for(const flightId of flightIds) {
+        const reviewer=isAdmin(user)?{id:1}:await env.DB.prepare(`SELECT u.id FROM reviewer_schedule s JOIN users u ON u.id=s.user_id
+          WHERE s.active=1 AND (u.role='administrator' OR (u.id=1 AND u.role='superadministrator'))
+          ORDER BY (SELECT COUNT(*) FROM flights WHERE status='screening' AND reviewer_id=u.id),s.sort_order,u.id LIMIT 1`).first();
+        const result=await env.DB.prepare("UPDATE flights SET status='screening',reject_reason=NULL,reviewer_id=? WHERE id=? AND user_id=? AND status='hidden'").bind(reviewer?.id??null,flightId,user.id).run();
+        if(result.meta.changes){updated++;processed.push(flightId);}
+      }
+    } else {
+      for(const flightId of flightIds) {
+        const flight=await env.DB.prepare("SELECT id,image FROM flights WHERE id=? AND user_id=? AND status='hidden'").bind(flightId,user.id).first();
+        if(!flight)continue;
+        let objectKey=null;
+        try {
+          const imageUrl=new URL(String(flight.image||''));
+          const match=imageUrl.hostname==='images.bpmuseum.org.cn'&&imageUrl.pathname.match(/^\/tickets\/([a-zA-Z0-9.-]+\.(?:webp|jpg))$/);
+          if(match)objectKey=`tickets/${match[1]}`;
+        } catch {}
+        const ownedHidden="EXISTS(SELECT 1 FROM flights WHERE id=? AND user_id=? AND status='hidden')";
+        const statements=[];
+        if(objectKey)statements.push(env.DB.prepare(`INSERT OR IGNORE INTO r2_cleanup_queue(object_key) SELECT ? WHERE ${ownedHidden}`).bind(objectKey,flightId,user.id));
+        for(const table of ['favorites','appeals','flight_corrections','flight_reviews','flight_approvals','flight_submissions','flight_story_translations']) {
+          statements.push(env.DB.prepare(`DELETE FROM ${table} WHERE flight_id=? AND ${ownedHidden}`).bind(flightId,flightId,user.id));
+        }
+        statements.push(env.DB.prepare(`DELETE FROM flights WHERE id=? AND user_id=? AND status='hidden'`).bind(flightId,user.id));
+        const results=await env.DB.batch(statements);
+        if(results.at(-1)?.meta?.changes)deleted++;
+      }
+    }
+    return reply({success:true,updated,deleted,skipped:flightIds.length-updated-deleted,processed_flight_ids:processed});
+  }
   if(path==='/api/my/restore') {
     const body=await request.json(),flightId=Number(body.flight_id);
     if(!Number.isSafeInteger(flightId)||flightId<=0)return reply({error:'无效的展品 ID'},400);

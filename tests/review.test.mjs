@@ -11,6 +11,31 @@ test('restore: owner and hidden status required; requeue and clear rejection', a
   assert.equal(flight.status,'screening'); assert.equal(flight.reject_reason,null); assert.equal(flight.reviewer_id,1);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11})).status,409);
 });
+test('bulk exhibit actions require ownership and only permanently delete hidden exhibits',async()=>{
+  const {db,call}=fixture();
+  db.prepare("INSERT INTO flights(id,user_id,status,image) VALUES(14,3,'hidden','https://images.bpmuseum.org.cn/tickets/hidden.webp'),(15,3,'approved',NULL),(16,2,'hidden',NULL)").run();
+  const forged=await call('/api/my/bulk',{action:'delete_hidden',flight_ids:[14],user_id:2},2);
+  assert.equal(forged.status,200);
+  assert.ok(db.prepare('SELECT id FROM flights WHERE id=14').get(),'request body cannot impersonate the exhibit owner');
+  const mixed=await call('/api/my/bulk',{action:'delete_hidden',flight_ids:[14,15,16],user_id:3},3);
+  assert.equal(mixed.status,200);
+  assert.deepEqual(await mixed.json(),{success:true,updated:0,deleted:1,skipped:2,processed_flight_ids:[]});
+  assert.equal(db.prepare('SELECT id FROM flights WHERE id=14').get(),undefined);
+  assert.ok(db.prepare('SELECT id FROM flights WHERE id=15').get(),'approved exhibits cannot be deleted through this route');
+  assert.ok(db.prepare('SELECT id FROM flights WHERE id=16').get(),'another user’s hidden exhibit is retained');
+  assert.equal(db.prepare('SELECT object_key FROM r2_cleanup_queue').get().object_key,'tickets/hidden.webp');
+  assert.equal((await call('/api/my/bulk',{action:'withdraw',flight_ids:[15]},3)).status,200);
+  assert.equal(db.prepare('SELECT status FROM flights WHERE id=15').get().status,'hidden');
+  assert.equal((await call('/api/my/bulk',{action:'restore',flight_ids:[15]},3)).status,200);
+  assert.equal(db.prepare('SELECT status FROM flights WHERE id=15').get().status,'screening');
+  assert.equal((await call('/api/my/bulk',{action:'delete_hidden',flight_ids:Array.from({length:51},(_,i)=>i+1)},3)).status,400);
+});
+test('SA exhibit management excludes hidden submissions on the server',async()=>{
+  const {call}=fixture();
+  const response=await call('/api/sa/flights?sa_id=1',undefined,1);
+  assert.equal(response.status,200);
+  assert.deepEqual((await response.json()).map(flight=>flight.id).sort((a,b)=>a-b),[10,12,13]);
+});
 test('exhibit owners can opt out of sharing or enable it only after approval',async()=>{
   const {call,db}=fixture();
   assert.equal((await call('/api/my/social-share',{flight_id:13,enabled:false},2)).status,404,'a different account cannot change the owner consent');

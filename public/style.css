@@ -4417,3 +4417,12 @@ body.auth-photo-background .menubar #userMenuBtn:hover{
   100%{background-size:cover,auto 105%;background-position:center,18% 47%;}
 }
 @media(prefers-reduced-motion:reduce){.welcome,body.auth-photo-background::before{animation:none!important;}}
+
+.my-bulk-toolbar{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 14px;padding:12px 14px;border:1px solid var(--bpm-border,#d6dce2);border-radius:14px;background:var(--bpm-surface,#fff);}
+.my-bulk-toolbar label,.submission-select{display:inline-flex;align-items:center;gap:7px;cursor:pointer;}
+.my-bulk-toolbar button,.delete-hidden-btn{min-height:38px;padding:8px 12px;border:1px solid var(--bpm-border,#cbd3da);border-radius:10px;background:var(--bpm-surface,#fff);color:var(--bpm-text,#17212b);font:inherit;cursor:pointer;}
+.my-bulk-toolbar button:disabled{opacity:.48;cursor:not-allowed;}
+.my-bulk-toolbar button.danger,.delete-hidden-btn{border-color:#ba3434;color:#a22222;}
+.submission-select{margin:0 0 10px;color:var(--bpm-muted,#5f6c78);font-size:.92rem;}
+.submission-select input,.my-bulk-toolbar input{width:18px;height:18px;accent-color:#1857a4;}
+@media(max-width:600px){.my-bulk-toolbar{position:sticky;top:8px;z-index:4;padding:10px;gap:8px}.my-bulk-toolbar button{flex:1 1 calc(50% - 8px);font-size:.88rem}.submission-select{min-height:36px;}}

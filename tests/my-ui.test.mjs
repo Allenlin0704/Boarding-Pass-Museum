@@ -14,6 +14,7 @@ test('hidden cards show only restore; other cards show one withdraw; successful 
   await new Promise(resolve=>setImmediate(resolve));
   vm.runInContext(`renderSubmissions([{id:11,status:'hidden'},{id:12,status:'pending'},{id:13,status:'approved'}])`,context);
   assert.match(cards[0].innerHTML,/恢复展品/);
+  assert.match(cards[0].innerHTML,/永久删除/);
   assert.doesNotMatch(cards[0].innerHTML,/withdrawFlight/);
   assert.match(cards[0].innerHTML,/已下架/);
   for(const card of cards.slice(1)) {
@@ -23,6 +24,10 @@ test('hidden cards show only restore; other cards show one withdraw; successful 
   await vm.runInContext('restoreFlight(11)',context);
   assert.equal(calls.at(-2).url,'https://api.bpmuseum.org.cn/api/my/restore');
   assert.deepEqual(JSON.parse(calls.at(-2).options.body),{flight_id:11,user_id:3});
+  await vm.runInContext('performBulkAction("delete_hidden",[11,12])',context);
+  assert.equal(calls.at(-2).url,'https://api.bpmuseum.org.cn/api/my/bulk');
+  assert.deepEqual(JSON.parse(calls.at(-2).options.body),{action:'delete_hidden',flight_ids:[11,12],user_id:3});
+  assert.equal(calls.at(-2).options.credentials,'include');
   assert.match(calls.at(-1).url,/my-flights/);
   await vm.runInContext('withdrawFlight(13)',context);
   assert.match(calls.at(-2).url,/my\/withdraw$/);
