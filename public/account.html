@@ -12,7 +12,7 @@
 
 <link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
 
-    <script src="theme.js?v=20261016-admin-recruitment"></script>
+    <script src="theme.js?v=20261017-avatar-confirm-save"></script>
   <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
 </head>
 
@@ -234,7 +234,8 @@ hidden
 <select id="avatarCropShape"><option value="circle">圆形</option><option value="square">方形</option></select>
 <label for="avatarCropZoom">缩放</label>
 <input id="avatarCropZoom" type="range" min="1" max="3" step="0.05" value="1">
-<button type="button" id="saveAvatarCrop" disabled>使用此裁剪</button>
+<button type="button" id="saveAvatarCrop" disabled>确认更换头像</button>
+<p id="avatarSaveStatus" role="status" aria-live="polite">选择图片并调整取景后，点“确认更换头像”保存。</p>
 
 <p class="avatar-hint">
 支持 JPG、PNG、WEBP。拖动图片调整取景，选择缩放与圆形/方形裁剪后再保存。
@@ -418,7 +419,7 @@ data-password="confirmPassword"
 <script src="password-toggle.js?v=20260927"></script>
 
 <script src="image-compression.js?v=20261011-webp-1280"></script>
-<script src="account.js?v=20261011-webp-1280"></script>
+<script src="account.js?v=20261017-avatar-confirm-save"></script>
 <script src="user-passkey.js?v=1"></script>
 <script src="oauth.js?v=20261017-recruitment-eligibility"></script>
 

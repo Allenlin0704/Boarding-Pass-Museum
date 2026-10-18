@@ -817,6 +817,8 @@ headers:{
 
 },
 
+credentials:"include",
+
 body:
 JSON.stringify(body)
 
@@ -899,7 +901,7 @@ avatarCanvas
 
 if(avatarFile && avatarCanvas && avatarCtx){
 let avatarImage=null,cropX=0,cropY=0,cropZoom=1,pointer=null;
-const shapeControl=document.getElementById("avatarCropShape"),zoomControl=document.getElementById("avatarCropZoom"),saveControl=document.getElementById("saveAvatarCrop");
+const shapeControl=document.getElementById("avatarCropShape"),zoomControl=document.getElementById("avatarCropZoom"),saveControl=document.getElementById("saveAvatarCrop"),avatarStatus=document.getElementById("avatarSaveStatus");
 const previewWrap=avatarCanvas.closest(".avatar-preview-wrap");if(previewWrap)previewWrap.style.display="block";
 function renderAvatarCrop(){
  if(!avatarImage)return;
@@ -920,8 +922,8 @@ avatarCanvas.addEventListener("pointerdown",event=>{if(!avatarImage)return;point
 avatarCanvas.addEventListener("pointermove",event=>{if(!pointer||!avatarImage)return;const rect=avatarCanvas.getBoundingClientRect(),side=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom;cropX-=(event.clientX-pointer.x)*side/rect.width;cropY-=(event.clientY-pointer.y)*side/rect.height;pointer={x:event.clientX,y:event.clientY};renderAvatarCrop();});
 for(const name of ["pointerup","pointercancel","lostpointercapture"])avatarCanvas.addEventListener(name,()=>{pointer=null;});
 saveControl?.addEventListener("click",async()=>{
- if(!avatarImage)return;saveControl.disabled=true;const circle=shapeControl?.value==="circle";
- try{const blob=await window.bpmCompressCanvas(avatarCanvas,{preserveAlpha:circle});const formData=new FormData();formData.append("image",blob,"avatar.webp");showToast("正在上传头像");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.style.borderRadius=circle?"50%":"12px";const saveButton=document.getElementById("saveProfile"),saved=saveButton?.onclick?await saveButton.onclick():false;if(saved)showToast("头像已保存到档案");else showToast("图片已上传；档案保存失败，请检查错误提示后重试");}catch(error){showToast(error.message||"头像上传失败");}finally{saveControl.disabled=false;}
+ if(!avatarImage)return;saveControl.disabled=true;if(avatarStatus)avatarStatus.textContent="正在上传并保存头像…";const circle=shapeControl?.value==="circle";
+ try{const blob=await window.bpmCompressCanvas(avatarCanvas,{preserveAlpha:circle});const formData=new FormData();formData.append("image",blob,"avatar.webp");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.style.borderRadius=circle?"50%":"12px";const saveButton=document.getElementById("saveProfile"),saved=saveButton?.onclick?await saveButton.onclick():false;if(!saved)throw Error("头像已上传，但档案保存失败。请重新确认后再试。");if(avatarStatus)avatarStatus.textContent="头像已保存。重新打开个人主页即可看到新头像。";showToast("头像已保存到档案");avatarFile.value="";avatarImage=null;saveControl.disabled=true;}catch(error){if(avatarStatus)avatarStatus.textContent=error.message||"头像保存失败，请重试。";showToast(error.message||"头像上传失败");}finally{if(avatarImage)saveControl.disabled=false;}
 });
 }
 

@@ -21,7 +21,7 @@ test('the shared visual system loads after page styles on every styled public pa
 
 test('the service worker precaches the shared design stylesheet in a fresh shell cache', () => {
   const worker = readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8');
-  assert.match(worker, /bpmuseum-shell-v41/);
+  assert.match(worker, /bpmuseum-shell-v44/);
   assert.match(worker, /'\/site-polish\.css'/);
   assert.match(worker, /'\/admin-login\.html'/);
 });
@@ -125,4 +125,17 @@ test('Windows browser shows separate Microsoft Store entries for public and admi
   };
   assert.deepEqual(runFor('Windows'),[false,false]);
   assert.deepEqual(runFor('MacIntel'),[true,true]);
+});
+
+test('manually entered rail and metro operators show an authenticity warning in both review queues',()=>{
+  const admin=readFileSync(new URL('../public/admin.js',import.meta.url),'utf8');
+  const sa=readFileSync(new URL('../public/sa.js',import.meta.url),'utf8');
+  const css=readFileSync(new URL('../public/style.css',import.meta.url),'utf8');
+  const warning='此投稿相关字段未考证，请先考证其真实性';
+  for(const source of [admin,sa]){
+    assert.ok(source.includes(warning));
+    assert.match(source,/submission_type==="rail_ticket"\|\|[^\n]*submission_type==="metro_ticket"/);
+    assert.match(source,/!item\.airline_iata&&!item\.airline_icao|!flight\.airline_iata&&!flight\.airline_icao/);
+  }
+  assert.match(css,/\.unverified-submission-warning\{[\s\S]*?color:#b42318/);
 });

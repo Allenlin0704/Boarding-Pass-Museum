@@ -191,3 +191,5 @@ html.light-theme .bpm-store-button{background:#174b68;color:#fff!important}
   html:not(.bpm-console-embed) body{padding-top:58px!important;}
   html{scroll-padding-top:58px;}
 }
+
+.bpm-share-palettes{display:grid;gap:8px;padding:0 22px 14px;color:var(--bpm-text);font-size:13px;font-weight:650}.bpm-share-palettes>div{display:flex;gap:9px;flex-wrap:wrap}.bpm-share-palettes button{width:30px;height:30px;padding:0;border:2px solid var(--bpm-card);border-radius:50%;background:linear-gradient(135deg,var(--swatch-a),var(--swatch-b));box-shadow:0 0 0 1px var(--bpm-border);cursor:pointer}.bpm-share-palettes button[aria-pressed=true]{box-shadow:0 0 0 2px var(--bpm-card),0 0 0 4px var(--bpm-accent-strong,#4e91bf)}.bpm-share-palettes button:focus-visible{outline:3px solid var(--bpm-accent-strong,#4e91bf);outline-offset:3px}

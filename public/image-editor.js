@@ -2,6 +2,11 @@
   const path = location.pathname;
   const isImageEditorPage = /(?:^|\/)image-editor(?:\.html)?\/?$/i.test(path);
   const openButton = document.getElementById("openImageEditor");
+  const inlinePreview=document.querySelector(".submit-image-card .preview-area");
+  const emptyHint=document.getElementById("imageEditorEmptyHint");
+  const showInlineImage=()=>{inlinePreview?.classList.add("has-image");if(emptyHint)emptyHint.hidden=true;};
+  if(window.bpmGetEditorSource?.())showInlineImage();
+  window.addEventListener("bpm-image-source-ready",showInlineImage);
   const notify = message => {
     let node = document.getElementById("imageEditorMessage");
     if (!node) {

@@ -1,0 +1,1 @@
+ALTER TABLE flights ADD COLUMN ticket_category TEXT NOT NULL DEFAULT '';

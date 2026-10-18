@@ -61,6 +61,22 @@ test('staff submissions always enter SA review, including SA self-review',async(
   assert.ok(queue.some(flight=>flight.id===adminData.flight_id));
   assert.ok(queue.some(flight=>flight.id===saData.flight_id));
 });
+test('rail and metro ticket categories are required, stored, and returned to the exhibit UI',async()=>{
+  const {call,db,worker,env}=fixture();
+  const common={ticket_format:'paper',departure_country:'CN',arrival_country:'US',airline:'Rail operator',airline_iata:'CR',flight:'G101',airport:'Beijing',route:'Shanghai',date:'2026-10-11',image:'https://images.bpmuseum.org.cn/tickets/example.webp',rules_consent:true};
+  assert.equal((await call('/api/submit',{...common,submission_type:'rail_ticket'},3)).status,400,'rail ticket category is required');
+  const rail=await call('/api/submit',{...common,submission_type:'rail_ticket',ticket_category:'reimbursement_voucher'},3);
+  assert.equal(rail.status,200);
+  const railId=(await rail.json()).flight_id;
+  assert.equal(db.prepare('SELECT ticket_category FROM flights WHERE id=?').get(railId).ticket_category,'reimbursement_voucher');
+  const metro=await call('/api/submit',{...common,arrival_country:'',submission_type:'metro_ticket',airline:'Beijing Subway',airline_iata:'BJ',ticket_category:'day_1'},3);
+  assert.equal(metro.status,200);
+  const metroId=(await metro.json()).flight_id;
+  assert.equal(db.prepare('SELECT ticket_category FROM flights WHERE id=?').get(metroId).ticket_category,'day_1');
+  assert.equal((await call('/api/flight/'+metroId,undefined,3).then(response=>response.json())).ticket_category,'day_1');
+  const gallery=await (await worker.fetch(new Request('https://test.invalid/api/flights'),env)).json();
+  assert.ok(gallery.every(row=>Object.hasOwn(row,'ticket_category')));
+});
 test('SA can see all pending and approve/reject own submission and override results', async () => {
   const {db,call}=fixture();
   assert.equal((await (await call('/api/admin/pending?admin_id=1')).json()).length,2);

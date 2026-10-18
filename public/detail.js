@@ -53,6 +53,7 @@ return;
 
 
 const transit=data.submission_type==="rail_ticket"||data.submission_type==="metro_ticket",metro=data.submission_type==="metro_ticket";
+const categoryNames=window.BPM_LANGUAGE==="en"?{train_ticket:"Train ticket",reimbursement_voucher:"Reimbursement receipt",single_trip:"Single journey",day_1:"1-day pass",day_2:"2-day pass",day_3:"3-day pass",monthly:"Monthly pass",other:"Other"}:window.BPM_LANGUAGE==="zh-TW"?{train_ticket:"火車票",reimbursement_voucher:"報銷憑證",single_trip:"單程票",day_1:"一日票",day_2:"二日票",day_3:"三日票",monthly:"月票",other:"其他"}:{train_ticket:"火车票",reimbursement_voucher:"报销凭证",single_trip:"单程票",day_1:"一日票",day_2:"二日票",day_3:"三日票",monthly:"月票",other:"其他"};
 const labels=window.BPM_LANGUAGE==="en"?{operator:"Operator",flight:metro?"Line / ticket number":"Train number",departure:"Departure station",arrival:"Arrival station",date:"Date",submitter:"Contributor",status:"Status"}:window.BPM_LANGUAGE==="zh-TW"?{operator:transit?"營運業者":"航空公司",flight:metro?"路線／票號":transit?"車次":"航班",departure:transit?"出發車站":"出發機場",arrival:"抵達車站",date:"日期",submitter:"投稿人",status:"狀態"}:{operator:transit?"运营公司":"航司",flight:metro?"线路 / 票号":transit?"车次":"航班",departure:transit?"出发车站":"机场",arrival:"到达车站",date:"日期",submitter:"投稿人",status:"状态"};
 detail.innerHTML=`
 
@@ -78,6 +79,8 @@ class="detail-image"
 <p><strong>${labels.departure}：</strong><span data-user-content>${data.airport || ""}</span></p>
 
 ${transit&&data.route?`<p><strong>${labels.arrival}：</strong><span data-user-content>${data.route}</span></p>`:!transit?`<p><strong>登机牌签发机场：</strong><span data-user-content>${data.issue_airport || "无"}</span></p>`:""}
+
+${transit&&data.ticket_category?`<p><strong>${window.BPM_LANGUAGE==="en"?"Ticket type":window.BPM_LANGUAGE==="zh-TW"?"票種":"票种"}：</strong>${categoryNames[data.ticket_category]||categoryNames.other}</p>`:""}
 
 <p><strong>${labels.date}：</strong>${data.date || ""}</p>
 

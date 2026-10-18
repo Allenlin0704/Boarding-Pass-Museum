@@ -438,6 +438,8 @@ data-preview="${item.image || ''}"
 ${item.airline || ""}
 </h3>
 
+${(item.submission_type==="rail_ticket"||item.submission_type==="metro_ticket")&&!item.airline_iata&&!item.airline_icao?'<p class="unverified-submission-warning">此投稿相关字段未考证，请先考证其真实性</p>':""}
+
 
 <p>
 ${item.flight || ""}

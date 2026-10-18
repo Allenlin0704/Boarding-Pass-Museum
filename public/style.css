@@ -1079,6 +1079,16 @@ color:#fff;
 
 }
 
+.unverified-submission-warning{
+color:#b42318 !important;
+background:#fff1f0;
+border:1px solid #f2b8b5;
+border-left:4px solid #c62828;
+border-radius:8px;
+padding:10px 12px;
+font-weight:700;
+}
+
 
 .admin-card-image{
 

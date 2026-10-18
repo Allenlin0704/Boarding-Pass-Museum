@@ -36,22 +36,8 @@ let selectedAirline = null;
 let selectedAirport = null;
 let selectedIssueAirport = null;
 let selectedRailOperator = null;
-const railOperators=[
-  {name_cn:"中国国家铁路 CR",name_en:"China Railway",iata:"CR"},
-  {name_cn:"德国铁路 DB",name_en:"Deutsche Bahn",iata:"DB"},
-  {name_cn:"Amtrak",name_en:"Amtrak",iata:"AM"},
-  {name_cn:"Acela",name_en:"Amtrak Acela",iata:"AC"},
-  {name_cn:"欧洲之星 Eurostar",name_en:"Eurostar",iata:"ES"},
-  {name_cn:"法国国家铁路 SNCF",name_en:"SNCF",iata:"SN"},
-  {name_cn:"日本铁路 JR",name_en:"Japan Railways",iata:"JR"},
-  {name_cn:"瑞士联邦铁路 SBB",name_en:"Swiss Federal Railways",iata:"SBB"}
-];
-const metroOperators=[
-  {name_cn:"北京地铁",name_en:"Beijing Subway",iata:"BJ"},{name_cn:"上海地铁",name_en:"Shanghai Metro",iata:"SH"},
-  {name_cn:"广州地铁",name_en:"Guangzhou Metro",iata:"GZ"},{name_cn:"深圳地铁",name_en:"Shenzhen Metro",iata:"SZ"},
-  {name_cn:"香港港鐵",name_en:"MTR Hong Kong",iata:"MTR"},{name_cn:"東京地下鐵",name_en:"Tokyo Metro",iata:"TM"},
-  {name_cn:"伦敦地铁",name_en:"London Underground",iata:"LU"},{name_cn:"纽约市地铁",name_en:"New York City Subway",iata:"NYC"}
-];
+const railOperators=(window.BPM_TRANSIT_OPERATORS?.rail||[]).map(item=>({...item,name_tw:item.name_tw}));
+const metroOperators=(window.BPM_TRANSIT_OPERATORS?.metro||[]).map(item=>({...item,name_tw:item.name_tw}));
 let draftRestored = false;
 let draftTimer = null;
 const draftKey = currentUser?.id ? `bpmuseum-submit-draft:v1:${currentUser.id}` : null;
@@ -129,6 +115,16 @@ function updateSubmissionType(){
   const recognition=document.querySelector(".ai-recognition-controls");
   if(recognition)recognition.hidden=transit;
   const heading=document.getElementById("transitSubmissionHeading"),numberLabel=document.getElementById("transitNumberLabel"),imageHint=document.getElementById("ticketImageSizeHint");
+  const categoryField=document.getElementById("railTicketCategoryField"),metroTypeField=document.getElementById("metroTicketTypeField");
+  if(categoryField)categoryField.hidden=metro;
+  if(metroTypeField)metroTypeField.hidden=!metro;
+  const railCategory=document.getElementById("railTicketCategory"),metroType=document.getElementById("metroTicketType");
+  if(railCategory)railCategory.disabled=metro;
+  if(metroType)metroType.disabled=!metro;
+  const localizedOptions=(select,labels)=>{if(select){if(select.options[0])select.options[0].textContent=localizedChoiceText("请选择票种","Choose a ticket type","請選擇票種");for(const option of select.options)if(labels[option.value])option.textContent=localizedChoiceText(...labels[option.value]);}};
+  localizedOptions(railCategory,{train_ticket:["火车票","Train ticket","火車票"],reimbursement_voucher:["报销凭证","Reimbursement receipt","報銷憑證"],other:["其他","Other","其他"]});
+  localizedOptions(metroType,{single_trip:["单程票","Single trip","單程票"],day_1:["一日票","1-day pass","一日票"],day_2:["二日票","2-day pass","二日票"],day_3:["三日票","3-day pass","三日票"],monthly:["月票","Monthly pass","月票"],other:["其他","Other","其他"]});
+  for(const label of document.querySelectorAll("[data-transit-category-label]"))label.textContent=localizedChoiceText("票种","Ticket type","票種");
   if(heading)heading.textContent=metro?localizedChoiceText("地铁票信息","Metro ticket details","地鐵票資訊"):localizedChoiceText("火车票信息","Rail ticket details","火車票資訊");
   if(numberLabel)numberLabel.textContent=metro?localizedChoiceText("线路 / 票号","Line / ticket number","路線／票號"):localizedChoiceText("车次","Train number","車次");
   if(imageHint)imageHint.textContent=localizedChoiceText("支持 JPEG/JPG/PNG 原图；提交前会统一压缩为最长边不超过 1280px、1 MB 以内的 WebP。","JPEG/JPG/PNG originals are accepted; uploads are converted to WebP, max 1280 px on the longest side and 1 MB.","支援 JPEG/JPG/PNG 原圖；提交前會統一壓縮為最長邊不超過 1280px、1 MB 以內的 WebP。");
@@ -175,6 +171,8 @@ function draftValue(){
     rail_train:document.getElementById("railTrainNumber")?.value||"",
     rail_date:document.getElementById("railDate")?.value||"",
     rail_ticket_format:document.getElementById("railTicketFormat")?.value||"paper",
+    rail_ticket_category:document.getElementById("railTicketCategory")?.value||"",
+    metro_ticket_type:document.getElementById("metroTicketType")?.value||"",
     rail_departure:document.getElementById("railDepartureStation")?.value||"",
     rail_arrival:document.getElementById("railArrivalStation")?.value||"",
     departure_country:document.getElementById("departureCountry")?.value||"",
@@ -220,7 +218,7 @@ function restoreDraft(){
     document.getElementById("story").value = draft.story || "";
     if(submissionTypeInput)submissionTypeInput.value=draft.submission_type||"boarding_pass";
     updateSubmissionType();
-    for(const [id,value] of [["ticketFormat",draft.ticket_format],["cabinClass",draft.cabin_class],["routeScope",draft.route_scope],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value!==undefined&&value!=="")input.value=value;}
+    for(const [id,value] of [["ticketFormat",draft.ticket_format],["cabinClass",draft.cabin_class],["routeScope",draft.route_scope],["railOperatorSearch",draft.rail_operator_text],["railTrainNumber",draft.rail_train],["railDate",draft.rail_date],["railTicketFormat",draft.rail_ticket_format],["railTicketCategory",draft.rail_ticket_category],["metroTicketType",draft.metro_ticket_type],["railDepartureStation",draft.rail_departure],["railArrivalStation",draft.rail_arrival],["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const input=document.getElementById(id);if(input&&value!==undefined&&value!=="")input.value=value;}
     window.bpmIsoCountriesReady?.then(()=>{for(const [id,value] of [["departureCountry",draft.departure_country],["arrivalCountry",draft.arrival_country]]){const select=document.getElementById(id);if(select&&value)select.value=value;window.bpmRefreshIsoCountryPicker?.(select);}});
     document.querySelectorAll('input[name="specialTag"]').forEach(input=>input.checked=(draft.special_tags||[]).includes(input.value));
     window.bpmSubmitDraft = draft;
@@ -508,6 +506,8 @@ const target = [
 
 item.name_cn || "",
 
+item.name_tw || "",
+
 item.name_en || "",
 
 item.iata || "",
@@ -579,15 +579,7 @@ ${window.BPM_LANGUAGE==="en"?item.name_cn||"":item.name_en||""}
 
 
 <small>
-
-IATA:
-${item.iata || "-"}
-
-/
-
-ICAO:
-${item.icao || "-"}
-
+${type==="rail_operator"?(window.BPM_LANGUAGE==="en"?"Operator code":"运营公司代码"): `IATA: ${item.iata||"-"} / ICAO: ${item.icao||"-"}`}
 </small>
 
 
@@ -673,6 +665,11 @@ container.appendChild(div);
 
 );
 
+if(type==="rail_operator"){
+  const custom=document.createElement("button");custom.type="button";custom.className="search-result rail-operator-custom";custom.textContent=window.BPM_LANGUAGE==="en"?`Use entered name: ${keyword.trim()}`:window.BPM_LANGUAGE==="zh-TW"?`使用輸入的名稱：${keyword.trim()}`:`使用输入的名称：${keyword.trim()}`;
+  custom.addEventListener("click",()=>{const name=keyword.trim();if(!name)return;selectedRailOperator={name_cn:name,name_en:name,iata:"",icao:""};railOperatorInput.value=name;container.innerHTML="";queueDraftSave();});container.appendChild(custom);
+}
+
 
 
 }
@@ -697,6 +694,7 @@ return "";
 
 let name=window.BPM_LANGUAGE==="en"
   ? item.name_en||item.name_cn||""
+  : window.BPM_LANGUAGE==="zh-TW"?(item.name_tw||item.name_cn||item.name_en||"")
   : item.name_cn||item.name_en||"";
 
 
@@ -748,15 +746,33 @@ const recognizeTicketStatus=document.getElementById("recognizeTicketStatus");
 const aiPrivacyConsent=document.getElementById("aiPrivacyConsent");
 function localizedChoiceText(zh,en,tw){return window.BPM_LANGUAGE==="en"?en:window.BPM_LANGUAGE==="zh-TW"?tw:zh;}
 const setRecognitionStatus=message=>{if(recognizeTicketStatus)recognizeTicketStatus.textContent=message;if(flightAssistStatus)flightAssistStatus.textContent=message;};
-function startAIRecognition(){
-  const canvas=document.getElementById("watermarkCanvas");
-  if(!aiPrivacyConsent?.checked||!canvas?.width){
+let recognitionInFlight=false;
+async function startAIRecognition(){
+  if(recognitionInFlight)return;
+  recognitionInFlight=true;
+  [flightAssistBtn,recognizeTicketBtn].filter(Boolean).forEach(button=>button.disabled=true);
+  try{
+  if(!aiPrivacyConsent?.checked){
     document.querySelector(".submit-image-card")?.scrollIntoView({behavior:"smooth",block:"center"});
     setRecognitionStatus(localizedChoiceText("先选择图片、在本机遮挡隐私并勾选发送处理后图片的授权。","Choose an image, redact private details locally, and consent to sending the edited image first.","請先選擇圖片、在本機遮蔽個人資料，並勾選傳送處理後圖片的授權。"));
     aiPrivacyConsent?.focus({preventScroll:true});
     return;
   }
-  recognizeTicket();
+  if(window.bpmEditorRestorePromise){
+    setRecognitionStatus(localizedChoiceText("正在恢复编辑后的图片…","Restoring the edited image…","正在還原編輯後的圖片…"));
+    try{await window.bpmEditorRestorePromise;}catch{}
+  }
+  const canvas=document.getElementById("watermarkCanvas");
+  if(!canvas?.width||!canvas?.height){
+    document.querySelector(".submit-image-card")?.scrollIntoView({behavior:"smooth",block:"center"});
+    setRecognitionStatus(localizedChoiceText("图片还没准备好，请先选择或重新编辑一张图片。","The image is not ready. Choose or edit an image first.","圖片尚未準備好，請先選擇或重新編輯圖片。"));
+    return;
+  }
+  await recognizeTicket();
+  }finally{
+    recognitionInFlight=false;
+    [flightAssistBtn,recognizeTicketBtn].filter(Boolean).forEach(button=>button.disabled=false);
+  }
 }
 const findCatalogItem=(list,code,name)=>{
   const normalized=String(name||"").trim().toLocaleLowerCase(),upper=String(code||"").trim().toUpperCase();
@@ -773,7 +789,8 @@ async function recognizeTicket(){
     const blob=await window.bpmCompressCanvas(canvas,{maxBytes:1024*1024,maxEdge:1280,quality:.82});
     if(!blob||blob.size>1024*1024||!["image/webp","image/jpeg"].includes(blob.type))throw Error(localizedChoiceText("处理后的图片需为 1 MB 以内的 WebP 或 JPEG。","The edited image must be WebP or JPEG and no larger than 1 MB.","處理後的圖片須為 1 MB 以內的 WebP 或 JPEG。"));
     const form=new FormData();form.append("image",blob,`edited-ticket.${blob.type==="image/jpeg"?"jpg":"webp"}`);form.append("consent","1");
-    const response=await fetch("https://api.bpmuseum.org.cn/api/flight-assist/recognize",{method:"POST",body:form}),data=await response.json();
+    const response=await fetch("https://api.bpmuseum.org.cn/api/flight-assist/recognize",{method:"POST",body:form,credentials:"include"});
+    let data={};try{data=await response.json();}catch{}
     if(!response.ok)throw Error(data.error||localizedChoiceText("识别失败，请稍后重试。","Recognition failed. Try again later.","辨識失敗，請稍後重試。"));
     const fields=data.fields||{};
     const airline=findCatalogItem(airlines,fields.airline_iata||fields.airline_icao,fields.airline_name),departure=findCatalogItem(airports,fields.departure_airport_iata||fields.departure_airport_icao,fields.departure_airport_name),issue=findCatalogItem(airports,fields.issue_airport_iata||fields.issue_airport_icao,fields.issue_airport_name);
@@ -788,7 +805,7 @@ async function recognizeTicket(){
   }catch(error){setRecognitionStatus(error.message||localizedChoiceText("识别暂不可用，请手动填写。","Recognition is unavailable. Fill the fields manually.","辨識暫不可用，請手動填寫。"));}
   finally{if(recognizeTicketBtn)recognizeTicketBtn.disabled=false;}
 }
-recognizeTicketBtn?.addEventListener("click",recognizeTicket);
+recognizeTicketBtn?.addEventListener("click",startAIRecognition);
 // =====================================
 // BoardingPassMuseum
 // submit.js P2
@@ -819,7 +836,7 @@ clearDraftBtn?.addEventListener("click", () => {
 
 [airlineInput, airportInput, issueAirportInput, document.getElementById("flight"), document.getElementById("date"), document.getElementById("story"), railOperatorInput, document.getElementById("railTrainNumber"), document.getElementById("railDate"), document.getElementById("railDepartureStation"), document.getElementById("railArrivalStation"), document.getElementById("departureCountry"), document.getElementById("arrivalCountry")]
   .filter(Boolean).forEach(field => field.addEventListener("input", queueDraftSave));
-for(const field of [submissionTypeInput,document.getElementById("ticketFormat"),routeScopeInput,document.getElementById("railTicketFormat"),...document.querySelectorAll('input[name="specialTag"]')].filter(Boolean))field.addEventListener("change",queueDraftSave);
+for(const field of [submissionTypeInput,document.getElementById("ticketFormat"),routeScopeInput,document.getElementById("railTicketFormat"),document.getElementById("railTicketCategory"),document.getElementById("metroTicketType"),...document.querySelectorAll('input[name="specialTag"]')].filter(Boolean))field.addEventListener("change",queueDraftSave);
 for(const field of [document.getElementById("departureCountry"),document.getElementById("arrivalCountry")].filter(Boolean))field.addEventListener("change",queueDraftSave);
 
 window.addEventListener("pagehide", () => saveDraft(false));
@@ -987,6 +1004,7 @@ return;
 if(isTransit){
   if(!selectedRailOperator&&isMetro&&railOperatorInput?.value.trim())selectedRailOperator={name_cn:railOperatorInput.value.trim(),name_en:railOperatorInput.value.trim(),iata:""};
   if(!selectedRailOperator){showToast(isMetro?localizedChoiceText("请选择或填写地铁运营公司","Select or enter a metro operator","請選擇或填寫地鐵營運業者"):localizedChoiceText("请选择火车运营公司","Select a rail operator","請選擇鐵路營運業者"));return;}
+  if(!(isMetro?document.getElementById("metroTicketType")?.value:document.getElementById("railTicketCategory")?.value)){showToast(localizedChoiceText("请选择票种","Select a ticket type","請選擇票種"));return;}
   for(const [id,label] of [["railDepartureStation","出发车站"],["railArrivalStation","到达车站"]]){
     if(!document.getElementById(id)?.value.trim()){showToast(`请填写${label}`);return;}
   }
@@ -1113,6 +1131,7 @@ let flightData = {
 
 submission_type:submissionType,
 ticket_format:transit?document.getElementById("railTicketFormat").value:document.getElementById("ticketFormat").value,
+ticket_category:submissionType==="rail_ticket"?document.getElementById("railTicketCategory").value:submissionType==="metro_ticket"?document.getElementById("metroTicketType").value:"",
 cabin_class:transit?"":(document.getElementById("cabinClass")?.value||""),
 departure_country:document.getElementById("departureCountry").value,
 arrival_country:(isMetro||(!isTransit&&routeScopeInput?.value==="domestic"))?"":document.getElementById("arrivalCountry").value,

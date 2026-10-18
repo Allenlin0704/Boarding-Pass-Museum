@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=20260930-reviewer-percent">
+<link rel="stylesheet" href="style.css?v=20261018-unverified-rail-warning">
   <script src="theme.js?v=20261011-light-contrast-metro"></script>
 <link rel="stylesheet" href="features.css?v=20261017-fixed-mobile-header">
 <meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261011-light-contrast-metro">
@@ -190,6 +190,7 @@ placeholder="输入展品 ID"
       <label class="sa-flight-rail-only" data-sa-rail-field hidden><span>到达车站</span><input data-edit-flight="route" maxlength="200"></label>
       <label data-sa-air-field>航线范围<select data-edit-flight="route_scope"><option value="">未设置</option><option value="domestic">国内</option><option value="international">国际</option><option value="regional">地区</option></select></label>
       <label data-sa-air-field>登机牌形式<select data-edit-flight="ticket_format"><option value="paper">纸质登机牌</option><option value="digital">电子登机牌</option></select></label>
+      <label data-sa-rail-field hidden>车票种类<select data-edit-flight="ticket_category"></select></label>
       <label data-sa-air-field>舱等<select data-edit-flight="cabin_class"><option value="">待核实 / 未设置</option><option value="economy">经济舱</option><option value="premium_economy">超级经济舱</option><option value="business">公务舱</option><option value="first_class">头等舱（豪华公务舱）</option><option value="other">其他</option></select></label>
       <fieldset class="sa-flight-tags sa-flight-edit-wide" data-sa-air-field><legend>行李牌 / 服务标记（按票面选择）</legend>
         <label><input type="checkbox" data-edit-special-tag value="business">公务舱</label><label><input type="checkbox" data-edit-special-tag value="premium_economy">超级经济舱</label><label><input type="checkbox" data-edit-special-tag value="first_class">头等舱</label><label><input type="checkbox" data-edit-special-tag value="silver">银卡</label><label><input type="checkbox" data-edit-special-tag value="gold">金卡</label><label><input type="checkbox" data-edit-special-tag value="platinum">白金卡</label><label><input type="checkbox" data-edit-special-tag value="special_assistance">特殊保障</label><label><input type="checkbox" data-edit-special-tag value="transfer">转机</label><label><input type="checkbox" data-edit-special-tag value="other">其他</label>
@@ -316,7 +317,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="image-compression.js?v=20261011-webp-1280"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="sa.js?v=20261017-turnstile-actions"></script>
+<script src="sa.js?v=20261018-unverified-rail-warning"></script>
 
 
 

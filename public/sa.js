@@ -611,7 +611,8 @@ async function loadSAReviewQueue(){
         if(!rows.length){box.innerHTML='<p>目前没有待审核投稿。</p>';return;}
         box.innerHTML=rows.map(raw=>{
             const flight=raw;
-            return `<article class="sa-review-queue-card"><img src="${escapeSACommunityHTML(flight.image||"")}" alt="投稿展品" loading="lazy"><div><h3>#${Number(flight.id)} · ${escapeSACommunityHTML(flight.airline||"")} ${escapeSACommunityHTML(flight.flight||"")}</h3><p>投稿人：${escapeSACommunityHTML(flight.username||"未知")} · ${escapeSACommunityHTML(flight.date||"")}</p><p>分配审核人：${Number(flight.reviewer_id)||"未分配"}</p><p>${escapeSACommunityHTML(flight.story||"暂无故事")}</p><a href="detail.html?id=${Number(flight.id)}" target="_blank" rel="noopener">在新窗口查看展品</a><div class="sa-review-actions"><button type="button" onclick="saApproveFlight(${Number(flight.id)})">批准</button><button type="button" class="danger-button" onclick="saRejectFlight(${Number(flight.id)})">拒绝</button></div></div></article>`;
+            const unverified=(flight.submission_type==="rail_ticket"||flight.submission_type==="metro_ticket")&&!flight.airline_iata&&!flight.airline_icao;
+            return `<article class="sa-review-queue-card"><img src="${escapeSACommunityHTML(flight.image||"")}" alt="投稿展品" loading="lazy"><div><h3>#${Number(flight.id)} · ${escapeSACommunityHTML(flight.airline||"")} ${escapeSACommunityHTML(flight.flight||"")}</h3>${unverified?'<p class="unverified-submission-warning">此投稿相关字段未考证，请先考证其真实性</p>':""}<p>投稿人：${escapeSACommunityHTML(flight.username||"未知")} · ${escapeSACommunityHTML(flight.date||"")}</p><p>分配审核人：${Number(flight.reviewer_id)||"未分配"}</p><p>${escapeSACommunityHTML(flight.story||"暂无故事")}</p><a href="detail.html?id=${Number(flight.id)}" target="_blank" rel="noopener">在新窗口查看展品</a><div class="sa-review-actions"><button type="button" onclick="saApproveFlight(${Number(flight.id)})">批准</button><button type="button" class="danger-button" onclick="saRejectFlight(${Number(flight.id)})">拒绝</button></div></div></article>`;
         }).join("");
     }catch(error){box.textContent=`加载失败：${error.message||"请重试"}`;}
 }
@@ -1145,7 +1146,7 @@ function bindSAEntityPicker(kind){
         for(const item of matches){const button=document.createElement("button");button.type="button";button.className="search-result";button.textContent=saEditDisplayEntity(item);button.addEventListener("click",()=>{input.value=saEditDisplayEntity(item);setCodes(item);results.replaceChildren();});results.append(button);}
     });
 }
-function setSAEditMode(type){
+function setSAEditMode(type,categoryValue){
     const rail=type==="rail_ticket",transit=rail||type==="metro_ticket",metro=type==="metro_ticket";
     document.querySelectorAll("[data-sa-rail-field]").forEach(element=>element.hidden=!transit);
     document.querySelectorAll("[data-sa-air-field]").forEach(element=>element.hidden=transit);
@@ -1158,6 +1159,8 @@ function setSAEditMode(type){
     const arrivalCountry=document.querySelector('[data-edit-flight="arrival_country"]')?.closest("label");
     if(arrivalCountry)arrivalCountry.hidden=metro||(!transit&&routeScope==="domestic");
     const cabin=document.querySelector('[data-edit-flight="cabin_class"]');if(cabin)cabin.required=!transit;
+    const category=document.querySelector('[data-edit-flight="ticket_category"]');
+    if(category){const selected=categoryValue??category.value,items=rail?[["train_ticket","火车票"],["reimbursement_voucher","报销凭证"],["other","其他"]]:[["single_trip","单程票"],["day_1","一日票"],["day_2","二日票"],["day_3","三日票"],["monthly","月票"],["other","其他"]];category.replaceChildren(new Option("请选择",""),...items.map(([value,label])=>new Option(label,value)));category.value=items.some(([value])=>value===selected)?selected:"";category.required=transit;}
 }
 document.querySelector('[data-edit-flight="submission_type"]')?.addEventListener("change",event=>setSAEditMode(event.target.value));
 document.querySelector('[data-edit-flight="route_scope"]')?.addEventListener("change",()=>setSAEditMode(document.querySelector('[data-edit-flight="submission_type"]')?.value||"boarding_pass"));
@@ -1195,7 +1198,7 @@ async function openSAFlightEditorById(flightId,options={}){
         if(match){input.value=saEditDisplayEntity(match);form.querySelector(`[data-edit-flight="${codeKey}"]`).value=match.iata||"";form.querySelector(`[data-edit-flight="${kind==="airline"?"airline_icao":"airport_icao"}"]`).value=match.icao||"";}
     }
     bindSAEntityPicker("airline");bindSAEntityPicker("airport");
-    setSAEditMode(flight.submission_type||"boarding_pass");
+    setSAEditMode(flight.submission_type||"boarding_pass",flight.ticket_category||"");
     if((flight.submission_type||"boarding_pass")==="boarding_pass")form.querySelector('[data-edit-flight="route"]').value="";
     for(const key of ["departure_country","arrival_country"]){const select=form.querySelector(`[data-edit-flight="${key}"]`);select.value=saEditCountryCode(flight[key]);window.bpmRefreshIsoCountryPicker?.(select);}
     updateSAFlightImagePreview();

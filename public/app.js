@@ -6,24 +6,10 @@ let flightLoadFailed = false;
 let entityIndex={airlinesByCode:new Map(),airportsByCode:new Map(),airlinesByAlias:new Map(),airportsByAlias:new Map()};
 const normalizeEntity=value=>String(value||"").normalize("NFKC").trim().toLocaleLowerCase("en").replace(/[\s\p{P}\p{S}]/gu,"");
 const cleanEntityName=value=>String(value||"").trim().replace(/^[\s"'“”‘’《》]+|[\s"'“”‘’《》]+$/gu,"");
-const railEntities=[
-  {code:"CR",zhCN:"中国国家铁路",zhTW:"中國國家鐵路",en:"China Railway",aliases:["CR","中国国家铁路","中国国家铁路 CR","China Railway"]},
-  {code:"DB",zhCN:"德国铁路",zhTW:"德國鐵路",en:"Deutsche Bahn",aliases:["DB","德国铁路","德国铁路 DB","Deutsche Bahn"]},
-  {code:"AM",zhCN:"美国国家铁路客运公司",zhTW:"美國國家鐵路客運公司",en:"Amtrak",aliases:["AM","Amtrak"]},
-  {code:"AC",zhCN:"Amtrak Acela",zhTW:"Amtrak Acela",en:"Amtrak Acela",aliases:["AC","Acela","Amtrak Acela"]},
-  {code:"ES",zhCN:"欧洲之星",zhTW:"歐洲之星",en:"Eurostar",aliases:["ES","欧洲之星","欧洲之星 Eurostar","Eurostar"]},
-  {code:"SN",zhCN:"法国国家铁路",zhTW:"法國國家鐵路",en:"SNCF",aliases:["SN","SNCF","法国国家铁路","法国国家铁路 SNCF"]},
-  {code:"JR",zhCN:"日本铁路",zhTW:"日本鐵路",en:"Japan Railways",aliases:["JR","日本铁路","Japan Railways"]},
-  {code:"SBB",zhCN:"瑞士联邦铁路",zhTW:"瑞士聯邦鐵路",en:"Swiss Federal Railways",aliases:["SBB","瑞士联邦铁路","Swiss Federal Railways"]},
-];
+const railEntities=(window.BPM_TRANSIT_OPERATORS?.rail||[]).map(item=>({code:item.iata,zhCN:item.name_cn,zhTW:item.name_tw,en:item.name_en,aliases:[item.iata,item.name_cn,item.name_tw,item.name_en]}));
 const railEntityByCode=new Map(railEntities.map(entry=>[entry.code,entry]));
 const railEntityByAlias=new Map(railEntities.flatMap(entry=>entry.aliases.map(alias=>[normalizeEntity(alias),entry])));
-const metroEntities=[
-  {code:"BJ",zhCN:"北京地铁",zhTW:"北京地鐵",en:"Beijing Subway"},{code:"SH",zhCN:"上海地铁",zhTW:"上海地鐵",en:"Shanghai Metro"},
-  {code:"GZ",zhCN:"广州地铁",zhTW:"廣州地鐵",en:"Guangzhou Metro"},{code:"SZ",zhCN:"深圳地铁",zhTW:"深圳地鐵",en:"Shenzhen Metro"},
-  {code:"MTR",zhCN:"香港港鐵",zhTW:"香港港鐵",en:"MTR Hong Kong"},{code:"TM",zhCN:"東京地下鐵",zhTW:"東京地下鐵",en:"Tokyo Metro"},
-  {code:"LU",zhCN:"伦敦地铁",zhTW:"倫敦地鐵",en:"London Underground"},{code:"NYC",zhCN:"纽约市地铁",zhTW:"紐約市地鐵",en:"New York City Subway"}
-];
+const metroEntities=(window.BPM_TRANSIT_OPERATORS?.metro||[]).map(item=>({code:item.iata,zhCN:item.name_cn,zhTW:item.name_tw,en:item.name_en,aliases:[item.iata,item.name_cn,item.name_tw,item.name_en]}));
 const metroEntityByCode=new Map(metroEntities.map(entry=>[entry.code,entry]));
 function railEntity(record){
   if(record?.submission_type!=="rail_ticket")return null;
@@ -452,6 +438,8 @@ function renderMuseum() {
       const cabinLabels=english?{economy:"Economy",premium_economy:"Premium economy",business:"Business",first_class:"First class (Business suite)",other:"Other"}:traditional?{economy:"經濟艙",premium_economy:"超級經濟艙",business:"商務艙",first_class:"頭等艙（豪華商務艙）",other:"其他"}:{economy:"经济舱",premium_economy:"超级经济舱",business:"公务舱",first_class:"头等舱（豪华公务舱）",other:"其他"};
       const badge=(icon,label)=>`<span class="tag gallery-type-badge">${window.bpmIcon(icon)}<span>${label}</span></span>`;
       const inlineIcon=icon=>window.bpmIcon(icon);
+      const transitCategoryNames=english?{train_ticket:"Train ticket",reimbursement_voucher:"Reimbursement receipt",single_trip:"Single trip",day_1:"1-day pass",day_2:"2-day pass",day_3:"3-day pass",monthly:"Monthly pass",other:"Other"}:traditional?{train_ticket:"火車票",reimbursement_voucher:"報銷憑證",single_trip:"單程票",day_1:"一日票",day_2:"二日票",day_3:"三日票",monthly:"月票",other:"其他"}:{train_ticket:"火车票",reimbursement_voucher:"报销凭证",single_trip:"单程票",day_1:"一日票",day_2:"二日票",day_3:"三日票",monthly:"月票",other:"其他"};
+      const transitCategoryBadge=isTransit&&flight.ticket_category?badge("file",transitCategoryNames[flight.ticket_category]||transitCategoryNames.other):"";
       const tagIcons={business:"armchair",premium_economy:"armchair",first_class:"armchair",silver:"circle",gold:"circle",platinum:"circle",special_assistance:"alert",transfer:"repeat",other:"file",two_cabin:"armchair"};
       const specialBadges=specialTags.filter(tag=>tagIcons[tag]).map(tag=>badge(tagIcons[tag],labels[tag]||labels.legacyTwoCabin)).join("");
       const routeScopeBadge=!isTransit&&labels[flight.route_scope]?badge("globe",labels[flight.route_scope]):"";
@@ -486,7 +474,7 @@ function renderMuseum() {
           ${airlineLabel || labels.operator}
         </span>
 
-        ${isTransit?badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.electronicTicket:labels.paperTicket):`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${cabinBadge}${specialBadges}`}
+        ${isTransit?`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.electronicTicket:labels.paperTicket)}${transitCategoryBadge}`:`${badge((flight.ticket_format||"paper")==="digital"?"phone":"file",(flight.ticket_format||"paper")==="digital"?labels.digital:labels.paper)}${routeScopeBadge}${cabinBadge}${specialBadges}`}
 
         <h3>
           ${flight.flight || ""}

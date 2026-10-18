@@ -6,23 +6,34 @@
     en:{button:'Create share card',title:'Share this exhibit',note:'This card uses only exhibit details approved for social sharing. It does not include the original ticket image.',download:'Download PNG',share:'Share…',copy:'Copy exhibit link',close:'Close',collection:'BOARDING PASS MUSEUM · JOURNEY COLLECTION',date:'DATE',departure:'DEPARTURE',rail:'RAIL JOURNEY',metro:'METRO JOURNEY',air:'AIR JOURNEY',copied:'Exhibit link copied',copyFail:'Could not copy. Copy the link manually.',noConsent:'Social sharing is not enabled for this exhibit.',shareText:'Discover a journey at BoardingPassMuseum.'}
   };
   const words=()=>t[lang()]||t['zh-CN'];
-  let dialog,canvas,activeFlight;
+  const palettes=[
+    {name:['海军蓝','Navy','海軍藍'],colors:['#071e35','#0c3b5b','#17628a'],accent:'#9bd5f3'},
+    {name:['青绿','Teal','青綠'],colors:['#073b3a','#087e75','#38a89a'],accent:'#a7eee0'},
+    {name:['森林绿','Forest','森林綠'],colors:['#173b2d','#286345','#4c8b5e'],accent:'#c0e6b4'},
+    {name:['勃艮第红','Burgundy','勃根地紅'],colors:['#421e32','#792b49','#a74957'],accent:'#f4c2cf'},
+    {name:['暮色紫','Violet','暮色紫'],colors:['#28234e','#50458a','#8373b7'],accent:'#d2c7ff'},
+    {name:['琥珀金','Amber','琥珀金'],colors:['#49301a','#936020','#c58a38'],accent:'#ffe0a1'},
+    {name:['石墨灰','Graphite','石墨灰'],colors:['#202830','#3e4b55','#687985'],accent:'#d3e1e9'},
+    {name:['珊瑚橘','Coral','珊瑚橘'],colors:['#572b32','#a34848','#d07859'],accent:'#ffd1b5'}
+  ];
+  let dialog,canvas,activeFlight,selectedPalette=0;
   const escape=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   function ensureDialog(){
     if(dialog)return;
-    dialog=document.createElement('dialog');dialog.className='bpm-share-dialog';dialog.innerHTML=`<form method="dialog" class="bpm-share-dialog-head"><div><span class="bpm-share-kicker">BOARDINGPASSMUSEUM</span><h2 data-share-title></h2></div><button type="submit" aria-label="close" data-share-close>×</button></form><p class="bpm-share-note" data-share-note></p><div class="bpm-share-preview"><canvas width="1080" height="1350" aria-label="share card preview"></canvas></div><div class="bpm-share-actions"><button type="button" data-share-native></button><button type="button" data-share-download></button><button type="button" data-share-copy></button></div><p class="bpm-share-status" role="status" aria-live="polite"></p>`;
+    dialog=document.createElement('dialog');dialog.className='bpm-share-dialog';dialog.innerHTML=`<form method="dialog" class="bpm-share-dialog-head"><div><span class="bpm-share-kicker">BOARDINGPASSMUSEUM</span><h2 data-share-title></h2></div><button type="submit" aria-label="close" data-share-close>×</button></form><p class="bpm-share-note" data-share-note></p><div class="bpm-share-palettes" role="group" aria-label="Card background"><span data-share-palette-label></span><div data-share-palette-options></div></div><div class="bpm-share-preview"><canvas width="1080" height="1350" aria-label="share card preview"></canvas></div><div class="bpm-share-actions"><button type="button" data-share-native></button><button type="button" data-share-download></button><button type="button" data-share-copy></button></div><p class="bpm-share-status" role="status" aria-live="polite"></p>`;
     document.body.append(dialog);canvas=dialog.querySelector('canvas');
     dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
     dialog.querySelector('[data-share-download]').addEventListener('click',downloadCard);
     dialog.querySelector('[data-share-native]').addEventListener('click',shareCard);
     dialog.querySelector('[data-share-copy]').addEventListener('click',copyLink);
+    dialog.querySelector('[data-share-palette-options]').addEventListener('click',event=>{const button=event.target.closest('[data-palette]');if(!button)return;selectedPalette=Number(button.dataset.palette)||0;setPaletteSelection();if(activeFlight)draw(activeFlight);});
   }
   function rounded(ctx,x,y,w,h,r){ctx.beginPath();if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);return;}ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
   function draw(f){
     const c=canvas,ctx=c.getContext('2d'),w=c.width,h=c.height,word=words();
-    const gradient=ctx.createLinearGradient(0,0,w,h);gradient.addColorStop(0,'#071e35');gradient.addColorStop(.58,'#0c3b5b');gradient.addColorStop(1,'#17628a');ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
+    const palette=palettes[selectedPalette]||palettes[0];const gradient=ctx.createLinearGradient(0,0,w,h);gradient.addColorStop(0,palette.colors[0]);gradient.addColorStop(.58,palette.colors[1]);gradient.addColorStop(1,palette.colors[2]);ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
     ctx.save();ctx.strokeStyle='#b9e9ff18';ctx.lineWidth=2;for(let r=170;r<620;r+=90){ctx.beginPath();ctx.arc(970,160,r,0,Math.PI*2);ctx.stroke();}ctx.restore();
-    ctx.fillStyle='#9bd5f3';ctx.font='600 25px system-ui,-apple-system,sans-serif';ctx.fillText(word.collection,76,105);
+    ctx.fillStyle=palette.accent;ctx.font='600 25px system-ui,-apple-system,sans-serif';ctx.fillText(word.collection,76,105);
     ctx.fillStyle='#ffffff';ctx.font='700 23px system-ui,-apple-system,sans-serif';ctx.fillText(f.submission_type==='rail_ticket'?word.rail:f.submission_type==='metro_ticket'?word.metro:word.air,80,250);
     ctx.font='700 90px system-ui,-apple-system,sans-serif';const flight=String(f.flight||`#${f.id||''}`);ctx.fillText(flight.slice(0,18),75,374,925);
     ctx.fillStyle='#d5e9f4';ctx.font='500 36px system-ui,-apple-system,sans-serif';ctx.fillText(String(f.airline||'').slice(0,40),80,440,900);
@@ -34,7 +45,8 @@
     ctx.fillStyle='#d4e6f0';ctx.font='500 24px system-ui,-apple-system,sans-serif';ctx.fillText('BoardingPassMuseum',80,1180);ctx.fillStyle='#9bc5de';ctx.font='400 21px system-ui,-apple-system,sans-serif';ctx.fillText('bpmuseum.org.cn',80,1222);
     ctx.fillStyle='#e6f5ff';ctx.font='500 17px system-ui,-apple-system,sans-serif';ctx.fillText('COLLECTED JOURNEYS · PRESERVED WITH CARE',80,1290);
   }
-  function setText(){const word=words();dialog.querySelector('[data-share-title]').textContent=word.title;dialog.querySelector('[data-share-note]').textContent=word.note;dialog.querySelector('[data-share-native]').textContent=word.share;dialog.querySelector('[data-share-download]').textContent=word.download;dialog.querySelector('[data-share-copy]').textContent=word.copy;dialog.querySelector('[data-share-close]').setAttribute('aria-label',word.close);}
+  function setPaletteSelection(){dialog.querySelectorAll('[data-palette]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.palette)===selectedPalette)));}
+  function setText(){const word=words(),language=lang()==='en'?1:lang()==='zh-TW'?2:0;dialog.querySelector('[data-share-title]').textContent=word.title;dialog.querySelector('[data-share-note]').textContent=word.note;dialog.querySelector('[data-share-native]').textContent=word.share;dialog.querySelector('[data-share-download]').textContent=word.download;dialog.querySelector('[data-share-copy]').textContent=word.copy;dialog.querySelector('[data-share-close]').setAttribute('aria-label',word.close);dialog.querySelector('[data-share-palette-label]').textContent=language===1?'Background color':language===2?'背景色':'背景颜色';dialog.querySelector('[data-share-palette-options]').innerHTML=palettes.map((palette,index)=>`<button type="button" data-palette="${index}" aria-label="${palette.name[language]}" title="${palette.name[language]}" style="--swatch-a:${palette.colors[0]};--swatch-b:${palette.colors[2]}"></button>`).join('');setPaletteSelection();}
   function open(flight){
     if(!flight||Number(flight.social_share_consent)!==1){window.alert(words().noConsent);return;}
     activeFlight=flight;ensureDialog();setText();draw(flight);dialog.querySelector('.bpm-share-status').textContent='';
