@@ -6,6 +6,7 @@ const sha = async value => Array.from(new Uint8Array(await crypto.subtle.digest(
 export const randomHex = bytes => Array.from(crypto.getRandomValues(new Uint8Array(bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 export const isSA = user => Number(user?.id)===1 && user.role==='superadministrator';
 export const isAdmin = user => user?.role==='administrator' || isSA(user);
+export const isBanned = user => { const value=user?.account_banned_until?String(user.account_banned_until).replace(' ','T').replace(/Z$/,'')+'Z':'';const until=value?Date.parse(value):0;return Number(user?.account_permanent_ban)===1||(Number.isFinite(until)&&until>Date.now()); };
 export const reply = (body,status=200) => Response.json(body,{status});
 export const turnstileAction=(path)=>{
   if(path==='/api/login')return 'login';
@@ -85,7 +86,9 @@ export async function authenticate(request,env,url) {
   if(url.pathname.startsWith('/api/admin/')&&!adminIdentityList&&!isAdmin(user)) return {response:reply({error:'No permission'},403)};
   if((url.pathname.startsWith('/api/sa/')||(url.pathname.startsWith('/api/admin/')&&!adminIdentityList))&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
   if(url.pathname.startsWith('/api/sa-security/')&&user?.auth_context!=='admin') return {response:reply({error:'请从管理员专属入口重新登录'},403)};
-  if((user?.permanent_ban || (user?.banned_until && new Date(user.banned_until+'Z').getTime()>Date.now())) && (write||protectedRead) && !['/api/logout','/api/community/moderation-appeal',...PUBLIC_WRITES].includes(url.pathname)) return {response:reply({error:'账号已被封禁'},403)};
+  if(user&&isBanned(user)&&!['/api/logout','/api/community/moderation-appeal'].includes(url.pathname)) return {response:reply({error:'账号已被封禁，暂不可登录或继续操作'},url.pathname==='/api/session'?401:403)};
+  const communityRestricted=Boolean(user?.permanent_ban || (user?.banned_until && new Date(String(user.banned_until).replace(' ','T')+'Z').getTime()>Date.now()));
+  if(communityRestricted&&(write||protectedRead)&&!['/api/logout','/api/community/moderation-appeal'].includes(url.pathname)) return {response:reply({error:'社区处罚期间暂不能执行此操作'},403)};
   const imageUploadPath=url.pathname==='/api/upload-image'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(url.pathname);
   if(write && user && !PUBLIC_WRITES.has(url.pathname) && await limited(env,`write:${user.id}:${url.pathname}`,imageUploadPath?10:60,60))return {response:reply({error:'操作过于频繁，请稍后再试'},429)};
   if(user?.must_reset_password && (write||protectedRead) && !PUBLIC_WRITES.has(url.pathname) && url.pathname!=='/api/logout') return {response:reply({error:'请先通过邮箱重设密码'},403)};
@@ -202,6 +205,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     if(request.headers.get('Origin')!==ADMIN_ORIGIN)return reply({error:'请从管理员专属入口登录'},403);
     if(await limited(env,`admin-pin:${hasAccountId?accountId:email}:${ip}`,8,900))return reply({error:'PIN 尝试过多，请稍后重试'},429);
     const found=hasAccountId?await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(accountId).first():await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
+    if(found&&isBanned(found))return reply({error:'账号已被封禁，暂不可登录'},403);
     if(!found||!isAdmin(found)||found.must_reset_password)return reply({error:'账号或 PIN 错误'},401);
     const actualRole=isSA(found)?'superadministrator':'administrator';
     if(body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);
@@ -234,6 +238,7 @@ export async function accountRoute(request,env,url,user,sendEmail) {
     if(await limited(env,`login:${hasAccountId?accountId:email}`,15,900)) return reply({error:'登录尝试过多，请稍后再试'},429);
     const found=hasAccountId?await env.DB.prepare('SELECT * FROM users WHERE id=? AND deleted_at IS NULL').bind(accountId).first():await env.DB.prepare('SELECT * FROM users WHERE lower(email)=? AND deleted_at IS NULL').bind(email).first();
     if(!found || !await passwordMatches(body.password,found.password)) return reply({error:'账号或密码错误'},401);
+    if(isBanned(found))return reply({error:'账号已被封禁，暂不可登录'},403);
     if(adminOrigin&&!isAdmin(found)) return reply({error:'此入口仅供管理员使用'},403);
     const actualRole=isSA(found)?'superadministrator':'administrator';
     if(adminOrigin&&body.admin_role&&body.admin_role!==actualRole)return reply({error:'所选管理员身份与账号权限不一致'},403);
@@ -286,8 +291,10 @@ export function responseHeaders(request,response) {
   }
   headers.set('Vary','Origin');headers.set('Access-Control-Allow-Headers','Content-Type');headers.set('Access-Control-Allow-Methods','GET,POST,DELETE,OPTIONS');
   headers.set('Access-Control-Expose-Headers','X-BPM-Request-Id');
-  const publicGallery=new URL(request.url).pathname==='/api/flights'&&request.method==='GET'&&response.ok;
-  headers.set('Cache-Control',publicGallery?'public, max-age=30, stale-while-revalidate=120':'no-store');headers.set('X-Content-Type-Options','nosniff');
+  const responsePath=new URL(request.url).pathname;
+  const publicGallery=responsePath==='/api/flights'&&request.method==='GET'&&response.ok;
+  const publicStats=responsePath==='/api/public/stats'&&request.method==='GET'&&response.ok;
+  headers.set('Cache-Control',publicGallery?'public, max-age=30, stale-while-revalidate=120':publicStats?'public, max-age=300':'no-store');headers.set('X-Content-Type-Options','nosniff');
   headers.set('Referrer-Policy','no-referrer');headers.set('X-Frame-Options','DENY');
   headers.set('Strict-Transport-Security','max-age=31536000');
   headers.set('Content-Security-Policy',"frame-ancestors 'none'; object-src 'none'; base-uri 'self'");

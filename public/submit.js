@@ -1235,6 +1235,10 @@ social_share_consent:document.getElementById("socialShareConsent")?.checked===tr
 
 };
 
+// Read only a bounded, privacy-filtered summary from the original file.
+// The compressed exhibit image strips metadata; only this summary reaches review.
+flightData.exif_metadata=await window.bpmReadExifMetadata?.(imageInput?.files?.[0])||null;
+
 
 
 

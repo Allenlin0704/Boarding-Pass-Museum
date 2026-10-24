@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>年度旅程报告 · BoardingPassMuseum</title><link rel="icon" type="image/png" href="favicon.png">
+  <script src="security.js?v=20261024-error-feedback"></script><script src="theme.js?v=20261024-share-default"></script>
+  <link rel="stylesheet" href="style.css?v=20261024-focus-animation"><link rel="stylesheet" href="features.css?v=20261024-focus-picker"><link rel="stylesheet" href="site-polish.css?v=20261024-annual-report">
+</head>
+<body><header class="menubar"><div class="brand"><span data-bpm-icon="plane"></span> BoardingPassMuseum</div><nav><a href="index.html">展厅</a><a href="submit.html">投稿</a><a href="community.html">社区</a></nav></header>
+<main class="annual-report-page"><a class="bpm-back-link" href="profile.html">← 返回个人主页</a><section class="bpm-page-hero"><span>个人年度回顾</span><h1>年度旅程报告</h1><p>把这一年留下的航班与车票，整理成一张可以保存和分享的旅程卡。</p></section>
+<section class="annual-report-controls"><label for="reportYear">选择年份</label><select id="reportYear"></select><button id="loadReport" type="button">生成报告</button><button id="downloadReport" type="button" disabled>导出图片</button><button id="shareReport" type="button" disabled>分享</button><p id="reportStatus" role="status"></p></section>
+<div class="annual-report-preview"><canvas id="annualReportCanvas" width="1200" height="1600" aria-label="年度旅程报告预览"></canvas></div></main>
+<script src="auth.js?v=20261024-annual-report"></script><script src="annual-report.js?v=20261024-annual-report"></script></body></html>

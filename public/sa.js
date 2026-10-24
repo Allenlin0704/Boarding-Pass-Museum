@@ -850,6 +850,38 @@ document.getElementById("saveAdminRecruitment")?.addEventListener("click",async 
 // ==========================
 
 
+let selectedBanUser=null;
+async function loadManagedUsers(){
+    const box=document.getElementById('saUserManagementList'),status=document.getElementById('saUserManagementStatus');if(!box)return;
+    const query=document.getElementById('saUserSearch')?.value.trim()||'';if(!query){status.textContent='请先输入昵称、邮箱或账户 ID。';box.textContent='请输入搜索词后查看账户。';return;}
+    status.textContent='正在搜索账户…';box.textContent='加载中…';
+    try{
+        const response=await apiFetch(`${API}/api/sa/user-management?q=${encodeURIComponent(query)}`,{credentials:'include',cache:'no-store'}),rows=await response.json();
+        if(!response.ok||!Array.isArray(rows))throw Error(rows.error||'账户列表加载失败');
+        status.textContent=`显示 ${rows.length} 个账户${rows.length===50?'（最多 50 个，请缩小搜索范围）':''}`;
+        if(!rows.length){box.textContent='没有找到符合条件的用户。';return;}
+        box.innerHTML=rows.map(row=>{
+            const active=Number(row.banned)===1,until=row.account_permanent_ban?'永久封禁':row.account_banned_until?`封禁至 ${new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium',timeStyle:'short'}).format(new Date(`${String(row.account_banned_until).replace(' ','T')}Z`))}（北京时间）`:'';
+            return `<article class="sa-user-management-card"><div><h3>${escapeSACommunityHTML(row.username||'未设置昵称')}</h3><p>账号 ID ${Number(row.id)} · ${row.role==='administrator'?'管理员':'普通用户'} · 注册于 ${escapeSACommunityHTML(row.created_at||'未知')}</p>${active?`<p class="sa-ban-state">当前封禁：${until}${row.ban_reason?` · 理由：${escapeSACommunityHTML(row.ban_reason)}`:''}</p>`:''}</div><div class="sa-user-management-actions">${row.role==='user'?(active?`<button type="button" data-unban-user="${Number(row.id)}">解除封禁</button>`:`<button type="button" data-ban-user="${Number(row.id)}" data-ban-name="${escapeSACommunityHTML(row.username||'用户')}">封禁</button>`):'<span>管理员需在管理人员页面处理</span>'}</div></article>`;
+        }).join('');
+    }catch(error){box.textContent=`加载失败：${error.message||'请重试'}`;status.textContent='';}
+}
+document.getElementById('searchSaUsers')?.addEventListener('click',loadManagedUsers);
+document.getElementById('saUserSearch')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();loadManagedUsers();}});
+document.getElementById('saUserManagementList')?.addEventListener('click',async event=>{
+    const ban=event.target.closest('[data-ban-user]'),unban=event.target.closest('[data-unban-user]');
+    if(ban){selectedBanUser={id:Number(ban.dataset.banUser),name:ban.dataset.banName};document.getElementById('userBanTarget').textContent=`账号：${selectedBanUser.name}（ID ${selectedBanUser.id}）`;document.getElementById('userBanForm').reset();document.getElementById('userBanFormStatus').textContent='';document.getElementById('userBanDialog').showModal();return;}
+    if(unban){unban.disabled=true;try{const response=await apiFetch(`${API}/api/sa/user-management/unban`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:Number(unban.dataset.unbanUser),reason:'站主解除封禁'})}),data=await response.json();if(!response.ok)throw Error(data.error||'解除失败');showToast('封禁已解除；用户需要重新登录');await loadManagedUsers();}catch(error){unban.disabled=false;showToast(error.message||'解除封禁失败');}}
+});
+const banType=document.querySelector('#userBanForm [name="ban_type"]'),banDaysField=document.getElementById('userBanDaysField');
+banType?.addEventListener('change',()=>{const permanent=banType.value==='permanent';banDaysField.hidden=permanent;banDaysField.querySelector('input').required=!permanent;});
+document.getElementById('cancelUserBan')?.addEventListener('click',()=>document.getElementById('userBanDialog').close());
+document.getElementById('userBanForm')?.addEventListener('submit',async event=>{
+    event.preventDefault();if(!selectedBanUser)return;const form=event.currentTarget,button=document.getElementById('confirmUserBan'),status=document.getElementById('userBanFormStatus'),permanent=form.elements.ban_type.value==='permanent';button.disabled=true;status.textContent='正在处理…';
+    try{const response=await apiFetch(`${API}/api/sa/user-management/ban`,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:selectedBanUser.id,permanent,days:Number(form.elements.days.value),reason:form.elements.reason.value.trim()})}),data=await response.json();if(!response.ok)throw Error(data.error||'封禁失败');document.getElementById('userBanDialog').close();showToast(permanent?'已永久封禁；相关会话已撤销':'已设置临时封禁；相关会话已撤销');await loadManagedUsers();}
+    catch(error){status.textContent=error.message||'封禁失败，请重试。';}finally{button.disabled=false;}
+});
+
 async function loadUsers(){
 
     const box=document.getElementById("users");

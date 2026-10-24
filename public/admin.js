@@ -420,6 +420,8 @@ item,
 status
 ){
 item=bpmSafeRecord(item);
+let exifSummary="";
+try{const metadata=JSON.parse(item.exif_metadata||"null");if(metadata&&typeof metadata==="object"){const labels={camera_make:"相机厂商",camera_model:"相机型号",software:"软件",date_taken:"拍摄时间",digitized_at:"数字化时间",gps_data_present:"含 GPS 数据（坐标已丢弃）"};const entries=Object.entries(metadata).filter(([key,value])=>labels[key]&&((typeof value==="string"&&value)||key==="gps_data_present"&&value===true));if(entries.length)exifSummary=`<details class="review-exif"><summary>图片元数据（仅审核可见）</summary><dl>${entries.map(([key,value])=>`<dt>${labels[key]}</dt><dd>${window.bpmEscape(String(value))}</dd>`).join("")}</dl><small>元数据可能缺失或被修改，不能单独证明图片来源。</small></details>`;}}catch{}
 
 
 return `
@@ -459,6 +461,7 @@ ${item.date || ""}
 <p>
 ${item.story || ""}
 </p>
+${exifSummary}
 
 
 <div class="status ${status}">

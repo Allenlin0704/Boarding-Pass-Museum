@@ -26,7 +26,7 @@
 <section class="bpm-page-hero"><span>站主工作台</span><h1>SA 控制台</h1><p id="welcome">正在加载账户状态…</p><a class="bpm-sa-shortcut" href="moderation.html">打开社区举报、处罚与申诉管理 →</a></section>
 
 <nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
-<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#errorReportsPanel">问题反馈</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#adminRecruitmentPanel">管理员招募</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#errorReportsPanel">问题反馈</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#adminRecruitmentPanel">管理员招募</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saUserManagement">用户封禁</a><a href="#saDeletions">注销申请</a>
 <label class="bpm-sa-mobile-nav-label" for="saMobileSectionSelect">打开管理页面</label>
 <select id="saMobileSectionSelect" class="bpm-sa-mobile-nav-select" aria-label="选择要管理的内容">
   <option value="" disabled>选择要管理的内容</option>
@@ -46,6 +46,7 @@
     <option value="adminApplications">管理员申请</option>
     <option value="adminRecruitmentPanel">管理员招募</option>
     <option value="saStaff">管理员管理</option>
+    <option value="saUserManagement">用户封禁</option>
     <option value="reviewerSchedulePanel">审核排班</option>
     <option value="saDeletions">注销申请</option>
   </optgroup>
@@ -307,6 +308,15 @@ onclick="markSelectedRed('noticeContent')"
 
 </section>
 
+<section class="sa-panel" id="saUserManagement">
+
+<h2><span data-bpm-icon="shield-alert"></span> 用户封禁管理</h2>
+<p>封禁会立即撤销登录会话、阻止密码/Passkey/第三方登录，并暂停待处理的注销申请。站主账号不可封禁；管理员账号请在管理人员页面处理。</p>
+<div class="sa-user-search"><label for="saUserSearch">搜索用户昵称、邮箱或 ID</label><div><input id="saUserSearch" type="search" maxlength="80" placeholder="输入关键词"><button id="searchSaUsers" type="button">搜索用户</button></div></div>
+<p id="saUserManagementStatus" role="status">输入昵称、邮箱或账户 ID 后搜索，最多显示 50 个匹配账户。</p><div id="saUserManagementList" class="bpm-list-grid">请先搜索用户；页面不会自动加载完整账户名单。</div>
+
+</section>
+
 <section class="sa-panel" id="saDeletions">
 
 <h2>账户注销申请</h2>
@@ -324,7 +334,8 @@ onclick="markSelectedRed('noticeContent')"
 <script src="image-compression.js?v=20261011-webp-1280"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="sa.js?v=20261024-error-reports-focus"></script>
+<dialog id="userBanDialog" class="bpm-dialog"><form id="userBanForm"><h2 id="userBanTitle">封禁用户</h2><p id="userBanTarget"></p><label>封禁类型<select name="ban_type"><option value="temporary">临时封禁</option><option value="permanent">永久封禁</option></select></label><label id="userBanDaysField">时长（天）<input name="days" type="number" min="1" max="365" value="7" required></label><label>封禁理由<textarea name="reason" rows="4" maxlength="500" minlength="5" required placeholder="说明违规行为及处理依据"></textarea></label><p id="userBanFormStatus" role="status"></p><div class="bpm-dialog-actions"><button type="button" id="cancelUserBan">取消</button><button type="submit" id="confirmUserBan">确认封禁</button></div></form></dialog>
+<script src="sa.js?v=20261024-user-ban"></script>
 
 
 

@@ -9,6 +9,7 @@ import { staffRoute } from "./staff.mjs";
 import { flightAssistRoute } from "./flight-assist.mjs";
 import { translationRoute } from "./translation.mjs";
 import { errorReportsRoute } from "./error-reports.mjs";
+import { userManagementRoute } from "./user-management.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, requestId, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
@@ -1099,8 +1100,8 @@ if(admin.role==="superadministrator"){
 result =
 await env.DB.prepare(
 `
-SELECT *
-FROM flights
+SELECT flights.*,flight_exif.metadata_json AS exif_metadata
+FROM flights LEFT JOIN flight_exif ON flight_exif.flight_id=flights.id
 WHERE status='screening'
 ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.user_id AND year=CAST(strftime('%Y','now','+8 hours') AS INTEGER)),0) DESC,id DESC
 `
@@ -1112,8 +1113,8 @@ ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.use
 result =
 await env.DB.prepare(
 `
-SELECT *
-FROM flights
+SELECT flights.*,flight_exif.metadata_json AS exif_metadata
+FROM flights LEFT JOIN flight_exif ON flight_exif.flight_id=flights.id
 WHERE status='screening'
 AND reviewer_id=?
 ORDER BY COALESCE((SELECT priority FROM progress_cache WHERE user_id=flights.user_id AND year=CAST(strftime('%Y','now','+8 hours') AS INTEGER)),0) DESC,id DESC
@@ -1673,8 +1674,10 @@ await env.DB.prepare(
 `
 SELECT
 flights.*,
+flight_exif.metadata_json AS exif_metadata,
 users.username
 FROM flights
+LEFT JOIN flight_exif ON flight_exif.flight_id=flights.id
 LEFT JOIN users
 ON flights.user_id = users.id
 WHERE flights.status <> 'hidden'
@@ -2531,6 +2534,8 @@ export default {
       if(flightAssist)return responseHeaders(original,flightAssist);
       const errorReports=await errorReportsRoute(request.clone(),env,url,auth.user);
       if(errorReports)return responseHeaders(original,errorReports);
+      const userManagement=await userManagementRoute(request.clone(),env,url,auth.user);
+      if(userManagement)return responseHeaders(original,userManagement);
       const translation=await translationRoute(request.clone(),env,url,trustedCountry);
       if(translation)return responseHeaders(original,translation);
       const progress = await progressRoute(request,env,url);
@@ -2605,14 +2610,16 @@ export default {
     await env.DB.prepare("DELETE FROM auth_sessions WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare("DELETE FROM auth_codes WHERE expires_at<=datetime('now')").run();
     await env.DB.prepare('DELETE FROM auth_limits WHERE bucket<?').bind(Math.floor(Date.now()/1000)-86400).run();
-    // Purge only exhibitions rejected by account 1 (the SA), after 14 days.
-    // Pending appeals pause retention; approved appeals clear rejected_at.
-    const rejected=await env.DB.prepare(`SELECT id,image FROM flights f
-      WHERE f.status='rejected' AND f.reviewer_id=1 AND f.rejected_at IS NOT NULL
-        AND f.rejected_at<=datetime('now','-14 days')
-        AND NOT EXISTS(SELECT 1 FROM appeals a WHERE a.flight_id=f.id AND a.status='pending')
-      ORDER BY f.rejected_at,f.id LIMIT 50`).all();
-    for(const flight of rejected.results||[]) {
+    // Retain withdrawn or appeal-rejected submissions for seven days; keep the
+    // existing 14-day window for SA rejections that have not had an appeal.
+    // Any pending appeal pauses deletion.
+    const expired=await env.DB.prepare(`SELECT f.id,f.image FROM flights f
+      WHERE NOT EXISTS(SELECT 1 FROM appeals a WHERE a.flight_id=f.id AND a.status='pending')
+        AND ((f.status='hidden' AND f.hidden_at IS NOT NULL AND f.hidden_at<=datetime('now','-7 days'))
+          OR (f.status='rejected' AND EXISTS(SELECT 1 FROM appeals a WHERE a.flight_id=f.id AND a.id=(SELECT MAX(a2.id) FROM appeals a2 WHERE a2.flight_id=f.id) AND a.status='rejected' AND a.resolved_at IS NOT NULL AND a.resolved_at<=datetime('now','-7 days')))
+          OR (f.status='rejected' AND f.reviewer_id=1 AND f.rejected_at IS NOT NULL AND f.rejected_at<=datetime('now','-14 days')))
+      ORDER BY COALESCE(f.hidden_at,f.rejected_at),f.id LIMIT 50`).all();
+    for(const flight of expired.results||[]) {
       const id=Number(flight.id);
       let objectKey=null;
       try {
@@ -2620,23 +2627,18 @@ export default {
         const match=imageUrl.hostname==='images.bpmuseum.org.cn'&&imageUrl.pathname.match(/^\/tickets\/([a-zA-Z0-9.-]+\.(?:webp|jpg))$/);
         if(match)objectKey=`tickets/${match[1]}`;
       } catch {}
-      const eligible=`EXISTS(SELECT 1 FROM flights WHERE id=? AND status='rejected' AND reviewer_id=1
-        AND rejected_at IS NOT NULL AND rejected_at<=datetime('now','-14 days')
-        AND NOT EXISTS(SELECT 1 FROM appeals WHERE flight_id=? AND status='pending'))`;
+      const eligible=`EXISTS(SELECT 1 FROM flights f WHERE f.id=?
+        AND NOT EXISTS(SELECT 1 FROM appeals a WHERE a.flight_id=f.id AND a.status='pending')
+        AND ((f.status='hidden' AND f.hidden_at IS NOT NULL AND f.hidden_at<=datetime('now','-7 days'))
+          OR (f.status='rejected' AND EXISTS(SELECT 1 FROM appeals a WHERE a.flight_id=f.id AND a.id=(SELECT MAX(a2.id) FROM appeals a2 WHERE a2.flight_id=f.id) AND a.status='rejected' AND a.resolved_at IS NOT NULL AND a.resolved_at<=datetime('now','-7 days')))
+          OR (f.status='rejected' AND f.reviewer_id=1 AND f.rejected_at IS NOT NULL AND f.rejected_at<=datetime('now','-14 days'))))`;
       const statements=[];
-      if(objectKey)statements.push(env.DB.prepare(`INSERT OR IGNORE INTO r2_cleanup_queue(object_key)
-        SELECT ? WHERE ${eligible}`).bind(objectKey,id,id));
-      statements.push(
-        env.DB.prepare(`DELETE FROM favorites WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
-        env.DB.prepare(`DELETE FROM appeals WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
-        env.DB.prepare(`DELETE FROM flight_corrections WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
-        env.DB.prepare(`DELETE FROM flight_reviews WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
-        env.DB.prepare(`DELETE FROM flight_approvals WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
-        env.DB.prepare(`DELETE FROM flight_submissions WHERE flight_id=? AND ${eligible}`).bind(id,id,id),
-        env.DB.prepare(`DELETE FROM flights WHERE id=? AND status='rejected' AND reviewer_id=1
-          AND rejected_at IS NOT NULL AND rejected_at<=datetime('now','-14 days')
-          AND NOT EXISTS(SELECT 1 FROM appeals WHERE flight_id=? AND status='pending')`).bind(id,id)
-      );
+      if(objectKey)statements.push(env.DB.prepare(`INSERT OR IGNORE INTO r2_cleanup_queue(object_key) SELECT ? WHERE ${eligible}`).bind(objectKey,id));
+      for(const table of ['favorites','flight_corrections','flight_reviews','flight_approvals','flight_submissions','flight_story_translations','flight_exif']) {
+        statements.push(env.DB.prepare(`DELETE FROM ${table} WHERE flight_id=? AND ${eligible}`).bind(id,id));
+      }
+      statements.push(env.DB.prepare(`DELETE FROM flights WHERE id=? AND ${eligible}`).bind(id,id));
+      statements.push(env.DB.prepare('DELETE FROM appeals WHERE flight_id=? AND NOT EXISTS(SELECT 1 FROM flights WHERE id=?)').bind(id,id));
       await env.DB.batch(statements);
     }
     const queuedImages=await env.DB.prepare('SELECT object_key FROM r2_cleanup_queue ORDER BY queued_at LIMIT 50').all();
@@ -2659,16 +2661,35 @@ export default {
         await env.DB.prepare('DELETE FROM r2_cleanup_queue WHERE object_key=?').bind(queued.object_key).run();
       } catch(error) { console.error('Expired SA-rejected image cleanup failed',error?.name||'Error'); }
     }
-    const due=await env.DB.prepare("SELECT id,user_id FROM account_deletion_requests WHERE status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now')").all();
+    const due=await env.DB.prepare("SELECT r.id,r.user_id FROM account_deletion_requests r JOIN users u ON u.id=r.user_id WHERE r.status='pending' AND r.finalized_at IS NULL AND r.execute_at<=datetime('now') AND u.account_permanent_ban=0 AND (u.account_banned_until IS NULL OR u.account_banned_until<=datetime('now'))").all();
     for(const request of due.results) {
       const id=Number(request.user_id);
       if(id===1) continue;
       await env.DB.batch([
-        env.DB.prepare("UPDATE users SET username='账号已注销',email=?,password='deleted-account',role='user',avatar=NULL,bio=NULL,social_media=NULL,equipment=NULL,favorite_airlines=NULL,favorite_airports=NULL,deleted_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL").bind(`deleted-${id}@bpmuseum.invalid`,id),
+        env.DB.prepare("UPDATE users SET username='账号已注销',email=?,password='deleted-account',role='user',avatar=NULL,bio=NULL,social_media=NULL,equipment=NULL,favorite_airlines=NULL,favorite_airports=NULL,deleted_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL AND account_permanent_ban=0 AND (account_banned_until IS NULL OR account_banned_until<=datetime('now'))").bind(`deleted-${id}@bpmuseum.invalid`,id),
         env.DB.prepare('DELETE FROM auth_sessions WHERE user_id=?').bind(id),
         env.DB.prepare('DELETE FROM auth_codes WHERE user_id=?').bind(id),
         env.DB.prepare("UPDATE account_deletion_requests SET finalized_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending' AND finalized_at IS NULL AND execute_at<=datetime('now') AND EXISTS(SELECT 1 FROM users WHERE id=? AND deleted_at IS NOT NULL)").bind(Number(request.id),id)
       ]);
+    }
+    if(controller?.cron==='0 16 * * 5') {
+      const parts=new Intl.DateTimeFormat('en',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+      const part=Object.fromEntries(parts.filter(item=>item.type!=='literal').map(item=>[item.type,item.value]));
+      const weekEnding=`${part.year}-${part.month}-${part.day}`;
+      const stats=await env.DB.prepare(`SELECT COUNT(*) AS reviewed,
+        COALESCE(SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END),0) AS approved,
+        COALESCE(SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END),0) AS rejected
+        FROM flight_reviews WHERE created_at>=datetime('now','-7 days') AND created_at<datetime('now')`).first();
+      const top=await env.DB.prepare(`SELECT CASE WHEN instr(reason,'】')>0 THEN substr(reason,1,instr(reason,'】')) ELSE '其他原因' END AS category,COUNT(*) AS total
+        FROM flight_reviews WHERE status='rejected' AND created_at>=datetime('now','-7 days') AND created_at<datetime('now')
+        GROUP BY category ORDER BY total DESC,category LIMIT 1`).first();
+      const reviewed=Number(stats?.reviewed||0),approved=Number(stats?.approved||0),rejectedCount=Number(stats?.rejected||0),topReason=top?.category||'暂无';
+      const inserted=await env.DB.prepare(`INSERT OR IGNORE INTO weekly_review_reports(week_ending,reviewed_count,approved_count,rejected_count,top_rejection_category)
+        VALUES(?,?,?,?,?)`).bind(weekEnding,reviewed,approved,rejectedCount,topReason).run();
+      if(inserted.meta.changes) {
+        const content=`每周审核统计（截至北京时间 ${weekEnding} 00:00，统计过去 7 天）：总审核 ${reviewed} 件，通过 ${approved} 件，拒绝 ${rejectedCount} 件；最常见拒绝原因类别：${topReason}。`;
+        await env.DB.prepare(`INSERT INTO notifications(user_id,content) SELECT id,? FROM users WHERE deleted_at IS NULL AND (role='administrator' OR (id=1 AND role='superadministrator'))`).bind(content).run();
+      }
     }
   }
 

@@ -1,4 +1,12 @@
 /* Site-wide visual language: quiet surfaces, useful contrast, BoardingPassMuseum blue. */
+.bpm-public-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0 8px}
+.bpm-public-stats article{display:grid;gap:4px;padding:18px 20px;border:1px solid var(--bpm-border);border-radius:16px;background:var(--bpm-card)}
+.bpm-public-stats strong{font-size:clamp(1.65rem,5vw,2.5rem);line-height:1.1;color:var(--bpm-text);font-variant-numeric:tabular-nums}
+.bpm-public-stats span,.bpm-info-page #publicStatsUpdated{color:var(--bpm-muted)}
+@media(max-width:520px){.bpm-public-stats{gap:8px}.bpm-public-stats article{padding:14px;border-radius:12px}}
+.sa-user-search{display:grid;gap:8px;max-width:680px;margin:16px 0}.sa-user-search>div{display:flex;gap:8px}.sa-user-search input{flex:1;min-width:0}.sa-user-management-card{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;border:1px solid var(--bpm-border);border-radius:14px;background:var(--bpm-card);color:var(--bpm-text)}.sa-user-management-card h3{margin:0 0 4px}.sa-user-management-card p{margin:3px 0;color:var(--bpm-muted)}.sa-user-management-card .sa-ban-state{color:#b42318;font-weight:700}.sa-user-management-actions{display:flex;align-items:center;gap:8px}.sa-user-management-actions span{color:var(--bpm-muted);font-size:.9rem}
+@media(max-width:600px){.sa-user-search>div{flex-direction:column}.sa-user-management-card{align-items:flex-start;flex-direction:column}.sa-user-management-actions{width:100%}.sa-user-management-actions button{width:100%}}
+
 :root {
   --bpm-accent: #77b8d8;
   --bpm-accent-strong: #8cc7e3;
@@ -76,6 +84,8 @@ body > header:not(.menubar) {
 .menubar #userMenuBtn {
   color: var(--bpm-text);
 }
+.menubar nav #checkUpdate,.menubar nav #bpmErrorReportMenuItem{appearance:none;border:0;background:transparent;color:var(--bpm-text);font:inherit;cursor:pointer;padding:8px 10px;border-radius:9px;white-space:nowrap}
+.menubar nav #checkUpdate:hover,.menubar nav #bpmErrorReportMenuItem:hover{background:color-mix(in srgb,var(--bpm-accent) 22%,transparent)}
 
 .menubar nav a[aria-current="page"] {
   text-decoration: underline;

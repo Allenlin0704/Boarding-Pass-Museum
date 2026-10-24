@@ -2,6 +2,14 @@
   const list = document.getElementById('publicStaffLinks');
   const wechatLink = document.getElementById('officialWechatLink');
   const hero = document.querySelector('.bpm-info-page .bpm-page-hero');
+  fetch('https://api.bpmuseum.org.cn/api/public/stats',{cache:'no-store'})
+    .then(response=>response.ok?response.json():Promise.reject())
+    .then(data=>{
+      const users=document.getElementById('publicUserCount'),submissions=document.getElementById('publicSubmissionCount'),updated=document.getElementById('publicStatsUpdated');
+      if(users)users.textContent=Number(data.registered_users||0).toLocaleString('zh-CN');
+      if(submissions)submissions.textContent=Number(data.retained_submissions||0).toLocaleString('zh-CN');
+      if(updated)updated.textContent=`更新于 ${new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium',timeStyle:'short'}).format(new Date(data.updated_at))}（北京时间）`;
+    }).catch(()=>{const updated=document.getElementById('publicStatsUpdated');if(updated)updated.textContent='暂时无法获取统计信息';});
   if (hero) {
     const section = document.createElement('section');
     section.className = 'bpm-panel bpm-launch-counter';

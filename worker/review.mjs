@@ -11,6 +11,29 @@ const checkTicketImage=async(env,image)=>{
 };
 export async function reviewRoute(request,env,url,user) {
   const path=url.pathname;
+  if(request.method==='GET'&&path==='/api/public/stats') {
+    const [users,exhibits]=await Promise.all([
+      env.DB.prepare('SELECT COUNT(*) AS total FROM users WHERE deleted_at IS NULL').first(),
+      env.DB.prepare('SELECT COUNT(*) AS total FROM flights').first()
+    ]);
+    return new Response(JSON.stringify({registered_users:Number(users?.total||0),retained_submissions:Number(exhibits?.total||0),updated_at:new Date().toISOString()}),{headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'public, max-age=300'}});
+  }
+  if(request.method==='GET'&&path==='/api/my/annual-report') {
+    if(!user)return reply({error:'请先登录'},401);
+    const year=Number(url.searchParams.get('year'));
+    const currentYear=Number(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric'}).format(new Date()));
+    if(!Number.isInteger(year)||year<2000||year>currentYear)return reply({error:'年份无效'},400);
+    const periodStart=`${year}-01-01`,periodEnd=`${year+1}-01-01`;
+    const summary=await env.DB.prepare(`SELECT COUNT(*) AS submitted, SUM(CASE WHEN status='approved' THEN 1 ELSE 0 END) AS approved,
+      SUM(CASE WHEN status='screening' THEN 1 ELSE 0 END) AS screening,
+      SUM(CASE WHEN submission_type='rail_ticket' THEN 1 ELSE 0 END) AS rail_tickets,
+      SUM(CASE WHEN submission_type='metro_ticket' THEN 1 ELSE 0 END) AS metro_tickets
+      FROM flights WHERE user_id=? AND date>=? AND date<?`).bind(user.id,periodStart,periodEnd).first();
+    const airline=await env.DB.prepare(`SELECT airline,COUNT(*) AS count FROM flights WHERE user_id=? AND status='approved' AND date>=? AND date<? AND airline!='' GROUP BY airline ORDER BY count DESC,airline LIMIT 1`).bind(user.id,periodStart,periodEnd).first();
+    const route=await env.DB.prepare(`SELECT airport,route,flight,date FROM flights WHERE user_id=? AND status='approved' AND date>=? AND date<? ORDER BY date,id LIMIT 1`).bind(user.id,periodStart,periodEnd).first();
+    const airports=await env.DB.prepare(`SELECT airport FROM flights WHERE user_id=? AND status='approved' AND date>=? AND date<? AND airport!='' GROUP BY airport ORDER BY airport LIMIT 12`).bind(user.id,periodStart,periodEnd).all();
+    return reply({year,username:user.username,submitted:Number(summary?.submitted||0),approved:Number(summary?.approved||0),screening:Number(summary?.screening||0),rail_tickets:Number(summary?.rail_tickets||0),metro_tickets:Number(summary?.metro_tickets||0),top_airline:airline?.airline||'',top_airline_count:Number(airline?.count||0),first_trip:route||null,airports:(airports.results||[]).map(row=>row.airport)});
+  }
   if(request.method==='GET'&&path==='/api/admin-recruitment') {
     const setting=await env.DB.prepare("SELECT value FROM site_settings WHERE key='admin_recruitment_open'").first();
     return reply({open:setting?.value!=='0',eligible:user?.role==='user'});
@@ -102,6 +125,13 @@ export async function reviewRoute(request,env,url,user) {
     const shareConsent=body.social_share_consent===true?1:0;
     const inserted=await env.DB.prepare(`INSERT INTO flights(user_id,airline,flight,route,date,aircraft,airport,issue_airport,image,story,status,reviewer_id,submission_type,ticket_format,ticket_category,cabin_class,cabin_class_verified,departure_country,arrival_country,special_tags,social_share_consent,social_share_consent_updated_at,rules_consent,airline_iata,airline_icao,airport_iata,airport_icao,route_scope) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CASE WHEN ?=1 THEN CURRENT_TIMESTAMP ELSE NULL END,?,?,?,?,?,?)`)
       .bind(user.id,body.airline,body.flight,String(body.route||''),body.date,String(body.aircraft||''),body.airport,String(body.issue_airport||''),body.image,String(body.story||''),'screening',admins?.id??null,body.submission_type||'boarding_pass',body.ticket_format||'paper',ticketCategory,cabinClass,transit?0:1,String(body.departure_country||''),localScope?'':String(body.arrival_country||''),JSON.stringify(body.special_tags||[]),shareConsent,shareConsent,1,airlineIata,airlineIcao,airportIata,airportIcao,routeScope).run();
+    const exif=body.exif_metadata&&typeof body.exif_metadata==='object'&&!Array.isArray(body.exif_metadata)?body.exif_metadata:null;
+    if(exif){
+      const safe={},keys=['camera_make','camera_model','software','date_taken','digitized_at'];
+      for(const key of keys)if(typeof exif[key]==='string'&&exif[key].trim())safe[key]=exif[key].replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,120);
+      if(exif.gps_data_present===true)safe.gps_data_present=true;
+      if(Object.keys(safe).length)await env.DB.prepare('INSERT INTO flight_exif(flight_id,metadata_json) VALUES(?,?)').bind(inserted.meta.last_row_id,JSON.stringify(safe)).run();
+    }
     return reply({success:true,flight_id:inserted.meta.last_row_id});
   }
 
@@ -131,6 +161,7 @@ export async function reviewRoute(request,env,url,user) {
       .bind(status,status==='rejected'?reason:null,user.id,status==='rejected'&&isSA(user)?new Date().toISOString().replace('T',' ').replace(/\.\d{3}Z$/,''):null,id,flight.status,Number(isSA(user)),user.id),
       env.DB.prepare(`INSERT INTO flight_reviews(flight_id,user_id,reviewer_id,previous_status,status,reason)
       SELECT ?,?,?,?,?,? WHERE changes()>0 AND ?!=?`).bind(id,flight.user_id,user.id,flight.status,status,reason,flight.status,status)];
+    updates.push(env.DB.prepare('DELETE FROM flight_exif WHERE flight_id=?').bind(id));
     if(status==='approved') updates.push(env.DB.prepare(`INSERT OR IGNORE INTO flight_approvals(flight_id,user_id,approved_at,submitted_at,airline,airport,flight_date)
       SELECT id,user_id,datetime('now'),created_at,airline,airport,date FROM flights WHERE id=? AND status='approved'`).bind(id));
     const results=await env.DB.batch(updates);
@@ -316,7 +347,7 @@ export async function reviewRoute(request,env,url,user) {
     if(!appeal) return reply({error:'申诉不存在或已处理'},409);
     if(body.flight_id!==undefined&&Number(body.flight_id)!==Number(appeal.flight_id)) return reply({error:'展品不匹配'},400);
     const approve=path.endsWith('/approve');
-    const statements=[env.DB.prepare("UPDATE appeals SET status=? WHERE id=? AND status='pending'").bind(approve?'approved':'rejected',appeal.id)];
+    const statements=[env.DB.prepare("UPDATE appeals SET status=?,resolved_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'").bind(approve?'approved':'rejected',appeal.id)];
     if(approve) statements.push(env.DB.prepare("UPDATE flights SET status='screening',reject_reason=NULL,reviewer_id=NULL,rejected_at=NULL WHERE id=? AND status='rejected'").bind(appeal.flight_id));
     else statements.push(env.DB.prepare("UPDATE flights SET rejected_at=CURRENT_TIMESTAMP WHERE id=? AND status='rejected' AND reviewer_id=1").bind(appeal.flight_id));
     await env.DB.batch(statements);return reply({success:true});

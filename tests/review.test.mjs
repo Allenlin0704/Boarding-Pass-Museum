@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture} from './helpers.mjs';
 test('restore: owner and hidden status required; requeue and clear rejection', async () => {
-  const {db,call}=fixture();
+  const {db,call,worker,env}=fixture();
   assert.equal((await call('/api/my/restore',{user_id:2,flight_id:11})).status,409);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:13})).status,409);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:0})).status,400);
@@ -10,6 +10,27 @@ test('restore: owner and hidden status required; requeue and clear rejection', a
   const flight=db.prepare('SELECT * FROM flights WHERE id=11').get();
   assert.equal(flight.status,'screening'); assert.equal(flight.reject_reason,null); assert.equal(flight.reviewer_id,1);
   assert.equal((await call('/api/my/restore',{user_id:3,flight_id:11})).status,409);
+});
+test('submission stores only bounded EXIF summary for reviewers and deletes it on review',async()=>{
+  const {db,call}=fixture();
+  const metadata={camera_make:'Example Camera',camera_model:'X-1',software:'Editor 2',artist:'Tester',gps_data_present:true,gps_latitude:'51.5',serial_number:'secret',description:'Sample image'};
+  const created=await call('/api/submit',{submission_type:'boarding_pass',ticket_format:'paper',cabin_class:'economy',route_scope:'domestic',airline:'示例航空',flight:'MU5309',route:'PEK',date:'2026-09-27',airport:'PVG',departure_country:'CN',arrival_country:'CN',image:'https://images.bpmuseum.org.cn/tickets/test.webp',rules_consent:true,exif_metadata:metadata},3);
+  assert.equal(created.status,200);const {flight_id:id}=await created.json();
+  const saved=JSON.parse(db.prepare('SELECT metadata_json FROM flight_exif WHERE flight_id=?').get(id).metadata_json);
+  assert.deepEqual(saved,{camera_make:'Example Camera',camera_model:'X-1',software:'Editor 2',gps_data_present:true});
+  const queue=await call('/api/admin/pending?admin_id=1',undefined,1);
+  const queued=(await queue.json()).find(row=>row.id===id);assert.ok(queued.exif_metadata);
+  await call('/api/admin/approve',{flight_id:id},1);
+  assert.equal(db.prepare('SELECT flight_id FROM flight_exif WHERE flight_id=?').get(id),undefined);
+});
+test('annual report is scoped to the signed-in user and chosen year',async()=>{
+  const {db,call,worker,env}=fixture();
+  db.prepare("UPDATE flights SET date='2026-05-03',submission_type='boarding_pass',airline='Example Air',airport='PEK',route='LHR',flight='EA1' WHERE id=13").run();
+  db.prepare("INSERT INTO flights(id,user_id,status,date,submission_type,airline,airport,route,flight) VALUES(20,2,'approved','2026-07-01','rail_ticket','Other Rail','BJP','SHH','G2'),(21,3,'screening','2025-07-01','metro_ticket','Metro','PEK','','M1')").run();
+  const response=await call('/api/my/annual-report?year=2026',undefined,3),report=await response.json();
+  assert.equal(response.status,200);assert.equal(report.submitted,1);assert.equal(report.approved,1);assert.equal(report.top_airline,'Example Air');assert.deepEqual(report.airports,['PEK']);
+  assert.equal((await call('/api/my/annual-report?year=2999',undefined,3)).status,400);
+  assert.equal((await worker.fetch(new Request('https://test.invalid/api/my/annual-report?year=2026'),env)).status,401);
 });
 test('bulk exhibit actions require ownership and only permanently delete hidden exhibits',async()=>{
   const {db,call}=fixture();

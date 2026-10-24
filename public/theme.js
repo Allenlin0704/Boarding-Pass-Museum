@@ -105,9 +105,10 @@
         "submit.tag.business":"商務艙","submit.tag.premiumEconomy":"超級經濟艙","submit.tag.first":"頭等艙","submit.tag.silver":"銀卡","submit.tag.gold":"金卡","submit.tag.platinum":"白金卡","submit.tag.assistance":"特殊保障","submit.tag.transfer":"轉機","submit.tag.other":"其他"
     });
     Object.assign(translations.en,{
-        "privacy.back":"Back to gallery","privacy.eyebrow":"Accounts and data","privacy.title":"Privacy notice","privacy.effective":"Effective: October 16, 2026",
+        "privacy.back":"Back to gallery","privacy.eyebrow":"Accounts and data","privacy.title":"Privacy notice","privacy.effective":"Effective: October 24, 2026",
         "privacy.collect.heading":"Information we handle","privacy.collect.body":"We handle your username, email, password verification data, profile, and the ticket images, stories, community content, and reports you choose to submit. Session and security data keep you signed in and protect your account.",
         "privacy.use.heading":"How we use it","privacy.use.body":"This information supports accounts, exhibit review, favorites, community features, security, appeals, and replies to your feedback. Submission, withdrawal, review, and appeal updates are emailed to your account. We do not sell personal information or show passwords or verification codes to other users.",
+        "privacy.exif.heading":"Metadata in submitted images","privacy.exif.body":"After you select an image, your browser reads a limited EXIF summary locally (camera make/model, software, capture date, and whether GPS data is present), then strips metadata from the submitted image. GPS coordinates, device serial numbers, author names, and comments are not read or stored. The filtered summary is visible only to authorized reviewers while the submission is pending and is deleted after its first approval or rejection. Metadata may be missing or altered and cannot establish authenticity on its own.",
         "privacy.ticket.body":"Published images can be seen by visitors. Before sharing, cover names, ticket and order numbers, QR codes, barcodes, and other sensitive details.",
         "privacy.ai.heading":"Image recognition and story translation","privacy.ai.body":"Image recognition is optional. Only after you give separate consent and click Recognize is the edited image sent to Cloudflare Workers AI; this temporary recognition image is not stored by the site. Public story text is sent for translation only when you request it. The translation is saved with the exhibit to avoid repeat requests and refreshed when the story changes.",
         "privacy.share.heading":"Social sharing consent","privacy.share.body":"Allowing the site to share exhibit details is optional and checked by default; you can uncheck it before submitting or revoke it later. It does not affect review. Share cards do not include the ticket image.",
@@ -117,9 +118,10 @@
         "privacy.changes.heading":"Changes to this notice","privacy.changes.body":"We will update this page when our data practices materially change and, when appropriate, explain the change in a site announcement."
     });
     Object.assign(translations["zh-TW"],{
-        "privacy.back":"返回展廳","privacy.eyebrow":"帳戶與資料","privacy.title":"隱私說明","privacy.effective":"生效日期：2026 年 10 月 16 日",
+        "privacy.back":"返回展廳","privacy.eyebrow":"帳戶與資料","privacy.title":"隱私說明","privacy.effective":"生效日期：2026 年 10 月 24 日",
         "privacy.collect.heading":"我們處理哪些資料","privacy.collect.body":"使用服務時，我們會處理你提供的使用者名稱、電子郵件、密碼驗證資料、個人資料，以及你主動提交的票券圖片、故事、社群內容與檢舉。登入工作階段與安全驗證資料用於維持登入狀態及保護帳戶。",
         "privacy.use.heading":"資料用途","privacy.use.body":"資料用於提供帳戶、展品審核、收藏、社群互動、安全防護、申訴處理及回覆意見。投稿、下架、審核與申訴狀態會寄送至帳戶電子郵件。我們不會出售個人資料，也不會向其他使用者展示密碼或驗證碼。",
+        "privacy.exif.heading":"投稿圖片中繼資料","privacy.exif.body":"選取圖片後，瀏覽器會在本機讀取少量 EXIF 資料（相機廠牌/型號、軟體、拍攝日期及是否含 GPS 資料），並在投稿前移除圖片中繼資料。我們不讀取或保存 GPS 座標、裝置序號、作者名稱或備註。篩選後的摘要僅供有權限的審核人員於稿件待審期間查看，首次通過或拒絕後即刪除。中繼資料可能缺失或經修改，不能單獨證明真實性。",
         "privacy.ticket.body":"公開展出的圖片可能會被其他訪客看到。分享前請遮蔽姓名、票號、訂單編號、QR Code、條碼及其他敏感資料。",
         "privacy.ai.heading":"圖片辨識與故事翻譯","privacy.ai.body":"圖片辨識為選用功能：只有在你另行同意並點擊辨識後，目前已處理的圖片才會傳送至 Cloudflare Workers AI；本站不會儲存辨識用的暫存圖片。公開故事文字只會在你點擊翻譯後傳送，譯文會與展品一同保存以避免重複請求；故事更新後會重新翻譯。",
         "privacy.share.heading":"社群媒體分享授權","privacy.share.body":"允許本站分享展品資訊為選填，預設勾選，你可以在投稿前取消勾選或之後撤回授權，不影響審核。分享卡不會包含票券原圖。",

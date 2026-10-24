@@ -11,6 +11,21 @@ let currentUser = JSON.parse(
     localStorage.getItem("currentUser")
 );
 
+function bindCheckUpdates(){
+    const button=document.getElementById('checkUpdate');if(!button)return;
+    button.onclick=async()=>{
+        button.disabled=true;button.textContent=window.BPM_LANGUAGE==='en'?'Checking…':'正在检查…';
+        try{
+            const serviceWorker=navigator.serviceWorker,registration=await serviceWorker?.getRegistration(),previousController=serviceWorker?.controller;let changed=false;
+            const onChange=()=>{changed=true;};serviceWorker?.addEventListener('controllerchange',onChange,{once:true});
+            if(registration)await registration.update();else await fetch(location.href,{cache:'no-store',credentials:'same-origin'});
+            if(registration&&previousController)await Promise.race([new Promise(resolve=>serviceWorker.addEventListener('controllerchange',resolve,{once:true})),new Promise(resolve=>setTimeout(resolve,8000))]);
+            if(changed||(previousController&&serviceWorker?.controller!==previousController)){button.textContent=window.BPM_LANGUAGE==='en'?'Update found, reloading…':'发现更新，正在加载…';location.reload();return;}
+            serviceWorker?.removeEventListener('controllerchange',onChange);button.disabled=false;button.textContent=window.BPM_LANGUAGE==='en'?'Check for updates':'检查新版本';alert(window.BPM_LANGUAGE==='en'?'This is the latest version.':'当前已是最新版。');
+        }catch{button.disabled=false;button.textContent=window.BPM_LANGUAGE==='en'?'Check for updates':'检查新版本';alert(window.BPM_LANGUAGE==='en'?'Unable to check for updates. Please try again later.':'暂时无法检查更新，请稍后重试。');}
+    };
+}
+
 
 // 更新顶部导航
 
@@ -76,6 +91,7 @@ function updateNavbar(){
                 toggle.innerHTML=window.bpmIcon("menu");
             };
         });
+        nav.querySelectorAll("button").forEach(button=>button.addEventListener('click',()=>{header.classList.remove('mobile-nav-open');toggle.setAttribute('aria-expanded','false');toggle.innerHTML=window.bpmIcon('menu');},{once:true}));
 
     }
 
@@ -119,6 +135,8 @@ function updateNavbar(){
         社区
         </a>
 
+        <button type="button" id="checkUpdate">检查新版本</button>
+
 
         <a href="my.html">
         我的投稿
@@ -148,6 +166,7 @@ function updateNavbar(){
 
         localizeNavigation();
         setupMobileNavigation();
+        bindCheckUpdates();
 
 
     }
@@ -175,6 +194,8 @@ function updateNavbar(){
         社区
         </a>
 
+        <button type="button" id="checkUpdate">检查新版本</button>
+
 
         <div class="user-menu">
 
@@ -199,13 +220,12 @@ function updateNavbar(){
                 我的投稿
                 </a>
 
+                <a href="annual-report.html" data-nav-annual-report>年度旅程报告</a>
+
 
                 <a href="favorites.html">
                 我的收藏
                 </a>
-
-
-                <button type="button" id="checkUpdate">检查新版本</button>
 
 
             </div>
@@ -309,43 +329,7 @@ function updateNavbar(){
 
         }
 
-        const checkUpdate=document.getElementById("checkUpdate");
-        if(checkUpdate){
-            checkUpdate.onclick=async function(){
-                checkUpdate.disabled=true;
-                checkUpdate.textContent="正在检查…";
-                try{
-                    const serviceWorker=navigator.serviceWorker;
-                    const registration=await serviceWorker?.getRegistration();
-                    const previousController=serviceWorker?.controller;
-                    let controllerChanged=false;
-                    const onControllerChange=()=>{controllerChanged=true;};
-                    serviceWorker?.addEventListener("controllerchange",onControllerChange,{once:true});
-                    if(registration) await registration.update();
-                    if(registration && previousController){
-                        await Promise.race([
-                            new Promise(resolve=>serviceWorker.addEventListener("controllerchange",resolve,{once:true})),
-                            new Promise(resolve=>setTimeout(resolve,8000))
-                        ]);
-                    }else{
-                        await fetch(location.href,{cache:"no-store",credentials:"same-origin"});
-                    }
-                    if(controllerChanged || (previousController && serviceWorker?.controller!==previousController)){
-                        checkUpdate.textContent="发现更新，正在加载…";
-                        location.reload();
-                        return;
-                    }
-                    serviceWorker?.removeEventListener("controllerchange",onControllerChange);
-                    checkUpdate.disabled=false;
-                    checkUpdate.textContent="检查新版本";
-                    alert("当前已是最新版。");
-                }catch{
-                    checkUpdate.disabled=false;
-                    checkUpdate.textContent="检查新版本";
-                    alert("暂时无法检查更新，请稍后重试。");
-                }
-            };
-        }
+        bindCheckUpdates();
 
 
     }

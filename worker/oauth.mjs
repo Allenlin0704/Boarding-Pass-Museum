@@ -1,4 +1,4 @@
-import {passwordHash,randomHex,reply,ADMIN_ORIGIN,isAdmin} from './security.mjs';
+import {passwordHash,randomHex,reply,ADMIN_ORIGIN,isAdmin,isBanned} from './security.mjs';
 
 const SITE='https://bpmuseum.org.cn';
 const ADMIN_SITE=ADMIN_ORIGIN;
@@ -20,9 +20,10 @@ const formPost=(url,body)=>fetch(url,{method:'POST',headers:{'Content-Type':'app
 const safeName=(name,email,provider)=>String(name||email?.split('@')[0]||`${provider==='apple'?'Apple':provider==='github'?'GitHub':'Microsoft'} 用户`).trim().slice(0,40)||'新用户';
 const resultRedirect=(error='',site=SITE,path='oauth-complete.html')=>new Response(null,{status:302,headers:{Location:`${site}/${path}${error?`?error=${encodeURIComponent(error)}`:''}`}});
 const sessionResponse=async(env,user,authContext)=>{
+  const site=authContext==='admin'?ADMIN_SITE:SITE;
+  if(isBanned(user))return resultRedirect('账号已被封禁，暂不可登录',site,authContext==='admin'?'admin-oauth-complete.html':'oauth-complete.html');
   const token=randomHex(32);
   await env.DB.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at,auth_context) VALUES(?,?,datetime('now','+7 days'),?)").bind(await hash(token),user.id,authContext).run();
-  const site=authContext==='admin'?ADMIN_SITE:SITE;
   const response=resultRedirect('',site,authContext==='admin'?'admin-oauth-complete.html':'oauth-complete.html');
   response.headers.set('Set-Cookie',`bpm_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`);
   return response;
