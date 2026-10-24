@@ -4419,12 +4419,12 @@ body.auth-photo-background .menubar #userMenuBtn:hover{
 @keyframes bpm-mobile-cover-pan{
   0%{background-size:auto 104%;background-position:100% 54%;}
   72%{background-size:auto 106%;background-position:48% 51%;}
-  100%{background-size:auto 110%;background-position:18% 47%;}
+  100%{background-size:auto 110%;background-position:var(--mobile-focus-x,18%) var(--mobile-focus-y,47%);}
 }
 @keyframes bpm-mobile-auth-cover-pan{
   0%{background-size:cover,auto 100%;background-position:center,100% 54%;}
   72%{background-size:cover,auto 102%;background-position:center,48% 51%;}
-  100%{background-size:cover,auto 105%;background-position:center,18% 47%;}
+  100%{background-size:cover,auto 105%;background-position:center,var(--mobile-focus-x,18%) var(--mobile-focus-y,47%);}
 }
 @media(prefers-reduced-motion:reduce){.welcome,body.auth-photo-background::before{animation:none!important;}}
 

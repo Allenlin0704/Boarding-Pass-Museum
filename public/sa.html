@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="security.js?v=20261017-turnstile-selective"></script>
+<script src="security.js?v=20261024-error-feedback"></script>
 <meta charset="UTF-8">
 <title>BoardingPassMuseum SA Console</title>
 <link rel="icon" href="favicon.png">
-<link rel="stylesheet" href="style.css?v=20261018-unverified-rail-warning">
-  <script src="theme.js?v=20261011-light-contrast-metro"></script>
-<link rel="stylesheet" href="features.css?v=20261017-fixed-mobile-header">
+<link rel="stylesheet" href="style.css?v=20261024-focus-animation">
+  <script src="theme.js?v=20261024-share-default"></script>
+<link rel="stylesheet" href="features.css?v=20261024-focus-picker">
 <meta name="viewport" content="width=device-width,initial-scale=1">  <link rel="stylesheet" href="site-polish.css?v=20261011-light-contrast-metro">
 </head>
 
@@ -26,7 +26,7 @@
 <section class="bpm-page-hero"><span>站主工作台</span><h1>SA 控制台</h1><p id="welcome">正在加载账户状态…</p><a class="bpm-sa-shortcut" href="moderation.html">打开社区举报、处罚与申诉管理 →</a></section>
 
 <nav class="bpm-sa-section-nav" aria-label="SA 控制台分区">
-<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#adminRecruitmentPanel">管理员招募</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
+<a href="#saReviewQueuePanel">SA 审核</a><a href="#saSecurityPanel">安全验证</a><a href="#reviewerSchedulePanel">审核排班</a><a href="#heroPhotosPanel">主页照片</a><a href="#errorReportsPanel">问题反馈</a><a href="#appeals">投稿申诉</a><a href="#flightCorrectionsPanel">展品纠错</a><a href="#adminApplications">管理员申请</a><a href="#adminRecruitmentPanel">管理员招募</a><a href="#saExhibits">展品管理</a><a href="#saCommunity">社区管理</a><a href="#saAnnouncements">公告通知</a><a href="#saStaff">管理员管理</a><a href="#saDeletions">注销申请</a>
 <label class="bpm-sa-mobile-nav-label" for="saMobileSectionSelect">打开管理页面</label>
 <select id="saMobileSectionSelect" class="bpm-sa-mobile-nav-select" aria-label="选择要管理的内容">
   <option value="" disabled>选择要管理的内容</option>
@@ -37,6 +37,7 @@
   </optgroup>
   <optgroup label="网站内容">
     <option value="heroPhotosPanel">主页照片</option>
+    <option value="errorReportsPanel">问题反馈</option>
     <option value="saExhibits">展品管理</option>
     <option value="saCommunity">社区管理</option>
     <option value="saAnnouncements">公告通知</option>
@@ -114,6 +115,12 @@
   </div>
   <button type="button" id="closeSitePhotoPreview">关闭预览</button>
 </dialog>
+</section>
+
+<section class="sa-panel" id="errorReportsPanel">
+  <h2>用户问题反馈</h2><p>这里只显示用户主动提交的类别、报错说明和页面位置。请勿在反馈中录入密码、验证码或其他敏感信息。</p>
+  <label for="saErrorReportStatus">筛选状态</label><select id="saErrorReportStatus"><option value="open">待处理</option><option value="resolved">已解决</option><option value="ignored">已忽略</option></select>
+  <div id="saErrorReports" aria-live="polite">正在加载问题反馈…</div>
 </section>
 
 <section class="sa-panel" id="flightCorrectionsPanel">
@@ -317,7 +324,7 @@ onclick="markSelectedRed('noticeContent')"
 <script src="image-compression.js?v=20261011-webp-1280"></script>
 <script src="staff-chat.js?v=20261006-staff-tools"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="sa.js?v=20261018-unverified-rail-warning"></script>
+<script src="sa.js?v=20261024-error-reports-focus"></script>
 
 
 

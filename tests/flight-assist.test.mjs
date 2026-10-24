@@ -1,6 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture} from './helpers.mjs';
+import {parseRecognitionJSON} from '../worker/flight-assist.mjs';
+
+test('AI recognition parser accepts JSON wrapped in a code fence or short text',()=>{
+  assert.deepEqual(parseRecognitionJSON('```json\n{"flight_number":"MU5309"}\n```'),{flight_number:'MU5309'});
+  assert.deepEqual(parseRecognitionJSON('result: {"flight_number":"MU5309"} done'),{flight_number:'MU5309'});
+});
 
 test('flight assist uses approved exhibits and normalizes flight numbers', async () => {
   const {db,call}=fixture();

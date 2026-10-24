@@ -20,11 +20,14 @@
   const watermarkSettings = () => ({
     font: document.getElementById("watermarkFont")?.value || "inter",
     size: document.getElementById("watermarkSize")?.value || "40",
-    position: document.getElementById("watermarkPosition")?.value || "bottom-right"
+    position: document.getElementById("watermarkPosition")?.value || "bottom-right",
+    x: window.bpmWatermarkCustomPoint?.x,
+    y: window.bpmWatermarkCustomPoint?.y
   });
   const saveWatermarkSettings = () => {
     try { sessionStorage.setItem("bpmImageEditorWatermarkSettings", JSON.stringify(watermarkSettings())); } catch {}
   };
+  window.addEventListener("bpm-watermark-position-change", saveWatermarkSettings);
   const persistImage = async (key, legacyKey, options) => {
     const blob = await window.bpmExportEditorBlob?.(options);
     if (!blob) throw Error("无法导出图片，请重新选择图片后重试");

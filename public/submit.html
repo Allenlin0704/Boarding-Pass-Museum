@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-<script src="security.js?v=20261017-turnstile-selective"></script>
+<script src="security.js?v=20261024-error-feedback"></script>
 <script src="transit-operators.js?v=20261018-operators"></script>
 <link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
@@ -13,11 +13,11 @@
 投稿 | BoardingPassMuseum
 </title>
 
-<link rel="stylesheet" href="style.css?v=20260930-mobile-polish">
-<link rel="stylesheet" href="features.css?v=20261017-share-palette">
+<link rel="stylesheet" href="style.css?v=20261024-focus-animation">
+<link rel="stylesheet" href="features.css?v=20261024-focus-picker">
 <link rel="stylesheet" href="submit-page.css?v=20261017-operator-picker">
 <link rel="stylesheet" href="watermark-fonts.css?v=20260927-1">
-  <script src="theme.js?v=20261017-inline-editor"></script>
+  <script src="theme.js?v=20261024-share-default"></script>
 
 
 
@@ -148,7 +148,7 @@
       <p class="watermark-fixed-preview">BoardingPassMuseum</p>
       <label for="watermarkFont">字体</label><select id="watermarkFont"><option value="inter">Inter</option><option value="plex">IBM Plex Sans</option><option value="playfair">Playfair Display</option></select>
       <label for="watermarkSize">字体大小</label><input id="watermarkSize" type="range" min="10" max="120" value="40">
-      <label for="watermarkPosition">位置</label><select id="watermarkPosition"><option value="bottom-right">右下角</option><option value="bottom-left">左下角</option><option value="top-right">右上角</option><option value="top-left">左上角</option></select>
+      <label for="watermarkPosition">位置</label><select id="watermarkPosition"><option value="bottom-right">右下角</option><option value="bottom-left">左下角</option><option value="top-right">右上角</option><option value="top-left">左上角</option><option value="custom">自定义（拖动水印）</option></select>
     </details>
   </section>
 </div>
@@ -163,7 +163,7 @@
 <section class="submit-final-card">
 <div class="submit-card-heading"><span class="submit-section-index">03</span><div><h2>检查并提交</h2><p>确认票据信息准确，图片已处理，再提交审核。</p></div></div>
 <p class="submission-rules-notice"><label class="required-submission-consent"><input id="rulesConsent" type="checkbox" required> <span>我已阅读并同意本站<a href="rules.html" target="_blank" rel="noopener"><strong>《投稿及审核条例》</strong></a>。</span></label></p>
-<label class="social-share-consent"><input id="socialShareConsent" type="checkbox"> <span data-i18n="submit.socialShareConsent">允许本站将这件展品的公开信息用于官方社交媒体展示（可选，默认关闭）。</span></label>
+<label class="social-share-consent"><input id="socialShareConsent" type="checkbox" checked> <span data-i18n="submit.socialShareConsent">允许本站将这件展品的公开信息用于官方社交媒体展示（可选，可随时撤回）。</span></label>
 <p class="submission-rules-notice" data-i18n="submit.socialSharePrivacy">不授权也可以投稿。分享卡不含票面照片；你可在展品通过审核后随时开启或撤回此授权。</p>
 <button id="submitBtn" type="button">提交审核</button>
 <div class="submit-draft-actions"><button id="saveDraftBtn" type="button">保存草稿</button><button id="clearDraftBtn" type="button">清除草稿</button><p id="draftStatus" role="status" aria-live="polite"></p></div>
@@ -189,8 +189,8 @@ BoardingPassMuseum © 2026
 
 <script src="image-handoff.js?v=20261001-mobile-editor"></script>
 <script src="image-compression.js?v=20261016-mobile-format-fallback"></script>
-<script src="watermark.js?v=20261017-inline-editor"></script>
-<script src="image-editor.js?v=20261017-inline-editor"></script>
+<script src="watermark.js?v=20261024-draggable"></script>
+<script src="image-editor.js?v=20261024-watermark-position"></script>
 <script src="ai-provider.js?v=20261011-cloudflare-ai"></script>
 
 <script src="display.js"></script>
@@ -199,7 +199,7 @@ BoardingPassMuseum © 2026
 
 <script src="notice.js?v=20260930-popup-fix"></script>
 <script src="iso-country-picker.js?v=20261011-iso"></script>
-<script src="submit.js?v=20261018-transit-categories"></script>
+<script src="submit.js?v=20261024-share-default"></script>
 
 <footer class="bpm-footer">
 

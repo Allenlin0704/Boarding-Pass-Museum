@@ -15,7 +15,7 @@ export const turnstileAction=(path)=>{
   if(path==='/api/register')return 'signup';
   if(path==='/api/account/reset/send-code')return 'reset_code';
   if(path==='/api/account/reset-password')return 'reset';
-  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts'||path==='/api/flight-assist/recognize'||path==='/api/account/admin-request'||path==='/api/appeal'||path==='/api/community/moderation-appeal'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path))return 'submission';
+  if(path==='/api/submit'||path==='/api/upload-image'||path==='/api/community/posts'||path==='/api/flight-assist/recognize'||path==='/api/error-reports'||path==='/api/account/admin-request'||path==='/api/appeal'||path==='/api/community/moderation-appeal'||/^\/api\/(?:sa\/site-photos\/upload|admin\/site-photo-requests\/\d+\/submit)$/.test(path))return 'submission';
   if(['/api/admin/approve','/api/admin/reject','/api/sa/approve','/api/sa/reject','/api/sa/admin-request/approve','/api/sa/admin-request/reject','/api/sa/appeal/approve','/api/sa/appeal/reject','/api/sa/community/posts/status','/api/sa/community/moderate','/api/sa/community/appeals/resolve','/api/admin/community/hide'].includes(path))return path.startsWith('/api/sa/')?'sa_console':'admin_review';
   return null;
 };

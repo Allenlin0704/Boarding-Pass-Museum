@@ -902,7 +902,7 @@ avatarCanvas
 if(avatarFile && avatarCanvas && avatarCtx){
 let avatarImage=null,cropX=0,cropY=0,cropZoom=1,pointer=null;
 const shapeControl=document.getElementById("avatarCropShape"),zoomControl=document.getElementById("avatarCropZoom"),saveControl=document.getElementById("saveAvatarCrop"),avatarStatus=document.getElementById("avatarSaveStatus");
-const previewWrap=avatarCanvas.closest(".avatar-preview-wrap");if(previewWrap)previewWrap.style.display="block";
+const previewWrap=avatarCanvas.closest(".avatar-preview-wrap"),profilePreview=document.getElementById("profileAvatarPreview");
 function renderAvatarCrop(){
  if(!avatarImage)return;
  const side=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom;
@@ -912,9 +912,9 @@ function renderAvatarCrop(){
  avatarCtx.drawImage(avatarImage,cropX,cropY,side,side,0,0,300,300);avatarCtx.restore();
  avatarCanvas.style.borderRadius=shapeControl?.value==="circle"?"50%":"8px";if(saveControl)saveControl.disabled=false;
 }
-avatarFile.onchange=function(){
- const file=this.files[0];if(!file)return;if(!file.type.startsWith("image/")){showToast("请选择图片文件");return;}
- const reader=new FileReader();reader.onload=event=>{const image=new Image();image.onload=()=>{avatarImage=image;cropZoom=1;const side=Math.min(image.naturalWidth,image.naturalHeight);cropX=(image.naturalWidth-side)/2;cropY=(image.naturalHeight-side)/2;if(zoomControl)zoomControl.value="1";renderAvatarCrop();};image.src=event.target.result;};reader.readAsDataURL(file);
+avatarFile.onchange=async function(){
+ const file=this.files[0];if(!file)return;if(previewWrap)previewWrap.style.display="block";if(profilePreview)profilePreview.hidden=true;
+ try{const converted=String(file.type||"").toLowerCase()==="image/webp"?file:await window.bpmCompressImageFile(file,{maxEdge:1280,maxBytes:1024*1024});const reader=new FileReader();reader.onload=event=>{const image=new Image();image.onload=()=>{avatarImage=image;cropZoom=1;const side=Math.min(image.naturalWidth,image.naturalHeight);cropX=(image.naturalWidth-side)/2;cropY=(image.naturalHeight-side)/2;if(zoomControl)zoomControl.value="1";renderAvatarCrop();};image.onerror=()=>showToast("浏览器无法打开这张图片，请先转换为 JPEG/PNG");image.src=event.target.result;};reader.readAsDataURL(converted);}catch(error){if(previewWrap)previewWrap.style.display="none";if(profilePreview)profilePreview.hidden=false;showToast(error.message||"图片读取失败，请重新选择");}
 };
 zoomControl?.addEventListener("input",()=>{if(!avatarImage)return;const oldSide=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom,cx=cropX+oldSide/2,cy=cropY+oldSide/2;cropZoom=Number(zoomControl.value)||1;const side=Math.min(avatarImage.naturalWidth,avatarImage.naturalHeight)/cropZoom;cropX=cx-side/2;cropY=cy-side/2;renderAvatarCrop();});
 shapeControl?.addEventListener("change",renderAvatarCrop);
@@ -923,7 +923,7 @@ avatarCanvas.addEventListener("pointermove",event=>{if(!pointer||!avatarImage)re
 for(const name of ["pointerup","pointercancel","lostpointercapture"])avatarCanvas.addEventListener(name,()=>{pointer=null;});
 saveControl?.addEventListener("click",async()=>{
  if(!avatarImage)return;saveControl.disabled=true;if(avatarStatus)avatarStatus.textContent="正在上传并保存头像…";const circle=shapeControl?.value==="circle";
- try{const blob=await window.bpmCompressCanvas(avatarCanvas,{preserveAlpha:circle});const formData=new FormData();formData.append("image",blob,"avatar.webp");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.style.borderRadius=circle?"50%":"12px";const saveButton=document.getElementById("saveProfile"),saved=saveButton?.onclick?await saveButton.onclick():false;if(!saved)throw Error("头像已上传，但档案保存失败。请重新确认后再试。");if(avatarStatus)avatarStatus.textContent="头像已保存。重新打开个人主页即可看到新头像。";showToast("头像已保存到档案");avatarFile.value="";avatarImage=null;saveControl.disabled=true;}catch(error){if(avatarStatus)avatarStatus.textContent=error.message||"头像保存失败，请重试。";showToast(error.message||"头像上传失败");}finally{if(avatarImage)saveControl.disabled=false;}
+ try{const blob=await window.bpmCompressCanvas(avatarCanvas,{preserveAlpha:circle});const formData=new FormData();formData.append("image",blob,"avatar.webp");const response=await fetch("https://api.bpmuseum.org.cn/api/upload-image",{method:"POST",body:formData,credentials:"include"}),result=await response.json();if(!response.ok||!result.url)throw Error(result.error||"头像上传失败");avatarInput.value=result.url;avatarPreview.src=result.url;avatarPreview.hidden=false;avatarPreview.style.borderRadius=circle?"50%":"12px";if(previewWrap)previewWrap.style.display="none";const saveButton=document.getElementById("saveProfile"),saved=saveButton?.onclick?await saveButton.onclick():false;if(!saved)throw Error("头像已上传，但档案保存失败。请重新确认后再试。");if(avatarStatus)avatarStatus.textContent="头像已保存。重新打开个人主页即可看到新头像。";showToast("头像已保存到档案");avatarFile.value="";avatarImage=null;saveControl.disabled=true;}catch(error){if(avatarStatus)avatarStatus.textContent=error.message||"头像保存失败，请重试。";showToast(error.message||"头像上传失败");}finally{if(avatarImage)saveControl.disabled=false;}
 });
 }
 

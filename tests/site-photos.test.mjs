@@ -72,13 +72,17 @@ test('photo invitations, rights-confirmed upload, SA approval, and placement upd
   assert.equal(submitted.weekday,1);
   assert.equal(submitted.show_home,true);
   assert.equal(submitted.show_login,false);
+  assert.equal(submitted.focus_x,18);
+  assert.equal(submitted.focus_y,47);
 
-  const saved=await call(`/api/sa/site-photos/${submitted.id}`,{credit:'更新署名',show_home:true,show_login:true,show_register:false,weekday:1,active:true},1);
+  const saved=await call(`/api/sa/site-photos/${submitted.id}`,{credit:'更新署名',show_home:true,show_login:true,show_register:false,weekday:1,active:true,focus_x:72,focus_y:34},1);
   assert.equal(saved.status,200);
   managed=(await (await call('/api/sa/site-photos',undefined,1)).json()).photos;
   submitted=managed.find(photo=>photo.credit==='更新署名');
   assert.equal(submitted.weekday,1);
   assert.equal(submitted.show_login,true);
+  assert.equal(submitted.focus_x,72);
+  assert.equal(submitted.focus_y,34);
   assert.equal(db.prepare('SELECT status FROM site_photo_requests WHERE id=?').get(invitation.id).status,'approved');
 });
 

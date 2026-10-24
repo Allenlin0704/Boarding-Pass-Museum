@@ -32,6 +32,14 @@ function normalizedFields(value){
   };
 }
 
+export function parseRecognitionJSON(content){
+  const text=String(content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  try{return JSON.parse(text);}catch{}
+  const start=text.indexOf('{'),end=text.lastIndexOf('}');
+  if(start<0||end<=start)throw new Error('Invalid recognition JSON');
+  return JSON.parse(text.slice(start,end+1));
+}
+
 export async function flightAssistRoute(request,env,url,user,trustedCountry){
   if(url.pathname==='/api/ai/provider'&&request.method==='GET'){
     const provider=aiProviderForRequest(request,trustedCountry);
@@ -63,6 +71,6 @@ export async function flightAssistRoute(request,env,url,user,trustedCountry){
   const content=aiText(result);
   if(typeof content!=='string'||content.length>5000)return reply({error:'AI 未能读取票面，请手动填写'},502);
   let parsed;
-  try{parsed=JSON.parse(content);}catch{return reply({error:'AI 返回结果格式无效，请手动填写'},502);}
+  try{parsed=parseRecognitionJSON(content);}catch{return reply({error:'AI 返回结果格式无效，请手动填写'},502);}
   return reply({success:true,provider:provider.id,fields:normalizedFields(parsed)});
 }

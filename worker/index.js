@@ -8,6 +8,7 @@ import { sitePhotoRoute } from "./site-photos.mjs";
 import { staffRoute } from "./staff.mjs";
 import { flightAssistRoute } from "./flight-assist.mjs";
 import { translationRoute } from "./translation.mjs";
+import { errorReportsRoute } from "./error-reports.mjs";
 import { saSecurityRoute, requireSAStepup } from "./sa-security.mjs";
 import { authenticate, boundedRequest, uploadImage, accountRoute, responseHeaders, requestId, reply, isSA, verifyTurnstile } from "./security.mjs";
 // =====================================
@@ -2528,6 +2529,8 @@ export default {
       }
       const flightAssist=await flightAssistRoute(request.clone(),env,url,auth.user,trustedCountry);
       if(flightAssist)return responseHeaders(original,flightAssist);
+      const errorReports=await errorReportsRoute(request.clone(),env,url,auth.user);
+      if(errorReports)return responseHeaders(original,errorReports);
       const translation=await translationRoute(request.clone(),env,url,trustedCountry);
       if(translation)return responseHeaders(original,translation);
       const progress = await progressRoute(request,env,url);

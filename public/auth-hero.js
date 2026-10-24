@@ -28,6 +28,12 @@
     const url = safeUrl(photo?.image_url) || fallback(placement, slot).image_url;
     const cover = `url(${JSON.stringify(url)})`;
     hero.style.setProperty('--auth-cover', cover);
+    const focusX = Math.max(0, Math.min(100, Number(photo?.focus_x ?? 18)));
+    const focusY = Math.max(0, Math.min(100, Number(photo?.focus_y ?? 47)));
+    hero.style.setProperty('--mobile-focus-x', `${focusX}%`);
+    hero.style.setProperty('--mobile-focus-y', `${focusY}%`);
+    document.documentElement.style.setProperty('--mobile-focus-x', `${focusX}%`);
+    document.documentElement.style.setProperty('--mobile-focus-y', `${focusY}%`);
     hero.dataset.photoDay = date;
     const credit = String(photo?.credit || 'allenlin').slice(0, 100);
     const creditNode = hero.closest('.auth-page')?.querySelector('.auth-photo-credit')

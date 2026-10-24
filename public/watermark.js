@@ -20,6 +20,7 @@ if (imageInput && canvas) {
     const WATERMARK_TEXT = "BoardingPassMuseum";
     const WATERMARK_OPACITY = 0.55;
     const WATERMARK_FONTS = {inter:"BPM Inter",plex:"BPM Plex",playfair:"BPM Playfair"};
+    let watermarkCustomPoint=null;
     function updateWatermarkPreview(){
         const family=WATERMARK_FONTS[watermarkFont?.value]||WATERMARK_FONTS.inter;
         document.querySelectorAll(".watermark-fixed-preview").forEach(node=>{node.style.fontFamily=`\"${family}\", sans-serif`;});
@@ -31,7 +32,8 @@ if (imageInput && canvas) {
             if(watermarkFont&&Object.prototype.hasOwnProperty.call(WATERMARK_FONTS,settings.font))watermarkFont.value=settings.font;
             const size=Number(settings.size);
             if(watermarkSize&&Number.isFinite(size))watermarkSize.value=String(Math.min(Number(watermarkSize.max)||120,Math.max(Number(watermarkSize.min)||10,size)));
-            if(watermarkPosition&&["bottom-right","bottom-left","top-right","top-left"].includes(settings.position))watermarkPosition.value=settings.position;
+            if(watermarkPosition&&["bottom-right","bottom-left","top-right","top-left","custom"].includes(settings.position))watermarkPosition.value=settings.position;
+            if(settings.position==="custom"&&Number.isFinite(Number(settings.x))&&Number.isFinite(Number(settings.y))){watermarkCustomPoint={x:Number(settings.x),y:Number(settings.y)};window.bpmWatermarkCustomPoint=watermarkCustomPoint;}
         }catch{}
     }
     restoreWatermarkSettings();
@@ -53,7 +55,7 @@ if (imageInput && canvas) {
     let maskStart = null;
     let maskPreview = null;
     const masks = [];
-    let cropMode=false,cropStart=null,cropRect=null,watermarkBaked=false;
+    let cropMode=false,cropStart=null,cropRect=null,watermarkBaked=false,watermarkDragging=false;
 
     let lastX = 0;
     let lastY = 0;
@@ -136,6 +138,7 @@ if (imageInput && canvas) {
             canvas.setPointerCapture?.(e.pointerId);
             if(cropMode){cropStart=point;cropRect={x:point.x,y:point.y,w:0,h:0};draw();return;}
             if(maskMode){masking=true;maskStart=imagePoint(point);maskPreview={x:maskStart.x,y:maskStart.y,w:0,h:0};draw();return;}
+            if(isWatermarkPoint(point)){watermarkDragging=true;watermarkPosition.value="custom";watermarkCustomPoint={x:point.x,y:point.y};window.bpmWatermarkCustomPoint=watermarkCustomPoint;canvas.style.cursor="grabbing";draw();return;}
 
             dragging = true;
 
@@ -163,6 +166,7 @@ if (imageInput && canvas) {
             }
 
             if(masking&&maskStart){const p=imagePoint(point);maskPreview={x:Math.min(maskStart.x,p.x),y:Math.min(maskStart.y,p.y),w:Math.abs(p.x-maskStart.x),h:Math.abs(p.y-maskStart.y)};draw();return;}
+            if(watermarkDragging){watermarkCustomPoint={x:point.x,y:point.y};window.bpmWatermarkCustomPoint=watermarkCustomPoint;draw();return;}
 
 
             if(!dragging)
@@ -192,6 +196,7 @@ if (imageInput && canvas) {
 
             if(cropMode&&cropStart){cropStart=null;updateCropControls();return;}
             if(masking){if(maskPreview&&maskPreview.w>8&&maskPreview.h>8)masks.push(maskPreview);masking=false;maskStart=null;maskPreview=null;draw();updateMaskStatus();return;}
+            if(watermarkDragging){watermarkDragging=false;canvas.style.cursor="grab";window.dispatchEvent(new Event("bpm-watermark-position-change"));draw();return;}
 
             dragging=false;
 
@@ -391,6 +396,10 @@ if (imageInput && canvas) {
 
                 break;
 
+            case "custom":
+                if(watermarkCustomPoint){x=watermarkCustomPoint.x;y=watermarkCustomPoint.y;}
+                break;
+
 
         }
 
@@ -439,6 +448,15 @@ if (imageInput && canvas) {
 
 
     }
+
+    function watermarkBounds(){
+        const size=Number(watermarkSize.value)||40,fontFamily=WATERMARK_FONTS[watermarkFont?.value]||WATERMARK_FONTS.inter;
+        ctx.save();ctx.font=`600 ${size}px "${fontFamily}", sans-serif`;const width=ctx.measureText(WATERMARK_TEXT).width;ctx.restore();
+        let x=40,y=size+40;
+        switch(watermarkPosition.value){case "top-right":x=canvas.width-width-40;y=size+40;break;case "bottom-left":x=40;y=canvas.height-40;break;case "bottom-right":x=canvas.width-width-40;y=canvas.height-40;break;case "custom":if(watermarkCustomPoint){x=watermarkCustomPoint.x;y=watermarkCustomPoint.y;}break;}
+        return{x:x-15,y:y-size-10,w:width+30,h:size+25};
+    }
+    function isWatermarkPoint(point){const box=watermarkBounds();return point.x>=box.x&&point.x<=box.x+box.w&&point.y>=box.y&&point.y<=box.y+box.h;}
 
 
 

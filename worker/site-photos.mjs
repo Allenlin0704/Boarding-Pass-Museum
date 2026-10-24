@@ -47,6 +47,8 @@ function photoRow(row) {
     show_register: Number(row.show_register) === 1,
     sort_order: Number(row.sort_order),
     weekday: weekdayFromOrder(row.sort_order),
+    focus_x: Number(row.focus_x ?? 18),
+    focus_y: Number(row.focus_y ?? 47),
     active: Number(row.active) === 1,
     created_at: row.created_at
   };
@@ -84,7 +86,7 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
   if (path === '/api/site-photos' && method === 'GET') {
     const field = placementFields[url.searchParams.get('placement') || 'home'];
     if (!field) return reply({ error: '照片位置无效' }, 400);
-    const result = await env.DB.prepare(`SELECT id,image_url,credit,show_home,show_login,show_register,sort_order,active,created_at FROM site_cover_photos WHERE active=1 AND ${field}=1 ORDER BY sort_order,id`).all();
+    const result = await env.DB.prepare(`SELECT id,image_url,credit,show_home,show_login,show_register,sort_order,active,created_at,focus_x,focus_y FROM site_cover_photos WHERE active=1 AND ${field}=1 ORDER BY sort_order,id`).all();
     const today = beijingWeekday();
     const photo = (result.results || []).find(row => weekdayFromOrder(row.sort_order) === today);
     return reply(photo ? [photoRow(photo)] : []);
@@ -93,7 +95,7 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
   if (path === '/api/sa/site-photos' && method === 'GET') {
     if (!isSA(user)) return reply({ error: 'No permission' }, 403);
     const [photos, requests, admins] = await Promise.all([
-      env.DB.prepare('SELECT id,image_url,credit,show_home,show_login,show_register,sort_order,active,created_at FROM site_cover_photos ORDER BY sort_order,id').all(),
+      env.DB.prepare('SELECT id,image_url,credit,show_home,show_login,show_register,sort_order,active,created_at,focus_x,focus_y FROM site_cover_photos ORDER BY sort_order,id').all(),
       env.DB.prepare(`SELECT r.*,u.username AS admin_name FROM site_photo_requests r JOIN users u ON u.id=r.admin_id WHERE r.status='pending_review' ORDER BY r.submitted_at,r.id`).all(),
       env.DB.prepare("SELECT id,username FROM users WHERE role='administrator' ORDER BY username,id").all()
     ]);
@@ -182,10 +184,12 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
     const weekday = requestedWeekday(body);
     const flags = ['show_home', 'show_login', 'show_register'].map(key => body[key] === true || body[key] === 1);
     const active = body.active !== false && body.active !== 0;
+    const focusX = Number(body.focus_x ?? 18), focusY = Number(body.focus_y ?? 47);
+    if (!Number.isFinite(focusX) || !Number.isFinite(focusY) || focusX < 0 || focusX > 100 || focusY < 0 || focusY > 100) return reply({ error: '图片焦点位置无效' }, 400);
     if (!credit || credit.length > 100 || !weekday || (active && !flags.some(Boolean))) return reply({ error: '请填写署名、展示星期和展示位置' }, 400);
     if (active && await weekdayConflict(env, weekday, flags, Number(photoSaveMatch[1]))) return reply({ error: '该星期的所选展示位置已有启用照片，请选择其他星期或先调整原照片' }, 409);
-    const result = await env.DB.prepare('UPDATE site_cover_photos SET credit=?,show_home=?,show_login=?,show_register=?,sort_order=?,active=? WHERE id=?')
-      .bind(credit, Number(flags[0]), Number(flags[1]), Number(flags[2]), weekday, Number(active), Number(photoSaveMatch[1])).run();
+    const result = await env.DB.prepare('UPDATE site_cover_photos SET credit=?,show_home=?,show_login=?,show_register=?,sort_order=?,active=?,focus_x=?,focus_y=? WHERE id=?')
+      .bind(credit, Number(flags[0]), Number(flags[1]), Number(flags[2]), weekday, Number(active), focusX, focusY, Number(photoSaveMatch[1])).run();
     return result.meta.changes ? reply({ success: true }) : reply({ error: '照片不存在' }, 404);
   }
 
@@ -207,14 +211,16 @@ export async function sitePhotoRoute(request, env, url, user, uploadImage) {
       const showLogin = body.show_login === true || body.show_login === 1;
       const showRegister = body.show_register === true || body.show_register === 1;
       const weekday = requestedWeekday(body);
+      const focusX = Number(body.focus_x ?? 18), focusY = Number(body.focus_y ?? 47);
+      if (!Number.isFinite(focusX) || !Number.isFinite(focusY) || focusX < 0 || focusX > 100 || focusY < 0 || focusY > 100) return reply({ error: '图片焦点位置无效' }, 400);
       const flags = [showHome, showLogin, showRegister];
       if ((!showHome && !showLogin && !showRegister) || !weekday) return reply({ error: '请选择展示位置和星期几' }, 400);
       if (await weekdayConflict(env, weekday, flags)) return reply({ error: '该星期的所选展示位置已有启用照片，请先调整原照片' }, 409);
       const statements = [
         env.DB.prepare("UPDATE site_photo_requests SET status='approved',show_home=?,show_login=?,show_register=?,sort_order=?,reviewer_id=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending_review'").bind(Number(showHome), Number(showLogin), Number(showRegister), weekday, user.id, id),
-        env.DB.prepare(`INSERT OR IGNORE INTO site_cover_photos(image_url,credit,show_home,show_login,show_register,sort_order,active,submitted_by,request_id)
-          SELECT image_url,credit,show_home,show_login,show_register,sort_order,1,admin_id,id FROM site_photo_requests WHERE id=? AND status='approved' AND reviewer_id=?`)
-          .bind(id, user.id),
+        env.DB.prepare(`INSERT OR IGNORE INTO site_cover_photos(image_url,credit,show_home,show_login,show_register,sort_order,active,submitted_by,request_id,focus_x,focus_y)
+          SELECT image_url,credit,show_home,show_login,show_register,sort_order,1,admin_id,id,?,? FROM site_photo_requests WHERE id=? AND status='approved' AND reviewer_id=?`)
+          .bind(focusX, focusY, id, user.id),
         env.DB.prepare("INSERT INTO notifications(user_id,content) SELECT admin_id,'你提交的主页照片已通过 SA 审核并加入照片排期。' FROM site_photo_requests WHERE id=? AND status='approved' AND reviewer_id=? AND changes()>0")
           .bind(id, user.id)
       ];
