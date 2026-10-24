@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="style.css?v=20261024-focus-animation">
   <script src="theme.js?v=20261024-share-default"></script>
 
-  <link rel="stylesheet" href="site-polish.css?v=20261010-global-design">
+  <link rel="stylesheet" href="site-polish.css?v=20261024-collection-organizer">
 </head>
 
 
@@ -62,6 +62,21 @@
 我的收藏
 </h1>
 
+<section class="favorite-organizer" aria-label="收藏整理">
+  <div class="favorite-filters">
+    <label><span>搜索收藏</span><input id="favoriteSearch" type="search" placeholder="航班、航司、机场或日期"></label>
+    <label><span>票种</span><select id="favoriteType"><option value="">全部票种</option><option value="boarding_pass">登机牌</option><option value="rail_ticket">火车票</option><option value="metro_ticket">地铁票</option></select></label>
+    <label><span>年份</span><select id="favoriteYear"><option value="">全部年份</option></select></label>
+    <label><span>排序</span><select id="favoriteSort"><option value="flight_desc">出行日期（新到旧）</option><option value="flight_asc">出行日期（旧到新）</option><option value="saved_desc">最近收藏</option></select></label>
+  </div>
+  <div class="favorite-bulk-toolbar">
+    <label><input type="checkbox" id="favoriteSelectAll"> 选择当前结果</label>
+    <span id="favoriteSelectionCount" aria-live="polite">已选择 0 件</span>
+    <button type="button" id="favoriteBulkRemove" disabled>批量移出收藏</button>
+  </div>
+  <p id="favoriteStatus" role="status" aria-live="polite"></p>
+</section>
+
 
 <div id="favoriteList" class="museum-grid">
 
@@ -72,7 +87,8 @@
 
 
 
-<script src="favorites.js?v=20260927"></script>
+<script src="auth.js?v=20261017-recruitment-eligibility"></script>
+<script src="favorites.js?v=20261024-collection-organizer"></script>
 
 <footer class="bpm-footer">
 
@@ -124,7 +140,6 @@ allenlin_developer@outlook.com
 
 </footer>
 
-<script src="auth.js?v=20261017-recruitment-eligibility"></script>
 </body>
 
 </html>

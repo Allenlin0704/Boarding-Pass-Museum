@@ -361,13 +361,32 @@ function renderFlightFootprint(flights){
     const airlines = countBy("airline");
     const airports = countBy("airport");
     const years = new Map();
-    flights.forEach(flight => {
-        const year = String(flight.date || "").match(/^\d{4}/)?.[0];
-        if(year) years.set(year, (years.get(year) || 0) + 1);
-    });
-    const max = Math.max(...years.values(), 1);
-    const timeline = [...years.entries()].sort((a,b) => a[0].localeCompare(b[0])).map(([year, count]) => `
-        <li><span>${escapeHTML(year)}</span><i style="width:${Math.max(12, Math.round(count / max * 100))}%"></i><strong>${count}</strong></li>`).join("") || '<li><span>暂无日期信息</span></li>';
+    for(const flight of flights){
+        const match=String(flight.date||"").match(/^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?/);
+        if(!match)continue;
+        const [,year,month="00"]=match;
+        if(!years.has(year))years.set(year,new Map());
+        const months=years.get(year),items=months.get(month)||[];items.push(flight);months.set(month,items);
+    }
+    const monthNames=window.BPM_LANGUAGE==="en"
+        ?["Date unknown","January","February","March","April","May","June","July","August","September","October","November","December"]
+        :window.BPM_LANGUAGE==="zh-TW"
+            ?["日期未記錄","一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"]
+            :["日期未记录","一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"];
+    const exhibitCount=count=>window.BPM_LANGUAGE==="en"?`${count} exhibits`:window.BPM_LANGUAGE==="zh-TW"?`${count} 張`:`${count} 张`;
+    const yearTimeline=[...years.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([year,months],yearIndex)=>{
+        const count=[...months.values()].reduce((sum,items)=>sum+items.length,0);
+        const monthRows=[...months.entries()].sort((a,b)=>b[0].localeCompare(a[0])).map(([month,items])=>{
+            items.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||Number(b.id)-Number(a.id));
+            const title=`${escapeHTML(monthNames[Number(month)]||monthNames[0])} · ${escapeHTML(exhibitCount(items.length))}`;
+            return `<details class="footprint-month"><summary>${title}</summary><ol>${items.map(flight=>{
+                const label=[flight.airline,flight.flight].filter(Boolean).join(" ")||"未填写航班信息";
+                const place=flight.route||flight.airport||"地点未填写";
+                return `<li><time>${escapeHTML(flight.date||"日期未记录")}</time><a href="detail.html?id=${Number(flight.id)}"><strong>${escapeHTML(label)}</strong><span>${escapeHTML(place)}</span></a></li>`;
+            }).join("")}</ol></details>`;
+        }).join("");
+        return `<details class="footprint-year" ${yearIndex===0?"open":""}><summary><strong>${escapeHTML(year)}</strong><span>${escapeHTML(exhibitCount(count))}</span></summary><div class="footprint-months">${monthRows}</div></details>`;
+    }).join("");
     const describe = item => item ? `${escapeHTML(item[0])} · ${Number(item[1])} 张` : "暂无";
 
     box.innerHTML = `
@@ -378,7 +397,8 @@ function renderFlightFootprint(flights){
         <div><strong>${years.size}</strong><span>年份</span></div>
       </div>
       <div class="footprint-highlights"><p><span>常见航司</span>${describe(top(airlines))}</p><p><span>常见机场</span>${describe(top(airports))}</p></div>
-      <h3>按年份收藏</h3><ul class="footprint-timeline">${timeline}</ul>`;
+      <div class="footprint-timeline-heading"><h3>旅程时间轴</h3><span>按票面日期整理</span></div>
+      <div class="footprint-years">${yearTimeline||'<p class="profile-empty">暂无可用日期信息</p>'}</div>`;
 }
 
 /* =========================

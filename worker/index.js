@@ -896,14 +896,16 @@ const result =
 await env.DB.prepare(
 `
 SELECT
-flights.*
+flights.*,
+favorites.flight_id AS flight_id,
+favorites.created_at AS favorited_at
 FROM favorites
 
 JOIN flights
 
 ON favorites.flight_id=flights.id
 
-WHERE favorites.user_id=?
+WHERE favorites.user_id=? AND flights.status='approved'
 
 ORDER BY favorites.id DESC
 `
@@ -1052,6 +1054,17 @@ headers
 }
 );
 
+}
+
+if(url.pathname==="/api/favorites/bulk-remove"&&request.method==="POST"){
+const body=await request.json();
+const rawIds=Array.isArray(body.flight_ids)?body.flight_ids:[];
+if(rawIds.length>50)return Response.json({success:false,error:"每次最多移除 50 件收藏"},{status:400,headers});
+const user_id=Number(body.user_id),ids=[...new Set(rawIds.map(Number).filter(id=>Number.isSafeInteger(id)&&id>0))];
+if(!Number.isSafeInteger(user_id)||user_id<1||!ids.length)return Response.json({success:false,error:"请选择要移除的收藏"},{status:400,headers});
+const placeholders=ids.map(()=>"?").join(",");
+const result=await env.DB.prepare(`DELETE FROM favorites WHERE user_id=? AND flight_id IN (${placeholders})`).bind(user_id,...ids).run();
+return Response.json({success:true,removed:Number(result.meta?.changes||0)},{headers});
 }
 
 // =====================================

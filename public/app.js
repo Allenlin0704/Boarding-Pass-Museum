@@ -124,7 +124,8 @@ async function loadFlights() {
 
       const favRes =
       await fetch(
-        `https://api.bpmuseum.org.cn/api/favorites?user_id=${user.id}`
+        `https://api.bpmuseum.org.cn/api/favorites`,
+        {credentials:"include",cache:"no-store"}
       );
 
 
@@ -629,6 +630,7 @@ await fetch(
 url,
 {
 method:"POST",
+credentials:"include",
 headers:{
 "Content-Type":"application/json"
 },

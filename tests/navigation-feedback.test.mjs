@@ -17,6 +17,6 @@ test('update and problem-feedback controls sit in the main navigation, outside t
 
 test('service worker refreshes the shell and pre-caches annual report and EXIF tools',()=>{
   const source=readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
-  assert.match(source,/bpmuseum-shell-v45/);
+  assert.match(source,/bpmuseum-shell-v46/);
   for(const path of ['/annual-report.html','/annual-report.js','/exif-metadata.js','/about.html','/privacy.html'])assert.ok(source.includes(path),`${path} is precached`);
 });

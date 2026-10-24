@@ -120,6 +120,12 @@ function renderSubmissions(flights) {
   }
 
   currentFlights = flights.map(flight => bpmSafeRecord(flight));
+  const query=(document.getElementById("mySubmissionSearch")?.value||"").trim().toLocaleLowerCase();
+  const statusFilter=document.getElementById("mySubmissionStatus")?.value||"";
+  const visibleFlights=currentFlights.filter(flight=>{
+    const searchable=[flight.airline,flight.flight,flight.airport,flight.route,flight.date,flight.submission_type].join(" ").toLocaleLowerCase();
+    return (!query||searchable.includes(query))&&(!statusFilter||flight.status===statusFilter);
+  });
   submissions.innerHTML = `
     <div class="my-bulk-toolbar" role="region" aria-label="批量管理展品">
       <label><input type="checkbox" id="mySelectAll"> 全选</label>
@@ -130,7 +136,13 @@ function renderSubmissions(flights) {
     </div>
   `;
 
-  currentFlights.forEach(flight => {
+  if(!visibleFlights.length){
+    submissions.insertAdjacentHTML?.("beforeend",`<p class="my-empty">${currentFlights.length?window.bpmLocaleText("没有符合条件的投稿")||"没有符合条件的投稿":"暂无投稿"}</p>`);
+    updateBulkToolbar();
+    return;
+  }
+
+  visibleFlights.forEach(flight => {
 
     const status = getStatus(flight);
 
@@ -327,6 +339,10 @@ function renderSubmissions(flights) {
   });
   updateBulkToolbar();
 
+}
+
+for(const id of ["mySubmissionSearch","mySubmissionStatus"]){
+  document.getElementById(id)?.addEventListener(id==="mySubmissionSearch"?"input":"change",()=>renderSubmissions(currentFlights));
 }
 
 function selectedFlightIds() {
