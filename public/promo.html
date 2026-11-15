@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fa"><title>BoardingPassMuseum · 宣传片</title>
+  <meta name="description" content="BoardingPassMuseum 官方宣传片：收藏每一次起飞，保存每一段旅程。">
+  <link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/site-polish.css">
+  <style>
+    body{background:#f5f7fa;color:#14253d}.promo-shell{width:min(1080px,calc(100% - 32px));margin:36px auto 64px}.promo-head{display:flex;align-items:center;gap:12px;margin-bottom:24px}.promo-head img{width:46px;height:46px;object-fit:contain}.promo-head strong{font-size:17px}.promo-head span{display:block;color:#60728a;font-size:13px;margin-top:3px}.promo-card{overflow:hidden;border:1px solid #dbe4ee;border-radius:18px;background:#fff;box-shadow:0 16px 44px #172f4a12}.promo-poster{display:block;width:100%;max-height:62vh;object-fit:cover;background:#eaf2fa}.promo-copy{padding:22px 24px 26px}.promo-copy h1{font-size:clamp(23px,4vw,34px);margin:0 0 8px;letter-spacing:-.03em}.promo-copy p{margin:0;color:#60728a;line-height:1.7}.promo-video{display:block;width:100%;background:#07111d;aspect-ratio:16/9}.promo-foot{margin-top:16px;color:#60728a;font-size:13px;text-align:center}@media(max-width:640px){.promo-shell{margin:20px auto 40px}.promo-copy{padding:17px}.promo-poster{max-height:none}}
+  </style>
+</head>
+<body>
+  <main class="promo-shell">
+    <header class="promo-head"><img src="/favicon.png" alt=""><div><strong>BoardingPassMuseum</strong><span id="tagline">收藏每一次起飞，保存每一段旅程</span></div></header>
+    <article class="promo-card">
+      <img class="promo-poster" src="/assets/promo/v2-cover.jpg" alt="BoardingPassMuseum 宣传片封面">
+      <section class="promo-copy"><h1 id="title">BoardingPassMuseum · 官方宣传片</h1><p id="description">看看展厅里的旅程，也来收藏属于你的那一段。</p></section>
+      <video class="promo-video" controls playsinline preload="metadata" poster="/assets/promo/v2-cover.jpg">
+        <source src="https://images.bpmuseum.org.cn/promo/v2.mp4" type="video/mp4">
+      </video>
+    </article>
+    <footer class="promo-foot" id="foot">BoardingPassMuseum · 收藏每一次起飞，保存每一段旅程</footer>
+  </main>
+  <script>
+    (()=>{const requested=new URLSearchParams(location.search).get('lang');const lang=['en','zh-TW','zh-CN'].includes(requested)?requested:(localStorage.getItem('bpm-language')||'zh-CN');const copy={en:{tag:'Keep every takeoff. Preserve every journey.',title:'BoardingPassMuseum · Official Film',description:'Explore the journeys in the gallery, and save a journey of your own.',alt:'BoardingPassMuseum promo film cover',foot:'BoardingPassMuseum · Keep every takeoff. Preserve every journey.'},'zh-TW':{tag:'收藏每一次起飛，保存每一段旅程',title:'BoardingPassMuseum · 官方宣傳片',description:'看看展廳裡的旅程，也來收藏屬於你的那一段。',alt:'BoardingPassMuseum 宣傳片封面',foot:'BoardingPassMuseum · 收藏每一次起飛，保存每一段旅程'},'zh-CN':{tag:'收藏每一次起飞，保存每一段旅程',title:'BoardingPassMuseum · 官方宣传片',description:'看看展厅里的旅程，也来收藏属于你的那一段。',alt:'BoardingPassMuseum 宣传片封面',foot:'BoardingPassMuseum · 收藏每一次起飞，保存每一段旅程'}}[lang]||{};for(const id of ['tagline','title','description','foot'])document.getElementById(id).textContent=copy[id==='tagline'?'tag':id];document.querySelector('.promo-poster').alt=copy.alt;document.documentElement.lang=lang})();
+  </script>
+</body>
+</html>
